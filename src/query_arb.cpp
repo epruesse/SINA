@@ -84,8 +84,7 @@ using boost::lambda::bind;
 #include <boost/progress.hpp>
 #include <boost/foreach.hpp>
 
-#include <tr1/unordered_map>
-#include <ext/hash_map>
+#include <unordered_map>
 
 using namespace sina;
 
@@ -103,9 +102,9 @@ struct query_arb::priv_data {
 
     typedef map<std::string, cseq> sequence_cache_type;
     typedef list<std::string> error_list_type;
-    typedef std::tr1::unordered_map<string, GBDATA*,
-                                     boost::hash<string>
-                                    > gbdata_cache_type;
+    typedef std::unordered_map<string, GBDATA*,
+                               boost::hash<string>
+                               > gbdata_cache_type;
 
     sequence_cache_type sequence_cache;
     gbdata_cache_type gbdata_cache;

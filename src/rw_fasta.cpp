@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <sstream>
 
-#include <ext/functional>
+#include <functional>
 
 #include <boost/thread/thread.hpp>
 #include <boost/shared_ptr.hpp>
@@ -48,8 +48,6 @@ using boost::shared_ptr;
 using boost::bind;
 using boost::split;
 using boost::algorithm::iequals;
-
-using __gnu_cxx::select1st;
 
 namespace po = boost::program_options;
 
