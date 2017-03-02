@@ -91,12 +91,6 @@ AC_ARG_ENABLE([profiling],
   CXXFLAGS="$CXXFLAGS -pg"
   LDFLAGS="$LDFLAGS -pg",)
 
-# Add cli-vers option
-AC_ARG_ENABLE([arb-integration],
-  AS_HELP_STRING([--enable-arb-integration]),
-  AC_DEFINE([ALLOW_ARB_INTEGRATION], [1], [Define if SINA should work from within ARB])
-  ,)
-
 # Add buildno option
 AC_ARG_WITH([buildinfo],
   AS_HELP_STRING([--with-buildinfo=<NO>]),

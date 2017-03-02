@@ -223,12 +223,7 @@ parse_options(int argc, char** argv) {
             cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
                  << " present" << endl;
             string requested =  vm["has-cli-vers"].as<string>();
-#ifdef ALLOW_ARB_INTEGRATION
-            if (requested == "1" || requested == "ARB5.99") {
-                exit(EXIT_SUCCESS);
-            }
-#endif // ALLOW_ARB_INTEGRATION
-            if (requested == "2") {
+            if (requested == "1" || requested == "2" || requested == "ARB5.99") {
                 exit(EXIT_SUCCESS);
             }
 
