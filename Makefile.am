@@ -82,7 +82,7 @@ arb_tcp.dat: $(ARBHOME)/lib/arb_tcp.dat
 
 ### DOCUMENTATION ###
 
-dist_doc_DATA = doc/sina-manual.pdf doc/sina-manual.html doc/LICENSE.txt doc/README.txt
+dist_doc_DATA = doc/sina-manual.pdf doc/sina-manual.html
 man1_MANS = doc/sina.man
 CLEANFILES += sina-manual.log 
 LATEXTOMAN=$(top_srcdir)/tools/latex2man
