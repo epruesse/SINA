@@ -139,7 +139,7 @@ cseq::getIterator(cseq::vidx_type i) const {
 template<typename T>
 void
 for_each_prev(cseq::iterator cit, T t) {
-//    t(*(cit-1));
+    t(*(cit-1));
 }
 
 } // namespace sina
