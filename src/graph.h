@@ -181,9 +181,9 @@ public:
     typedef dag<T> dag_t;
     friend class dag<T>;
 
-    iterator(node_ref idx) : _idx(idx) {}
-    iterator(const iterator& orig) : _idx(orig._idx) {}
-    iterator() : _idx(0) {}
+    iterator(node_ref idx) : _idx(idx), _isNull(false) {}
+    iterator(const iterator& orig) : _idx(orig._idx), _isNull(false) {}
+    iterator() : _isNull(true) {}
 
     dag_node<T>& get_node() const { return *_idx; }
     node_ref get_node_ref() const { return _idx; }
@@ -195,7 +195,7 @@ public:
     bool operator!=(const iterator& i) { return _idx!=i._idx; }
     bool operator==(const iterator& i) { return _idx==i._idx; }
     bool operator<(const iterator& i) { return _idx<i._idx; }
-    bool isNull() { return _idx == (node_ref)0; }
+    bool isNull() { return _isNull; }
 
     typedef typename dag<T>::pn_iterator pn_iterator;
 
@@ -216,6 +216,7 @@ public:
     pointer operator->() { return &(get_node().data); }
 //protected:
     node_ref _idx;
+    bool     _isNull;
 };
 
 template<typename T>
