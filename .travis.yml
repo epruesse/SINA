@@ -5,13 +5,15 @@ compiler:
 
 os:
   - linux
+dist: trusty
 
 before_install:
   - cat /etc/apt/sources.list || true
   - for n in /etc/apt/sources.list.d/*; do echo $n; cat $n; done
   - sudo apt-get update -qq
 install:
-  - sudo apt-get install -y arb
+  - sudo apt-get install -y libarb-dev || true
+  
 script:
   - sh autogen.sh
   - ./configure --with-arbhome=/usr/lib/arb
