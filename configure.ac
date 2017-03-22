@@ -1,6 +1,6 @@
 # Init
 
-AC_INIT([SINA],[1.3.0],[elmar@pruesse.net])
+AC_INIT([SINA],[1.3.1-a1],[elmar@pruesse.net])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/sina.cpp])
