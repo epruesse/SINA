@@ -354,7 +354,6 @@ loadKey(cseq& c, const string key, GBDATA* gbspec) {
             case GB_FLOAT:
                 c.set_attr(key, (const float)GB_read_float(gbd));
                 return;
-            case GB_LINK:
             case GB_BITS:
             default:
                 cerr <<"query_arb::loadKey failed: type unsupported" << endl;
