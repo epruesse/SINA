@@ -5,14 +5,20 @@ compiler:
 
 os:
   - linux
-dist: trusty
 
-before_install:
-  - cat /etc/apt/sources.list || true
-  - for n in /etc/apt/sources.list.d/*; do echo $n; cat $n; done
-  - sudo apt-get update -qq
 install:
-  - sudo apt-get install -y libarb-dev || true
+  - sudo apt-get update
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda config --add channels conda-forge
+  - conda config --add channels bioconda
+  - conda config --add channels epruesse
+  - conda install arb-bio
+  - export ARBHOME=`echo | arb shell | sed -n 's/.*ARBHOME='\''\(.*\)'\''/\1/p'`
   
 script:
   - sh autogen.sh
