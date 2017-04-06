@@ -2,7 +2,6 @@ language: cpp
 compiler:
   - gcc
   - clang
-dist: trusty
 
 os:
   - linux
@@ -24,6 +23,7 @@ install:
   - export ARBHOME=`echo | arb shell | sed -n 's/.*ARBHOME='\''\(.*\)'\''/\1/p'`
   - export CFLAGS="$CFLAGS -I$HOME/miniconda/include"
   - export LDFLAGS="$LDFLAGS -L$HOME/miniconda/lib"
+  - export PKG
   
 script:
   - sh autogen.sh
