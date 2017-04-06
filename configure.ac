@@ -128,12 +128,12 @@ else
 fi
 
 
-# Check for static PT server interface lib
+### Check for static PT server interface lib
 AC_MSG_CHECKING([for ARB PROBE_COM static lib])
 SAVED_LIBS="$LIBS"
-LIBS="$ARBHOME/PROBE_COM/client.a $LIBS"
-AC_LINK_IFELSE(
-    [AC_LANG_PROGRAM(
+
+# create test program
+AC_LANG_CONFTEST([AC_LANG_PROGRAM(
         [[
 #include "PT_com.h"
 #include "client.h"
@@ -142,14 +142,27 @@ T_PT_MAIN main;
 GB_ERROR err;
 aisc_open("", main, AISC_MAGIC_NUMBER, &err);
         ]]
-    )],
-    AC_MSG_RESULT(yes)
-    ARB_SLIBS="$ARBHOME/PROBE_COM/client.a $ARBSLIBS"
-    ,
-    AC_MSG_FAILURE([not found])
-    )
+)])
+
+# test if common.a is needed
+ARB_SLIBS=
+for common in '' "$ARBHOME/PROBE_COM/common.a"; do
+  LIBS="$ARBHOME/PROBE_COM/client.a $common $SAVED_LIBS"
+  AC_LINK_IFELSE([],
+    [ARB_SLIBS="$ARBHOME/PROBE_COM/client.a $common $ARB_SLIBS"
+     break])
+done
+AS_IF([ test -n "$ARB_SLIBS"],
+  AS_IF([test -z "$common"],
+    AC_MSG_RESULT([yes]),
+    AC_MSG_RESULT([yes (needs common.a)])
+  ),
+  AC_MSG_FAILURE([not found])
+)
+
 LIBS="$SAVED_LIBS"
 
+# Check for static HELIX interface lib
 AC_MSG_CHECKING([for ARB HELIX static lib])
 SAVED_LIBS="$LIBS"
 LIBS="$ARBHOME/SL/HELIX/HELIX.a $LIBS"
