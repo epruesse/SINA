@@ -17,7 +17,7 @@ install:
   - conda config --add channels conda-forge
   - conda config --add channels bioconda
   - conda config --add channels epruesse
-  - conda install arb-bio
+  - conda install arb-bio boost
   - export ARBHOME=`echo | arb shell | sed -n 's/.*ARBHOME='\''\(.*\)'\''/\1/p'`
   
 script:
