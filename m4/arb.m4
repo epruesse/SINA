@@ -29,14 +29,14 @@ AC_DEFUN([AX_LIB_ARBDB],
     if test x"$WANT_ARB" = x"yes"; then
         AC_MSG_CHECKING([for arbdb.h])
         for ax_arb_path_tmp in $ax_arb_path $ARBHOME /usr/lib/arb; do
-            if test -f "$ax_arb_path_tmp/include/arbdb.h" \
-            && test -r "$ax_arb_path_tmp/include/arbdb.h"; then
+            if test -f "$ax_arb_path_tmp/INCLUDE/arbdb.h" \
+            && test -r "$ax_arb_path_tmp/INCLUDE/arbdb.h"; then
                 ax_arb_path="$ax_arb_path_tmp"
                 break
             fi
         done
         if test -n "$ax_arb_path"; then
-            AC_MSG_RESULT([yes ($ax_arb_path/include/arbdb.h)])
+            AC_MSG_RESULT([yes ($ax_arb_path/INCLUDE/arbdb.h)])
             success="yes"
         else
             AC_MSG_RESULT([no])
@@ -53,7 +53,7 @@ AC_DEFUN([AX_LIB_ARBDB],
 
         ax_arb_ldflags="-L$ax_arb_path/lib"
         ax_arb_libs="-lARBDB -lCORE $GLIB_LIBS"
-        ax_arb_cppflags="-I$ax_arb_path/include $GLIB_CFLAGS"
+        ax_arb_cppflags="-I$ax_arb_path/INCLUDE $GLIB_CFLAGS"
 
         AC_LANG_PUSH(C++)
 	
