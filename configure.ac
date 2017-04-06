@@ -61,10 +61,10 @@ CXXFLAGS="$CXXFLAGS -W -Wall -Wundef -Wsign-promo -Wfloat-equal -fno-common"
 
 # Export all symbols to get helpful backtraces
 # (don't on Darwin, ld doesn't support these options there)
-if test `uname` = Linux; then 
-  CXXFLAGS="$CXXFLAGS -rdynamic"
-  LDFLAGS="$LDFLAGS -export-dynamic"
-fi
+#if test `uname` = Linux; then 
+#  CXXFLAGS="$CXXFLAGS -rdynamic"
+#  LDFLAGS="$LDFLAGS -export-dynamic"
+#fi
 
 # Add debug option
 # automatically sets enable_debug=yes/no
@@ -118,16 +118,27 @@ AC_SEARCH_LIBS([_Z14GB_print_errorv], [CORE])
 AC_SEARCH_LIBS([_Z9GB_getcwdv], [ARBDB])
 AC_REPLACE_FUNCS([GBT_find_sequence])
 
+case "$host_os" in
+  darwin*)
+    LIBEXT=.dylib
+    ;;
+  *)
+    LIBEXT=.so
+    ;;
+esac
+
 # Dynamic libs that need to be copied
 if test `uname` = Darwin; then
   # need to copy glib for darwin (only present if provided by macports)
   GLIB_LIBPATH=`$PKG_CONFIG --variable=libdir glib-2.0`
   ARB_FILES="$ARB_FILES $GLIB_LIBPATH/libglib-2.0.0.dylib"
-else
-  ARB_FILES="$ARB_FILES $ARBHOME/lib/libCORE.so"
-  ARB_FILES="$ARB_FILES $ARBHOME/lib/libARBDB.so"
 fi
 
+for lib in CORE ARBDB; do 
+  if test -e "$ARBHOME/lib/lib${lib}${LIBEXT}"; then
+    ARB_FILES="$ARB_FILES $ARBHOME/lib/lib${lib}${LIBEXT}"
+  fi
+done
 
 ### Check for static PT server interface lib
 AC_MSG_CHECKING([for ARB PROBE_COM static lib])
@@ -179,6 +190,7 @@ AC_LINK_IFELSE(
     )
 LIBS="$SAVED_LIBS"
 
+AC_SUBST(LIBEXT)
 AC_SUBST(ARB_FILES)
 AC_SUBST(ARB_LDFLAGS)
 AC_SUBST(ARB_CPPFLAGS)

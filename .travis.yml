@@ -20,15 +20,15 @@ install:
   - conda config --add channels bioconda
   - conda config --add channels epruesse
   - conda install arb-bio boost gcc llvm
-  - rm $HOME/miniconda/bin/sed # temporary hackaround
+  - rm $PREFIX/bin/sed # temporary hackaround
   - export ARBHOME=`echo | arb shell | sed -n 's/.*ARBHOME='\''\(.*\)'\''/\1/p'`
-  - export CFLAGS="$CFLAGS -I$HOME/miniconda/include"
-  - export LDFLAGS="$LDFLAGS -L$HOME/miniconda/lib"
-  - export PKG
+  - export CFLAGS="$CFLAGS -I$PREFIX/include"
+  - export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
+  - export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig
   
 script:
   - sh autogen.sh
-  - ./configure --with-arbhome=$ARBHOME --with-boost=$HOME/miniconda || cat config.log
+  - ./configure --with-arbhome=$ARBHOME || cat config.log
   - make
   - make install
   

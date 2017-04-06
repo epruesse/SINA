@@ -72,9 +72,9 @@ arb_pt_server$(EXEEXT): $(ARBHOME)/bin/arb_pt_server$(EXEEXT)
 	cp $< $@
 arb_message$(EXEEXT): $(ARBHOME)/bin/arb_message$(EXEXT)
 	cp $< $@
-libARBDB.so: $(ARBHOME)/lib/libARBDB.so 
+libARBDB$(LIBEXT): $(ARBHOME)/lib/libARBDB$(LIBEXT) 
 	cp $< $@
-libCORE.so: $(ARBHOME)/lib/libCORE.so 
+libCORE$(LIBEXT): $(ARBHOME)/lib/libCORE$(LIBEXT)
 	cp $< $@
 arb_tcp.dat: $(ARBHOME)/lib/arb_tcp.dat
 	cp $< $@
@@ -123,7 +123,8 @@ sina-$(VERSION).tgz:
 	TMPDIR=$(shell mktemp -dt sina-buildpkg-XXXX);\
 	$(MAKE) DESTDIR="$$TMPDIR" install;\
 	mv "$$TMPDIR$(prefix)" "$$TMPDIR/$(RELEASEDIR)";\
-	(cd "$$TMPDIR/$(RELEASEDIR)"; ln -s -t . bin/sina share/doc/sina/*;); \
+	(cd "$$TMPDIR/$(RELEASEDIR)"; \
+         for f in bin/sina share/doc/sina/*; do ln -s $f; done ); \
 	find "$$TMPDIR" -depth -type d -empty -exec rmdir {} \; ;\
 	tar -czvf sina-$(VERSION).tgz -C "$$TMPDIR" . ;\
 	rm -rf "$$TMPDIR"
