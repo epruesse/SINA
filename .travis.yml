@@ -22,7 +22,7 @@ install:
   
 script:
   - sh autogen.sh
-  - ./configure --with-arbhome=/usr/lib/arb
+  - ./configure --with-arbhome=$ARBHOME
   - make
   - make install
   
