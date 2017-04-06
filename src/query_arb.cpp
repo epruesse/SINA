@@ -77,6 +77,12 @@ using std::pair;
 #include <arbdbt.h>
 #include <BI_helix.hxx>
 
+#ifndef HAVE_GBT_FIND_SEQUENCE
+inline GBDATA* GBT_find_sequence(GBDATA* gbd, const char* ali) {
+    return GBT_read_sequence(gbd, ali);
+}
+#endif
+
 #include <boost/lambda/lambda.hpp>
 using boost::lambda::_1;
 

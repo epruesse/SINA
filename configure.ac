@@ -116,6 +116,7 @@ CPPFLAGS="$CPPFLAGS $GLIB_CFLAGS"
 # Check for dynamic libraries
 AC_SEARCH_LIBS([_Z14GB_print_errorv], [CORE])
 AC_SEARCH_LIBS([_Z9GB_getcwdv], [ARBDB])
+AC_REPLACE_FUNCS([GBT_find_sequence])
 
 # Dynamic libs that need to be copied
 if test `uname` = Darwin; then
