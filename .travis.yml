@@ -22,7 +22,7 @@ install:
   
 script:
   - sh autogen.sh
-  - ./configure --with-arbhome=$ARBHOME
+  - ./configure --with-arbhome=$ARBHOME --with-boost=$HOME/miniconda
   - make
   - make install
   
