@@ -2,9 +2,11 @@ language: cpp
 compiler:
   - gcc
   - clang
+dist: trusty
 
 os:
   - linux
+  - osx
 
 install:
   - sudo apt-get update
