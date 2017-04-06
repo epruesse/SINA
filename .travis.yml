@@ -28,7 +28,7 @@ install:
   
 script:
   - sh autogen.sh
-  - ./configure --with-arbhome=$ARBHOME || cat config.log
+  - ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX/lib|| cat config.log
   - make
   - make install
   
