@@ -1,6 +1,7 @@
 # Init
 
-AC_INIT([SINA],[1.3.1-a2],[elmar@pruesse.net])
+AC_INIT([SINA],[1.3.1-a2],[elmar@pruesse.net],,[http://github.com/epruesse/SINA])
+AC_COPYRIGHT([Copyright (c) 2005-2017 Elmar Pruesse])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/sina.cpp])
@@ -17,6 +18,10 @@ AM_SILENT_RULES([yes])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_CXX
 AC_PROG_LIBTOOL
+AC_PROG_SED
+AC_PROG_LN_S
+AC_PROG_INSTALL
+AC_PROG_MKDIR_P
 LT_INIT
 
 # Check for C++ and required features
@@ -24,7 +29,7 @@ LT_INIT
 AC_SUBST(CPPFLAGS)
 AC_SUBST(CXXFLAGS)
 AC_SUBST(LDFLAGS)
-AC_LANG(C++)
+AC_LANG([C++])
 AC_C_INLINE
 AC_TYPE_SIZE_T
 AC_TYPE_UINT32_T
@@ -43,7 +48,6 @@ AC_CHECK_FUNCS([getpid])
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADER(cstdio)
 
-
 # Check for libraries
 
 AC_CHECK_LIB(z, compress, [Z_LIB=-lz], [AC_MSG_ERROR([libz.so not found!])])
@@ -57,7 +61,7 @@ AH_TEMPLATE(REDI_EVISCERATE_PSTREAMS,
 AC_DEFINE(REDI_EVISCERATE_PSTREAMS, [0])
 
 # Allways show warnings
-CXXFLAGS="$CXXFLAGS -W -Wall -Wundef -Wsign-promo -Wfloat-equal -fno-common"
+CXXFLAGS="$CXXFLAGS -w"
 
 # Export all symbols to get helpful backtraces
 # (don't on Darwin, ld doesn't support these options there)
@@ -66,17 +70,19 @@ CXXFLAGS="$CXXFLAGS -W -Wall -Wundef -Wsign-promo -Wfloat-equal -fno-common"
 #  LDFLAGS="$LDFLAGS -export-dynamic"
 #fi
 
-# Add debug option
-# automatically sets enable_debug=yes/no
-AC_ARG_ENABLE([debug],
-  AS_HELP_STRING([--enable-debug]),
+AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug]),
+[
+  enable_debug=yes
   CPPFLAGS="$CPPFLAGS -DDEBUG"
-  CXXFLAGS="$CXXFLAGS -O0 -ggdb3",
-  #else
-  CPPFLAGS="$CPPFLAGS -O3 -DNDEBUG")
+  CXXFLAGS="$CXXFLAGS -O0 -ggdb3"
+],[
+  enable_debug=no
+  CPPFLAGS="$CPPFLAGS -O3 -DNDEBUG"
+])
 
 # Compile with address sanitizer if supported and --enable-debug
-AS_IF([test "x$enable_debug" = "xyes"],[
+AS_IF([test "x$enable_debug" = "xyes"],
+[
   AX_CHECK_COMPILE_FLAG([-fsanitize=address],[ 
     CXXFLAGS="$CXXFLAGS -fsanitize=address -fno-omit-frame-pointer"
   ])
@@ -86,37 +92,43 @@ AS_IF([test "x$enable_debug" = "xyes"],[
 ])
 
 # Add profiling option
-AC_ARG_ENABLE([profiling],
-  AS_HELP_STRING([--enable-profiling]),
+AC_ARG_ENABLE([profiling], AS_HELP_STRING([--enable-profiling]),
+[
+  enable_profiling=yes
   CXXFLAGS="$CXXFLAGS -pg"
-  LDFLAGS="$LDFLAGS -pg",)
+  LDFLAGS="$LDFLAGS -pg"
+],[
+  enable_profiling=no
+]
+)
 
 # Add buildno option
-AC_ARG_WITH([buildinfo],
-  AS_HELP_STRING([--with-buildinfo=<NO>]),
-  AC_DEFINE_UNQUOTED([PACKAGE_BUILDINFO], ["${withval}"], [Add extra buildinfo]))
-
-####  Check for ARB and dependencies
-
-# Get ARBHOME
-AC_ARG_WITH([arbhome], AS_HELP_STRING([--with-arbhome=<PATH>]), 
-  ARBHOME=${withval}
+AC_ARG_WITH([buildinfo], AS_HELP_STRING([--with-buildinfo=<NO>]),
+  AC_DEFINE_UNQUOTED([PACKAGE_BUILDINFO], ["${withval}"], [Add extra buildinfo])
+  PACKAGE_BUILDINFO="$withval"
 )
-AC_SUBST(ARBHOME)
 
-# Add ARB include and lib dirs to search paths
-CPPFLAGS="$CPPFLAGS -I$ARBHOME/INCLUDE"
-LDFLAGS="$LDFLAGS -L$ARBHOME/lib"
-
-# Require GLib-2.0
+# ARB dependencies
 PKG_CHECK_MODULES([GLIB], [glib-2.0 > 2.2])
-LIBS="${GLIB_LIBS} $LIBS"
-CPPFLAGS="$CPPFLAGS $GLIB_CFLAGS"
+if test x"$GLIB_LIBS" = x""; then
+  missing_libs="$missing_libs\n glib-2.0 (libglib)"
+fi
 
-# Check for dynamic libraries
-AC_SEARCH_LIBS([_Z14GB_print_errorv], [CORE])
-AC_SEARCH_LIBS([_Z9GB_getcwdv], [ARBDB])
-AC_REPLACE_FUNCS([GBT_find_sequence])
+AX_LIB_ARBDB
+if test x"$ARB_LIBS" = x""; then
+  missing_libs="$missing_libs\n ARB libraries (libARBDB)"
+fi
+
+AX_LIB_ARB_PROBE
+if test x"$ARB_PROBE_LIBS" = x""; then
+  missing_libs="$missing_libs\n ARB PROBE library (PROBE_COM/client.a)"
+fi
+
+AX_LIB_ARB_HELIX
+if test x"$ARB_HELIX_LIBS" = x""; then
+  missing_libs="$missing_libs\n ARB HELIX library (SL/HELIX/HELIX.a)"
+fi
+
 
 case "$host_os" in
   darwin*)
@@ -126,6 +138,8 @@ case "$host_os" in
     LIBEXT=.so
     ;;
 esac
+AC_SUBST(LIBEXT)
+
 
 # Dynamic libs that need to be copied
 if test `uname` = Darwin; then
@@ -139,63 +153,8 @@ for lib in CORE ARBDB; do
     ARB_FILES="$ARB_FILES $ARBHOME/lib/lib${lib}${LIBEXT}"
   fi
 done
-
-### Check for static PT server interface lib
-AC_MSG_CHECKING([for ARB PROBE_COM static lib])
-SAVED_LIBS="$LIBS"
-
-# create test program
-AC_LANG_CONFTEST([AC_LANG_PROGRAM(
-        [[
-#include "PT_com.h"
-#include "client.h"
-        ]],[[
-T_PT_MAIN main;
-GB_ERROR err;
-aisc_open("", main, AISC_MAGIC_NUMBER, &err);
-        ]]
-)])
-
-# test if common.a is needed
-ARB_SLIBS=
-for common in '' "$ARBHOME/PROBE_COM/common.a"; do
-  LIBS="$ARBHOME/PROBE_COM/client.a $common $SAVED_LIBS"
-  AC_LINK_IFELSE([],
-    [ARB_SLIBS="$ARBHOME/PROBE_COM/client.a $common $ARB_SLIBS"
-     break])
-done
-AS_IF([ test -n "$ARB_SLIBS"],
-  AS_IF([test -z "$common"],
-    AC_MSG_RESULT([yes]),
-    AC_MSG_RESULT([yes (needs common.a)])
-  ),
-  AC_MSG_FAILURE([not found])
-)
-
-LIBS="$SAVED_LIBS"
-
-# Check for static HELIX interface lib
-AC_MSG_CHECKING([for ARB HELIX static lib])
-SAVED_LIBS="$LIBS"
-LIBS="$ARBHOME/SL/HELIX/HELIX.a $LIBS"
-AC_LINK_IFELSE(
-    [AC_LANG_PROGRAM(
-        [#include "BI_helix.hxx"],
-        [BI_helix h; h.init((GBDATA*)0,(const char*)0)];
-    )],
-    AC_MSG_RESULT(yes)
-    ARB_SLIBS="$ARBHOME/SL/HELIX/HELIX.a $ARB_SLIBS"        
-    ,
-    AC_MSG_FAILURE([not found])
-    )
-LIBS="$SAVED_LIBS"
-
-AC_SUBST(LIBEXT)
 AC_SUBST(ARB_FILES)
-AC_SUBST(ARB_LDFLAGS)
-AC_SUBST(ARB_CPPFLAGS)
-AC_SUBST(ARB_LIBS)
-AC_SUBST(ARB_SLIBS)
+
 
 # check boost libs (slow...)
 BOOST_REQUIRE([1.34.1])
@@ -219,5 +178,52 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
   Makefile
   src/sina
-], [chmod +x src/sina])
+], [
+  chmod +x src/sina
+])
 AC_OUTPUT
+
+
+###### print some summaries
+
+AC_MSG_NOTICE([---------------------------------------])
+AC_MSG_NOTICE([  SINA summary])
+AC_MSG_NOTICE([---------------------------------------])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([  prefix: $prefix])
+AC_MSG_NOTICE([  build:  $build])
+AC_MSG_NOTICE([  host:   $host])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([  debug:     $enable_debug])
+AC_MSG_NOTICE([  profiling: $enable_profiling])
+AC_MSG_NOTICE([  buildinfo:  $PACKAGE_BUILDINFO])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([  CFLAGS:   $CFLAGS])
+AC_MSG_NOTICE([  CPPFLAGS: $CPPFLAGS])
+AC_MSG_NOTICE([  CXXFLAGS: $CXXFLAGS])
+AC_MSG_NOTICE([  LIBS:     $LIBS])
+AC_MSG_NOTICE([  LDFLAGS:  $LDFLAGS])
+AC_MSG_NOTICE([  CC:       $CC])
+AC_MSG_NOTICE([  CXX:      $CXX])
+AC_MSG_NOTICE([  LD:       $LD])
+AC_MSG_NOTICE([])
+AC_MSG_NOTICE([  ARB:            ${ARBHOME}])
+AC_MSG_NOTICE([    CPPFLAGS:     ${ARB_CPPFLAGS}])
+AC_MSG_NOTICE([    LDFLAGS:      ${ARB_LDFLAGS}])
+AC_MSG_NOTICE([    LIBS:         ${ARB_LIBS}])
+AC_MSG_NOTICE([    PROBE LIBS:   ${ARB_PROBE_LIBS}])
+AC_MSG_NOTICE([    HELIX LIBS:   ${ARB_HELIX_LIBS}])
+AC_MSG_NOTICE([  boost:])
+AC_MSG_NOTICE([    ldpath:     ${BOOST_LDPATH}])
+AC_MSG_NOTICE([    cppflags:   ${BOOST_CPPFLAGS}])
+AC_MSG_NOTICE([  zlib:         ${Z_LIB}])
+
+### check that all deps are satisfied
+
+if test x"$missing_libs" != x""; then
+  AC_MSG_FAILURE([ Required libraries found missing:
+  $missing_libs
+  ])
+fi
+
+

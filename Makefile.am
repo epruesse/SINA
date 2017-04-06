@@ -56,8 +56,9 @@ src_libsina_la_LDFLAGS = -static
 sina_libs = \
     src/libsina.la \
     $(Z_LIB) \
-    $(ARB_SLIBS) \
     $(ARB_LIBS) \
+    $(ARB_PROBE_LIBS) \
+    $(ARB_HELIX_LIBS) \
     $(BOOST_PROGRAM_OPTIONS_LIBS) \
     $(BOOST_THREAD_LIBS) \
     $(BOOST_SERIALIZATION_LIBS) 
@@ -97,7 +98,7 @@ CLEANFILES += $(dist_doc_DATA) $(man1_MANS) doc/sina-manual.log  doc/sina-manual
 
 %.man: %.tex
 	-@mkdir `dirname $@`
-	sed 's/{}//g; s/``/"/g; s/'\'\''/"/g;' $< | ${LATEXTOMAN} - $@
+	$(SED) 's/{}//g; s/``/"/g; s/'\'\''/"/g;' $< | ${LATEXTOMAN} - $@
 
 %-manual.tex: %.tex
 	-@mkdir `dirname $@`
@@ -110,7 +111,7 @@ CLEANFILES += $(dist_doc_DATA) $(man1_MANS) doc/sina-manual.log  doc/sina-manual
 
 %-manual.html: %.tex
 	-@mkdir `dirname $@`
-	sed 's/{}//g; s/``/"/g; s/'\'\''/"/g;' $< | ${LATEXTOMAN} -H - $@
+	$(SED) 's/{}//g; s/``/"/g; s/'\'\''/"/g;' $< | ${LATEXTOMAN} -H - $@
 
 
 ### PACKAGE ###
@@ -124,7 +125,7 @@ sina-$(VERSION).tgz:
 	$(MAKE) DESTDIR="$$TMPDIR" install;\
 	mv "$$TMPDIR$(prefix)" "$$TMPDIR/$(RELEASEDIR)";\
 	(cd "$$TMPDIR/$(RELEASEDIR)"; \
-         for f in bin/sina share/doc/sina/*; do ln -s $f; done ); \
+         for f in bin/sina share/doc/sina/*; do $(LN_S) $$f; done ); \
 	find "$$TMPDIR" -depth -type d -empty -exec rmdir {} \; ;\
 	tar -czvf sina-$(VERSION).tgz -C "$$TMPDIR" . ;\
 	rm -rf "$$TMPDIR"
