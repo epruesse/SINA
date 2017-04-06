@@ -22,6 +22,8 @@ install:
   - conda install arb-bio boost gcc llvm
   - rm $HOME/miniconda/bin/sed # temporary hackaround
   - export ARBHOME=`echo | arb shell | sed -n 's/.*ARBHOME='\''\(.*\)'\''/\1/p'`
+  - export CFLAGS="$CFLAGS -I$HOME/miniconda/include"
+  - export LDFLAGS="$LDFLAGS -L$HOME/miniconda/lib"
   
 script:
   - sh autogen.sh
