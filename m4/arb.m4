@@ -77,6 +77,7 @@ AC_DEFUN([AX_LIB_ARBDB],
             AC_MSG_RESULT([not found])
             success="no"
         ])
+	LIBS="$saved_LIBS"
         CPPFLAGS="$saved_CPPFLAGS"
         AC_LANG_POP(C++)
     fi
