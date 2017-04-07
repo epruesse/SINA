@@ -18,6 +18,7 @@ AC_DEFUN([_AX_ARG_ENABLE],
 	            [enable_$1="$6"]
       )
       AS_CASE([$enable_$1], [yes], [$4], [no], [$5])
+      AM_CONDITIONAL(m4_translit([[enable_$1]],[a-z],[A-Z]), [test x"$enable_$1" = "xyes"])
 ])
 
 AC_DEFUN([AX_ARG_DISABLE],[AX_ARG_ENABLE([$1],[$2],[$3],[$4],[yes])])
