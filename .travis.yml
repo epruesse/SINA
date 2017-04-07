@@ -1,8 +1,4 @@
 language: cpp
-compiler:
-  - gcc
-  - clang
-
 os:
   - linux
   - osx
@@ -30,5 +26,6 @@ script:
   - sh autogen.sh
   - ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX --disable-docs || cat config.log
   - make
-  - make install
+  - make tgz
+  - mv sina-*.tgz
   
