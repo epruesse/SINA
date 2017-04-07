@@ -122,14 +122,21 @@ if ENABLE_DOCS
 doc_DATA = doc/sina-manual.pdf doc/sina-manual.html
 man1_MANS = doc/sina.man
 endif
-doc_DATA_DIST = doc/sina-manual.text
+dist_doc_DATA = doc/sina.tex
 
 
-CLEANFILES += sina-manual.log 
+CLEANFILES += sina-manual.log
+toolsdir=tools
 LATEXTOMAN=$(top_srcdir)/tools/latex2man
+dist_tools_DATA = \
+    tools/latex2man \
+    tools/latex2man.sty \
+    tools/latex2man.cfg \
+    tools/test_driver.sh
+
 export TEXINPUTS=$(top_srcdir):$(top_srcdir)/tools/:
 
-CLEANFILES += $(dist_doc_DATA) $(man1_MANS) doc/sina-manual.log  doc/sina-manual.toc doc/sina-manual.aux doc/sina-manual.out
+CLEANFILES += $(dist_doc_DATA) $(doc_DATA) $(man1_MANS) $(arblib_DATA) doc/sina-manual.log  doc/sina-manual.toc doc/sina-manual.aux doc/sina-manual.out
 
 
 %.txt: sina_%.txt
