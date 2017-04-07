@@ -91,10 +91,13 @@ arb_tcp.dat: $(ARBHOME)/lib/arb_tcp.dat
 
 ### DOCUMENTATION ###
 
+
 if ENABLE_DOCS
-dist_doc_DATA = doc/sina-manual.pdf doc/sina-manual.html
+doc_DATA = doc/sina-manual.pdf doc/sina-manual.html
 man1_MANS = doc/sina.man
 endif
+doc_DATA_DIST = doc/sina-manual.text
+
 
 CLEANFILES += sina-manual.log 
 LATEXTOMAN=$(top_srcdir)/tools/latex2man
