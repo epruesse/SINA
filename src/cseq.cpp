@@ -244,7 +244,7 @@ cseq::getBases() const {
 // for_each(bases.begin(), bases.end(),
     //         basestr += bind<char>(&aligned_base::getBase,boost::lambda::_1));
     for (uint i=0; i < bases.size(); i++) {
-        basestr[i] = bases[i].getBase();
+        basestr += bases[i].getBase();
     }
 
     return basestr;
