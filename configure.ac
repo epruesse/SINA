@@ -70,37 +70,28 @@ CXXFLAGS="$CXXFLAGS -w"
 #  LDFLAGS="$LDFLAGS -export-dynamic"
 #fi
 
-AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug]),
+AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
 [
-  enable_debug=yes
   CPPFLAGS="$CPPFLAGS -DDEBUG"
   CXXFLAGS="$CXXFLAGS -O0 -ggdb3"
-],[
-  enable_debug=no
-  CPPFLAGS="$CPPFLAGS -O3 -DNDEBUG"
-])
-
-# Compile with address sanitizer if supported and --enable-debug
-AS_IF([test "x$enable_debug" = "xyes"],
-[
   AX_CHECK_COMPILE_FLAG([-fsanitize=address],[ 
     CXXFLAGS="$CXXFLAGS -fsanitize=address -fno-omit-frame-pointer"
   ])
   AX_CHECK_LINK_FLAG([-fsanitize=address], [
     LDFLAGS="$LDFLAGS -fsanitize=address"
   ])
+],[
+  CPPFLAGS="$CPPFLAGS -DNDEBUG"
 ])
 
+AX_ARG_DISABLE([docs], [don't build documentation])
+
 # Add profiling option
-AC_ARG_ENABLE([profiling], AS_HELP_STRING([--enable-profiling]),
+AX_ARG_ENABLE([profiling], [add profiling information to build],
 [
-  enable_profiling=yes
   CXXFLAGS="$CXXFLAGS -pg"
   LDFLAGS="$LDFLAGS -pg"
-],[
-  enable_profiling=no
-]
-)
+])
 
 # Add buildno option
 AC_ARG_WITH([buildinfo], AS_HELP_STRING([--with-buildinfo=<NO>]),
@@ -181,7 +172,7 @@ AC_CONFIG_FILES([
 ], [
   chmod +x src/sina
 ])
-AC_OUTPUT
+
 
 
 ###### print some summaries
@@ -197,6 +188,7 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([  debug:     $enable_debug])
 AC_MSG_NOTICE([  profiling: $enable_profiling])
 AC_MSG_NOTICE([  buildinfo:  $PACKAGE_BUILDINFO])
+AC_MSG_NOTICE([  docs:      $enable_docs])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([  CFLAGS:   $CFLAGS])
 AC_MSG_NOTICE([  CPPFLAGS: $CPPFLAGS])
@@ -226,4 +218,4 @@ if test x"$missing_libs" != x""; then
   ])
 fi
 
-
+AC_OUTPUT
