@@ -15,7 +15,8 @@ AM_CPPFLAGS = \
 AM_LDFLAGS = \
     $(BOOST_LDFLAGS) \
     $(BOOST_THREAD_LDFLAGS) \
-    $(BOOST_PROGRAM_OPTIONS_LDFLAGS) 
+    $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
+    $(ARB_LDFLAGS)
 
 # calling pkglibdir our ARBHOME (.../lib/sina), we install 
 # internal libs and binaries to .../bin and .../lib subdirs
@@ -51,7 +52,7 @@ src_libsina_la_SOURCES = \
     src/tray.cpp \
     src/alignment_stats.cpp \
     src/kmer_search.cpp
-src_libsina_la_LDFLAGS = -static
+src_libsina_la_LDFLAGS = -static $(ARB_LDFLAGS)
 
 sina_libs = \
     src/libsina.la \
@@ -61,10 +62,11 @@ sina_libs = \
     $(ARB_HELIX_LIBS) \
     $(BOOST_PROGRAM_OPTIONS_LIBS) \
     $(BOOST_THREAD_LIBS) \
-    $(BOOST_SERIALIZATION_LIBS) 
+    $(BOOST_SERIALIZATION_LIBS)
 
 src_sina_real_SOURCES = src/sina.cpp 
 src_sina_real_LDADD = $(sina_libs)
+
 
 src_sina_probematch_LDADD = $(sina_libs)
 src_kmer_test_LDADD = $(sina_libs)
@@ -138,6 +140,8 @@ test_libs = $(sina_libs) \
     $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
     $(BOOST_SYSTEM_LIBS)
 
+test_LDFLAGS = $(ARB_LDFLAGS)
+
 TESTS =  $(check_PROGRAMS)
 
 export ARBHOME
@@ -148,6 +152,6 @@ check_PROGRAMS = \
     src/unit_tests/cseq_comparator_test
 
 src_unit_tests_cseq_test_LDADD = $(test_libs)
-src_unit_tests_cseq_test_LDFLAGS = $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
+src_unit_tests_cseq_test_LDFLAGS = $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(ARB_LDFLAGS)
 src_unit_tests_cseq_comparator_test_LDADD = $(test_libs)
-src_unit_tests_cseq_comparator_test_LDFLAGS = $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS)
+src_unit_tests_cseq_comparator_test_LDFLAGS = $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(ARB_LDFLAGS)
