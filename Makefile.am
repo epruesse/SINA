@@ -45,12 +45,20 @@ CLEANFILES    = $(bin_SCRIPTS)
 src_libsina_la_SOURCES = \
     src/aligned_base.cpp \
     src/aligned_base.h \
+    src/copy_alignment.h \
     src/cseq.cpp \
     src/cseq.h \
+    src/cseq_impl.h \
     src/cseq_comparator.cpp \
     src/cseq_comparator.h \
+    src/graph.h \
+    src/mesh.h \
+    src/mesh_debug.h \
     src/mseq.cpp \
     src/mseq.h \
+    src/null_filter.h \
+    src/object_pipe.h \
+    src/pipe.h \
     src/pseq.cpp \
     src/pseq.h \
     src/query_arb.cpp \
@@ -65,8 +73,10 @@ src_libsina_la_SOURCES = \
     src/log.h \
     src/align.cpp \
     src/align.h \
+    src/scoring_schemes.h \
     src/search_filter.cpp \
     src/search_filter.h \
+    src/timer.h \
     src/tray.cpp \
     src/tray.h \
     src/alignment_stats.cpp \
