@@ -1,6 +1,9 @@
 # Put objects into subdirs
 AUTOMAKE_OPTIONS = subdir-objects
 
+# Some extra files to put into source tarfile
+EXTRA_DIST=LICENSE CHANGELOG README.md
+
 # Default extension to use when no bla_SOURCES exists.
 AM_DEFAULT_SOURCE_EXT = .cpp
 
@@ -31,6 +34,9 @@ arbbin_PROGRAMS = src/sina.real arb_pt_server arb_message
 arblib_DATA = $(ARB_FILES) arb_tcp.dat
 noinst_PROGRAMS = src/sina_probematch src/kmer_test
 noinst_LTLIBRARIES = src/libsina.la
+
+arb_message_SOURCES=
+arb_pt_server_SOURCES=
 
 CLEANFILES    = $(bin_SCRIPTS)
 
@@ -142,8 +148,6 @@ sina-$(VERSION).tgz:
 test_libs = $(sina_libs) \
     $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
     $(BOOST_SYSTEM_LIBS)
-
-test_LDFLAGS = $(ARB_LDFLAGS)
 
 TESTS =  $(check_PROGRAMS)
 
