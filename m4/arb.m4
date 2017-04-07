@@ -58,10 +58,11 @@ AC_DEFUN([AX_LIB_ARBDB],
         AC_LANG_PUSH(C++)
 	
         saved_CPPFLAGS="$CPPFLAGS"
-        CPPFLAGS="$CPPFLAGS $ax_arb_cppflags"
 	saved_LIBS="$LIBS"
-	LIBS="$LIBS $ax_arb_libs"
 	saved_LDFLAGS="$LDFLAGS"
+	
+        CPPFLAGS="$CPPFLAGS $ax_arb_cppflags"
+	LIBS="$LIBS $ax_arb_libs"
 	LDFLAGS="$LDFLAGS $ax_arb_ldflags"
 
         AC_LINK_IFELSE([
@@ -77,8 +78,11 @@ AC_DEFUN([AX_LIB_ARBDB],
             AC_MSG_RESULT([not found])
             success="no"
         ])
-	LIBS="$saved_LIBS"
+	
+        LIBS="$saved_LIBS"
         CPPFLAGS="$saved_CPPFLAGS"
+        LDFLAGS="$saved_LDFLAGS"
+	
         AC_LANG_POP(C++)
     fi
 
@@ -125,21 +129,26 @@ AC_DEFUN([AX_LIB_ARB_PROBE],
         ]])])
 
 	saved_CPPFLAGS="$CPPFLAGS"
-        CPPFLAGS="$CPPFLAGS $ARB_CPPFLAGS"
-
+	saved_LDFLAGS="$LDFLAGS"
         saved_LIBS="$LIBS"
+	
+        CPPFLAGS="$CPPFLAGS $ARB_CPPFLAGS"
+	LDFLAGS="$LDFLAGS $ARB_LDFLAGS"
+
         ax_arb_probe_libs=""
         for common in '' "$ARBHOME/PROBE_COM/common.a"; do
             ax_arb_probe_libs_tmp="$ARBHOME/PROBE_COM/client.a $common"
-            LIBS="$saved_LIBS $ax_arb_probe_libs_tmp"
+            LIBS="$saved_LIBS $ARB_LIBS $ax_arb_probe_libs_tmp"
             AC_LINK_IFELSE([], [
                 ax_arb_probe_libs="$ax_arb_probe_libs_tmp"
                 break
             ])
         done
+
         LIBS="$saved_LIBS"
 	CPPFLAGS="$saved_CPPFLAGS"
-
+        LDFLAGS="$saved_LDFLAGS"
+	
         AC_LANG_POP(C++)
 
         success="yes"
@@ -169,9 +178,12 @@ AC_DEFUN([AX_LIB_ARB_HELIX],
     AC_MSG_CHECKING([for ARB HELIX static lib])
 
     saved_CPPFLAGS="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS $ARB_CPPFLAGS"
+    saved_LDFLAGS="$LDFLAGS"
     saved_LIBS="$LIBS"
-    LIBS="$LIBS $ARBHOME/SL/HELIX/HELIX.a"
+
+    CPPFLAGS="$CPPFLAGS $ARB_CPPFLAGS"
+    LDFLAGS="$LDFLAGS $ARB_LDFLAGS"
+    LIBS="$LIBS $ARB_LIBS $ARBHOME/SL/HELIX/HELIX.a"
 
     AC_LINK_IFELSE([
         AC_LANG_PROGRAM([[
@@ -191,5 +203,6 @@ AC_DEFUN([AX_LIB_ARB_HELIX],
     
     LIBS="$saved_LIBS"
     CPPFLAGS="$saved_CPPFLAGS"
+    LDFLAGS="$saved_LDFLAGS"
 ])
 
