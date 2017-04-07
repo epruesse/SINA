@@ -1,0 +1,59 @@
+
+ARB-public-library-license
+--------------------------
+
+This license covers the following ARB-libraries:
+
+ - CORE-library
+ - ARBDB-library
+ - PTSERVER-library
+ - PT_COM-library
+ - all ARB libraries needed by any of the above libraries.
+
+   Currently these are:
+    - PTCLEAN,
+    - HELIX,
+    - SERVERCNTRL and
+    - server + client (PROBE_COM).
+
+ These libraries currently cover the following subdirectories of the ARB source tree:
+   - ARBDB
+   - CORE
+   - PROBE
+   - PROBE_COM
+   - SERVERCNTRL
+   - SL/HELIX
+   - SL/PTCLEAN
+
+
+The ARB libraries listed above may be used by projects distributed under the Gnu public
+license (GPL) under the following conditions:
+
+ * a copy of the ARB license (arb_LICENSE.txt) is provided
+ * a copy of the ARB public library license (arb_PUBLIB_LICENSE.txt) is provided
+ * all copyright notices remain intact when redistributing the source code
+ * you may use unmodified or modified versions of these libraries:
+   - when using MODIFIED versions of these libraries, the modified source code has to be
+     distributed together with your project or made available for free public download.
+     Please note that by doing so the ARB project and its maintainers gain the right to
+     adopt your changes into ARB.
+   - when using UNMODIFIED versions of these libraries, you may (but don't need to)
+     provide the library sources. If not provided, you have to add a reference to the
+     arb-version that has been used.
+
+All files which are part of ARB and which are needed to build the above mentioned
+libraries, may be distributed together with your project (but do not fall under the
+ARB-public-library-license themselves).
+
+Config files needed by the above libraries may be freely copied (e.g. arb_tcp.dat).
+
+This license does only grant additional terms of use for the covered libraries,
+while the main ARB license still remains valid for them.
+
+The ARB maintainers may (but most likely ever wont) cancel this license for future
+versions of ARB. Doing so will not affect earlier versions of arb distributed together
+with this license.
+
+If you'd like to use these libraries in a project distributed under a different license
+than GPL, please ask us for permission to do so.
+

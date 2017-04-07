@@ -124,12 +124,15 @@ fi
 case "$host_os" in
   darwin*)
     LIBEXT=.dylib
+    OSNAME=macos
     ;;
   *)
     LIBEXT=.so
+    OSNAME=linux
     ;;
 esac
 AC_SUBST(LIBEXT)
+AC_SUBST(OSNAME)
 
 
 # Dynamic libs that need to be copied

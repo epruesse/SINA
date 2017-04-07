@@ -26,6 +26,8 @@ script:
   - sh autogen.sh
   - ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX --disable-docs || cat config.log
   - make
-  - make tgz
-  - mv sina-*.tgz
+  - make check || true
+  - make dist-gzip
+  - make bindist-gzip
+  - make distcheck || true
   

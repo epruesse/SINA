@@ -2,7 +2,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
 # Some extra files to put into source tarfile
-EXTRA_DIST=LICENSE CHANGELOG README.md
+EXTRA_DIST=LICENSE CHANGELOG README.md arb_LICENSE.txt arb_PUBLIB_LICENSE.txt
 
 # Default extension to use when no bla_SOURCES exists.
 AM_DEFAULT_SOURCE_EXT = .cpp
@@ -127,22 +127,25 @@ CLEANFILES += $(dist_doc_DATA) $(man1_MANS) doc/sina-manual.log  doc/sina-manual
 
 ### PACKAGE ###
 
-tgz: sina-$(VERSION).tgz
+BINDISTDIR = sina-$(VERSION)-$(OSNAME)
 
-# create self-contained tgz
-RELEASEDIR := sina-$(VERSION)
-sina-$(VERSION).tgz: 
-	TMPDIR=$(shell mktemp -dt sina-buildpkg-XXXX);\
-	$(MAKE) DESTDIR="$$TMPDIR" install;\
-	mv "$$TMPDIR$(prefix)" "$$TMPDIR/$(RELEASEDIR)";\
-	(cd "$$TMPDIR/$(RELEASEDIR)"; \
-         for f in bin/sina share/doc/sina/*; do $(LN_S) $$f; done ); \
-	find "$$TMPDIR" -depth -type d -empty -exec rmdir {} \; ;\
-	tar -czvf sina-$(VERSION).tgz -C "$$TMPDIR" . ;\
-	rm -rf "$$TMPDIR"
+bindist: $(BINDISTDIR)
 
-.PHONY: sina-$(VERSION).tgz
+$(BINDISTDIR): all
+	rm -rf $(BINDISTDIR)
+	$(MAKE) DESTDIR=$(abspath $(BINDISTDIR)) install
+	mv -f $(BINDISTDIR)/$(prefix)/* $(BINDISTDIR)
+	cd $(BINDISTDIR); for f in bin/sina share/doc/sina*; do \
+	  test -f $$f && $(LN_S) $$f; done || true
+	find $(BINDISTDIR) -depth -type d -empty -exec rmdir {} \;
+	cp $(EXTRA_DIST) $(BINDISTDIR)
 
+bindist-gzip: $(BINDISTDIR).tar.gz
+
+$(BINDISTDIR).tar.gz: $(BINDISTDIR)
+	tar -cv $^ | gzip --best > $@
+
+.PHONY: $(BINDISTDIR) $(BINDISTDIR).tar.gz
 ### Unit Tests ###
 
 test_libs = $(sina_libs) \
