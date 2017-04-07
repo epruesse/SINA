@@ -44,20 +44,36 @@ CLEANFILES    = $(bin_SCRIPTS)
 
 src_libsina_la_SOURCES = \
     src/aligned_base.cpp \
+    src/aligned_base.h \
     src/cseq.cpp \
+    src/cseq.h \
     src/cseq_comparator.cpp \
+    src/cseq_comparator.h \
     src/mseq.cpp \
+    src/mseq.h \
     src/pseq.cpp \
+    src/pseq.h \
     src/query_arb.cpp \
+    src/query_arb.h \
     src/query_pt.cpp \
+    src/query_pt.h \
     src/rw_fasta.cpp \
+    src/rw_fasta.h \
     src/rw_arb.cpp \
+    src/rw_arb.h \
     src/log.cpp \
+    src/log.h \
     src/align.cpp \
+    src/align.h \
     src/search_filter.cpp \
+    src/search_filter.h \
     src/tray.cpp \
+    src/tray.h \
     src/alignment_stats.cpp \
-    src/kmer_search.cpp
+    src/alignment_stats.h \
+    src/kmer_search.cpp \
+    src/kmer_search.h
+
 src_libsina_la_LDFLAGS = -static $(ARB_LDFLAGS)
 
 sina_libs = \
