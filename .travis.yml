@@ -28,7 +28,7 @@ install:
   
 script:
   - sh autogen.sh
-  - ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX|| cat config.log
+  - ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX --disable-docs || cat config.log
   - make
   - make install
   
