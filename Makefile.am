@@ -14,12 +14,19 @@ ACLOCAL_AMFLAGS = -I m4
 AM_CPPFLAGS = \
     -DBOOST_TEST_DYN_LINK -DBOOST_TEST_MAIN \
     $(BOOST_CPPFLAGS) \
-    $(ARB_CPPFLAGS)
+    $(ARB_CPPFLAGS) \
+    $(CODE_COVERAGE_CPPFLAGS)
 AM_LDFLAGS = \
     $(BOOST_LDFLAGS) \
     $(BOOST_THREAD_LDFLAGS) \
     $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
     $(ARB_LDFLAGS)
+
+#    $(CODE_COVERAGE_LDFLAGS)
+AM_CXXFLAGS = \
+    $(CODE_COVERAGE_CXXFLAGS)
+AM_CFLAGS = \
+    $(CODE_COVERAGE_CFLAGS)
 
 # calling pkglibdir our ARBHOME (.../lib/sina), we install 
 # internal libs and binaries to .../bin and .../lib subdirs
@@ -96,6 +103,8 @@ sina_libs = \
     $(BOOST_PROGRAM_OPTIONS_LIBS) \
     $(BOOST_THREAD_LIBS) \
     $(BOOST_SERIALIZATION_LIBS)
+
+# $(CODE_COVERAGE_LIBS)
 
 src_sina_real_SOURCES = src/sina.cpp 
 src_sina_real_LDADD = $(sina_libs)

@@ -70,6 +70,7 @@ CXXFLAGS="$CXXFLAGS -w"
 #  LDFLAGS="$LDFLAGS -export-dynamic"
 #fi
 
+# Add debug option
 AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
 [
   CPPFLAGS="$CPPFLAGS -DDEBUG"
@@ -84,6 +85,7 @@ AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
   CPPFLAGS="$CPPFLAGS -DNDEBUG"
 ])
 
+# Add option to disable building docs (needs latex...)
 AX_ARG_DISABLE([docs], [don't build documentation])
 
 # Add profiling option
@@ -92,6 +94,9 @@ AX_ARG_ENABLE([profiling], [add profiling information to build],
   CXXFLAGS="$CXXFLAGS -pg"
   LDFLAGS="$LDFLAGS -pg"
 ])
+
+# Add coverage option
+AX_CODE_COVERAGE
 
 # Add buildno option
 AC_ARG_WITH([buildinfo], AS_HELP_STRING([--with-buildinfo=<NO>]),
@@ -190,6 +195,7 @@ AC_MSG_NOTICE([  host:   $host])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([  debug:     $enable_debug])
 AC_MSG_NOTICE([  profiling: $enable_profiling])
+AC_MSG_NOTICE([  coverage:  $enable_coverage])
 AC_MSG_NOTICE([  buildinfo:  $PACKAGE_BUILDINFO])
 AC_MSG_NOTICE([  docs:      $enable_docs])
 AC_MSG_NOTICE([])
