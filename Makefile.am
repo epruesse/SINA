@@ -38,8 +38,10 @@ arblibdir = $(pkglibdir)/lib
 
 bin_SCRIPTS = src/sina
 arbbin_PROGRAMS = src/sina.real arb_pt_server arb_message
-arblib_DATA = arb_tcp.dat
-#$(ARBHOME)/lib/libCORE.so
+arblib_DATA = \
+    arb_tcp.dat \
+    $(ARBHOME)/lib/libCORE$(LIBEXT) \
+    $(ARBHOME)/lib/libARBDB$(LIBEXT) 
 noinst_PROGRAMS = src/sina_probematch src/kmer_test
 noinst_LTLIBRARIES = src/libsina.la
 
