@@ -41,7 +41,7 @@ script:
       case `uname` in
       Linux)  ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX \
               || cat config.log;
-	      ls /home/travis/miniconda/lib/arb/lib/
+              ls /home/travis/miniconda/lib/arb/lib/
       ;;
       Darwin) ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX \
                           --disable-docs \
