@@ -59,7 +59,7 @@ script:
       ;;
       esac
   - make
-  - make check V=1
+  - if test `uname` = Linux; then make check V=1; fi
   - make bindist-gzip
   # make distcheck deletes $ARBHOME/lib/*
   - |
