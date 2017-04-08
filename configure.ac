@@ -123,11 +123,11 @@ fi
 
 case "$host_os" in
   darwin*)
-    LIBEXT=.dylib
+#    LIBEXT=.dylib
     OSNAME=macos
     ;;
   *)
-    LIBEXT=.so
+#    LIBEXT=.so
     OSNAME=linux
     ;;
 esac

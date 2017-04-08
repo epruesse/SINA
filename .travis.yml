@@ -58,7 +58,7 @@ script:
       ;;
       esac
   - make
-  - make check
+  - make check V=1
   - make bindist-gzip
   # make distcheck deletes $ARBHOME/lib/*
   - |
