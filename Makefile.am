@@ -137,7 +137,7 @@ dist_tools_DATA = \
 
 export TEXINPUTS=$(top_srcdir):$(top_srcdir)/tools/:
 
-CLEANFILES += $(dist_doc_DATA) $(doc_DATA) $(man1_MANS) $(arblib_DATA) doc/sina-manual.log  doc/sina-manual.toc doc/sina-manual.aux doc/sina-manual.out
+CLEANFILES += $(doc_DATA) $(man1_MANS) $(arblib_DATA) doc/sina-manual.log  doc/sina-manual.toc doc/sina-manual.aux doc/sina-manual.out
 
 
 %.txt: sina_%.txt

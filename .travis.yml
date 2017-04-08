@@ -42,7 +42,7 @@ install:
   - rm $PREFIX/bin/sed # temporary hackaround
   - export ARBHOME=`echo | arb shell | sed -n 's/.*ARBHOME='\''\(.*\)'\''/\1/p'`
   - export CFLAGS="$CFLAGS -I$PREFIX/include"
-  - export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
+  - export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath -Wl,$PREFIX/lib"
   - export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig"
 
 script:
