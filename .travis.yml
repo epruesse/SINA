@@ -39,12 +39,15 @@ script:
   - sh autogen.sh
   - |
       case `uname` in
-      Linux)  ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX;
+      Linux)  ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX \
+              || cat config.log
       ;;
       Darwin) ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX \
-                          --disable-docs
+                          --disable-docs \
+	      || cat config.log
       ;;
       esac
+      $? 
   - make
   - make check
   - test x`uname` = x"Linux" && make dist-gzip && make distcheck
