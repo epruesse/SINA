@@ -45,7 +45,7 @@ script:
       ;;
       Darwin) ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX \
                           --disable-docs \
-	      || cat config.log
+              || cat config.log
       ;;
       esac
       $? 
