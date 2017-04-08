@@ -61,7 +61,16 @@ script:
   - make check
   - make bindist-gzip
   # make distcheck deletes $ARBHOME/lib/*
-  - test x`uname` = x"Linux" && make dist-gzip && make distcheck
+  - |
+      case `uname` in
+      Linux)
+        make dist-gzip && make distcheck
+      ;;
+      *)
+        :
+      ;;
+      esac
+
 
 
   
