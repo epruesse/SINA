@@ -40,15 +40,13 @@ script:
   - |
       case `uname` in
       Linux)  ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX \
-              || cat config.log;
-              ls /home/travis/miniconda/lib/arb/lib/
+              || cat config.log
       ;;
       Darwin) ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX \
                           --disable-docs \
               || cat config.log
       ;;
       esac
-      $? 
   - make
   - make check
   - make bindist-gzip
