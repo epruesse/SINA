@@ -51,7 +51,9 @@ script:
       $? 
   - make
   - make check
-  - test x`uname` = x"Linux" && make dist-gzip && make distcheck
   - make bindist-gzip
+  # make distcheck deletes $ARBHOME/lib/*
+  - test x`uname` = x"Linux" && make dist-gzip && make distcheck
+
 
   
