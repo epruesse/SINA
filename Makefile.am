@@ -139,9 +139,8 @@ dist_doc_DATA = doc/sina.tex
 
 
 CLEANFILES += sina-manual.log
-toolsdir=tools
 LATEXTOMAN=$(top_srcdir)/tools/latex2man
-dist_tools_DATA = \
+EXTRA_DIST +=  \
     tools/latex2man \
     tools/latex2man.sty \
     tools/latex2man.cfg \
