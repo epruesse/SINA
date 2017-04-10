@@ -92,7 +92,8 @@ src_libsina_la_SOURCES = \
     src/alignment_stats.cpp \
     src/alignment_stats.h \
     src/kmer_search.cpp \
-    src/kmer_search.h
+    src/kmer_search.h \
+    include/pstreams.h
 
 src_libsina_la_LDFLAGS = -static $(ARB_LDFLAGS)
 
