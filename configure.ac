@@ -176,17 +176,19 @@ BOOST_STATIC()
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
   Makefile
-  src/sina
-], [
-  chmod +x src/sina
 ])
+AM_COND_IF([ENABLE_FAT_TAR], [AC_CONFIG_FILES([
+  src/sina
+],[
+  chmod +x src/sina
+])])
 
 
 
 ###### print some summaries
 
 AC_MSG_NOTICE([---------------------------------------])
-AC_MSG_NOTICE([  SINA summary])
+AC_MSG_NOTICE([  AC_PACKAGE_STRING summary])
 AC_MSG_NOTICE([---------------------------------------])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([  prefix: $prefix])
