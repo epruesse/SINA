@@ -53,10 +53,14 @@ script:
   - sh autogen.sh
   - |
       case `uname` in
-      Linux)  ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX \
+      Linux)  ./configure --with-arbhome=$ARBHOME \
+                          --with-boost=$PREFIX \
+                          --enable-fat-tar \
               || cat config.log
       ;;
-      Darwin) ./configure --with-arbhome=$ARBHOME --with-boost=$PREFIX \
+      Darwin) ./configure --with-arbhome=$ARBHOME \
+                          --with-boost=$PREFIX \
+                          --enable-fat-tar \
                           --disable-docs \
               || cat config.log
       ;;
