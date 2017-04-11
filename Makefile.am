@@ -1,17 +1,6 @@
 # Put objects into subdirs
 AUTOMAKE_OPTIONS = subdir-objects
 
-# Some extra files to put into source tarfile
-EXTRA_DIST= \
-    LICENSE \
-    CHANGELOG \
-    README.md \
-    arb_LICENSE.txt \
-    arb_PUBLIB_LICENSE.txt \
-    Makefile.am \
-    configure.ac \
-    autogen.sh 
-
 # Default extension to use when no bla_SOURCES exists.
 AM_DEFAULT_SOURCE_EXT = .cpp
 
@@ -36,13 +25,28 @@ AM_CXXFLAGS = \
 AM_CFLAGS = \
     $(CODE_COVERAGE_CFLAGS)
 
-# calling pkglibdir our ARBHOME (.../lib/sina), we install 
-# internal libs and binaries to .../bin and .../lib subdirs
-arbbindir = $(pkglibdir)/bin
-arblibdir = $(pkglibdir)/lib
+
+
+# Some extra files to put into source tarfile
+EXTRA_DIST= \
+    LICENSE \
+    CHANGELOG \
+    README.md \
+    arb_LICENSE.txt \
+    arb_PUBLIB_LICENSE.txt \
+    Makefile.am \
+    configure.ac \
+    autogen.sh 
 
 
 ### TARGETS ###
+
+# calling pkglibdir our ARBHOME (.../lib/sina), we install 
+# internal libs and binaries to .../bin and .../lib subdirs
+
+if ENABLE_FAT_TAR 
+arbbindir = $(pkglibdir)/bin
+arblibdir = $(pkglibdir)/lib
 
 bin_SCRIPTS = src/sina
 arbbin_PROGRAMS = src/sina.real arb_pt_server arb_message
@@ -55,6 +59,16 @@ noinst_LTLIBRARIES = src/libsina.la
 
 arb_message_SOURCES=
 arb_pt_server_SOURCES=
+
+src_sina_real_SOURCES = src/sina.cpp 
+src_sina_real_LDADD = $(sina_libs)
+
+else
+bin_PROGRAMS = src/sina
+src_sina_SOURCES = src/sina.cpp
+src_sina_LDADD = $(sina_libs)
+lib_LTLIBRARIES = src/libsina.la
+endif
 
 CLEANFILES    = $(bin_SCRIPTS)
 
@@ -103,7 +117,7 @@ src_libsina_la_SOURCES = \
     src/kmer_search.h \
     include/pstream.h
 
-src_libsina_la_LDFLAGS = -static $(ARB_LDFLAGS)
+src_libsina_la_LDFLAGS = $(ARB_LDFLAGS)
 
 sina_libs = \
     src/libsina.la \
@@ -117,8 +131,6 @@ sina_libs = \
 
 # $(CODE_COVERAGE_LIBS)
 
-src_sina_real_SOURCES = src/sina.cpp 
-src_sina_real_LDADD = $(sina_libs)
 
 
 src_sina_probematch_LDADD = $(sina_libs)

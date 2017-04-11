@@ -22,7 +22,7 @@ AC_PROG_SED
 AC_PROG_LN_S
 AC_PROG_INSTALL
 AC_PROG_MKDIR_P
-LT_INIT
+LT_INIT([shared static])
 
 # Check for C++ and required features
 
@@ -87,6 +87,8 @@ AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
 
 # Add option to disable building docs (needs latex...)
 AX_ARG_DISABLE([docs], [don't build documentation])
+
+AX_ARG_ENABLE([fat_tar], [try to build a fat tar containing deps])
 
 # Add profiling option
 AX_ARG_ENABLE([profiling], [add profiling information to build],
