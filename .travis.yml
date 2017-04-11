@@ -74,6 +74,10 @@ script:
         :
       ;;
       esac
+  - mkdir install
+  - cd install
+  - tar -xvzf ../sina-*-$OSNAME.tar.gz
+  - ./sina --has-cli-vers 2
 
 deploy:
   provider: releases
