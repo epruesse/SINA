@@ -2,7 +2,15 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
 # Some extra files to put into source tarfile
-EXTRA_DIST=LICENSE CHANGELOG README.md arb_LICENSE.txt arb_PUBLIB_LICENSE.txt
+EXTRA_DIST= \
+    LICENSE \
+    CHANGELOG \
+    README.md \
+    arb_LICENSE.txt \
+    arb_PUBLIB_LICENSE.txt \
+    Makefile.am \
+    configure.ac \
+    autogen.sh 
 
 # Default extension to use when no bla_SOURCES exists.
 AM_DEFAULT_SOURCE_EXT = .cpp
