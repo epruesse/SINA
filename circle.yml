@@ -1,0 +1,28 @@
+machine:
+  environment:
+    MINICONDA: "$HOME/miniconda"
+    MINICONDA_URL: "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh"
+    PATH: "$MINICONDA/bin:$PATH"
+    CONDA: "$MINICONDA_PATH/conda"
+
+dependencies:
+  override:
+    - rm -rf ~/virtualenvs
+    - |
+      # install conda
+      wget $MINICONDA_URL -O miniconda.sh;
+      bash miniconda.sh -b -p $MINICONDA; hash -r;
+      conda config --set always_yes yes --set changeps1 no;
+      conda update -q conda;
+      for channel in conda-forge defaults r bioconda; do
+        conda config --system --add channels $channel;
+      done;
+      conda info -a;
+      conda install arb-bio boost pkg-config autoconf automake libtool;
+test:
+  override:
+    - ./configure
+    - makeg
+    - make install
+    - sina --help
+    
