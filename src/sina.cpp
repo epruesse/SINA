@@ -226,7 +226,7 @@ parse_options(int argc, char** argv) {
 
         if (vm.count("help")) {
             cerr << desc << endl;
-            exit(EXIT_FAILURE);
+            exit(EXIT_SUCCESS);
         }
 
         if (vm.count("has-cli-vers")) {
