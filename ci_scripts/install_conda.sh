@@ -6,7 +6,7 @@ case `uname` in
 esac
 
 CONDA_BASEURL=https://repo.continuum.io/miniconda
-wget $CONDA_BASEURL/Miniconda3-latest-$CONDA_SNAME-x86_64.sh -O miniconda.sh
+wget $CONDA_BASEURL/Miniconda3-latest-$CONDA_OSNAME-x86_64.sh -O miniconda.sh
 
 bash miniconda.sh -b -p $HOME/miniconda
 
