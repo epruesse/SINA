@@ -5,7 +5,7 @@ os:
 cache: ccache
 
 install:
-  - |
+  - source ci_scripts/install_conda.sh
     case $TRAVIS_OS_NAME in
       linux)
         conda_OSNAME=Linux
@@ -17,25 +17,11 @@ install:
         ;;
       esac
   - |
-    wget https://repo.continuum.io/miniconda/Miniconda3-latest-$conda_OSNAME-x86_64.sh -O miniconda.sh;
-    bash miniconda.sh -b -p $HOME/miniconda
-    export PATH="$HOME/miniconda/bin:$PATH"'
-    export PREFIX="$HOME/miniconda"
-    hash -r
-    conda config --set always_yes yes --set changeps1 no
-    conda update -q conda
-  - conda config --add channels conda-forge
-  - conda config --add channels bioconda
-  - conda create -n build arb-bio boost pkg-config autoconf automake libtool
-  - source activate build
-  - export CFLAGS="$CFLAGS -I$PREFIX/include"
-  - export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath -Wl,$PREFIX/lib"
-  - export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig"
 
 script:
   - sh autogen.sh
   - ./configure --with-arbhome=$ARBHOME \
-                --with-boost=$PREFIX \
+                --with-boost=$CONDA_PREFIX \
                 --enable-fat-tar \
                 --disable-docs \
                 || cat config.log
@@ -47,7 +33,7 @@ script:
   - mkdir install
   - cd install
   - tar -xvzf ../sina-*-$OSNAME.tar.gz
-  - ./sina --has-cli-vers 2
+  - ./sina --help
 
 deploy:
   provider: releases
