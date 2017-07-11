@@ -5,7 +5,13 @@ dependencies:
 test:
   override:
     - sh autogen.sh
-    - ./configure
+    - |
+      source activate build; 
+      ./configure --disable-docs \
+                  --with-boot=$CONDA_PREFIX \
+                  --with-prefix=$CONDA_PREFIX \
+                  --with-arbhome=$ARBHOME \
+                  || cat config.log
     - make
     - make install
     - sina --help
