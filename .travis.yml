@@ -6,17 +6,6 @@ cache: ccache
 
 install:
   - source ci_scripts/install_conda.sh
-    case $TRAVIS_OS_NAME in
-      linux)
-        conda_OSNAME=Linux
-        OSNAME=linux
-      ;;
-      osx)
-        conda_OSNAME=MacOSX
-        OSNAME=macos
-        ;;
-      esac
-  - |
 
 script:
   - sh autogen.sh
