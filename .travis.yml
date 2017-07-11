@@ -9,10 +9,10 @@ install:
 
 script:
   - sh autogen.sh
-  - ./configure --with-arbhome=$ARBHOME \
-                --with-boost=$CONDA_PREFIX \
-                --enable-fat-tar \
-                --disable-docs \
+  - ./configure --with-arbhome=$ARBHOME 
+                --with-boost=$CONDA_PREFIX 
+                --enable-fat-tar 
+                --disable-docs 
                 || cat config.log
   - make -j2
   - if test `uname` = Linux; then make check V=1; fi
