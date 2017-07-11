@@ -16,8 +16,9 @@ hash -r
 
 conda config --set always_yes yes --set changeps1 no
 conda update -q conda
-conda config --add channels conda-forge
-conda config --add channels bioconda
+for channel in r defaults conda-forge bioconda; do
+    conda config --system --add channels $channel
+done
 
 conda create -n build arb-bio boost pkg-config autoconf automake libtool
 source activate build
