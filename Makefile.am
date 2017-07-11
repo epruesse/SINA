@@ -13,18 +13,16 @@ AM_CPPFLAGS = \
     $(BOOST_CPPFLAGS) \
     $(ARB_CPPFLAGS) \
     $(CODE_COVERAGE_CPPFLAGS)
+
 AM_LDFLAGS = \
     $(BOOST_LDFLAGS) \
-    $(BOOST_THREAD_LDFLAGS) \
-    $(BOOST_PROGRAM_OPTIONS_LDFLAGS) \
     $(ARB_LDFLAGS)
 
-#    $(CODE_COVERAGE_LDFLAGS)
 AM_CXXFLAGS = \
     $(CODE_COVERAGE_CXXFLAGS)
+
 AM_CFLAGS = \
     $(CODE_COVERAGE_CFLAGS)
-
 
 
 # Some extra files to put into source tarfile
@@ -118,20 +116,18 @@ src_libsina_la_SOURCES = \
     include/pstream.h
 
 src_libsina_la_LDFLAGS = $(ARB_LDFLAGS)
-
-sina_libs = \
-    src/libsina.la \
+src_libsina_la_LIBADD = \
     $(Z_LIB) \
     $(ARB_LIBS) \
     $(ARB_PROBE_LIBS) \
     $(ARB_HELIX_LIBS) \
-    $(BOOST_PROGRAM_OPTIONS_LIBS) \
-    $(BOOST_THREAD_LIBS) \
-    $(BOOST_SERIALIZATION_LIBS)
+    $(BOOST_PROGRAM_OPTIONS_LIB) \
+    $(BOOST_THREAD_LIB) \
+    $(BOOST_SERIALIZATION_LIB) \
+    $(BOOST_SYSTEM_LIB)
 
-# $(CODE_COVERAGE_LIBS)
 
-
+sina_libs = src/libsina.la
 
 src_sina_probematch_LDADD = $(sina_libs)
 src_kmer_test_LDADD = $(sina_libs)
@@ -217,8 +213,8 @@ $(BINDISTDIR).tar.gz: $(BINDISTDIR)
 ### Unit Tests ###
 
 test_libs = $(sina_libs) \
-    $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
-    $(BOOST_SYSTEM_LIBS)
+    $(BOOST_UNIT_TEST_FRAMEWORK_LIB) \
+    $(BOOST_SYSTEM_LIB)
 
 TESTS =  $(check_PROGRAMS)
 
@@ -230,6 +226,6 @@ check_PROGRAMS = \
     src/unit_tests/cseq_comparator_test
 
 src_unit_tests_cseq_test_LDADD = $(test_libs)
-src_unit_tests_cseq_test_LDFLAGS = $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(ARB_LDFLAGS)
+src_unit_tests_cseq_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_cseq_comparator_test_LDADD = $(test_libs)
-src_unit_tests_cseq_comparator_test_LDFLAGS = $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(ARB_LDFLAGS)
+src_unit_tests_cseq_comparator_test_LDFLAGS = $(ARB_LDFLAGS)
