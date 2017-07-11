@@ -4,6 +4,7 @@ dependencies:
     - bash ci_scripts/install_conda.sh
 test:
   override:
+    - sh autogen.sh
     - ./configure
     - make
     - make install
