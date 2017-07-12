@@ -74,11 +74,14 @@ CXXFLAGS="$CXXFLAGS -w"
 AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
 [
   CPPFLAGS="$CPPFLAGS -DDEBUG"
-  CXXFLAGS="$CXXFLAGS -O0 -ggdb3"
+  CXXFLAGS="$CXXFLAGS -O1 -ggdb3"
   AX_CHECK_COMPILE_FLAG([-fsanitize=address],[ 
-    CXXFLAGS="$CXXFLAGS -fsanitize=address -fno-omit-frame-pointer"
+    CXXFLAGS="$CXXFLAGS -fsanitize=address"
   ])
-  AX_CHECK_LINK_FLAG([-fsanitize=address], [
+  AX_CHECK_COMPILE_FLAG([-fno-omit-frame-pointer],[
+    CXXFLAGS="$CXXFLAGS -fno-omit-frame-pointer"
+  ])
+  AX_CHECK_LINK_FLAG([-fsanitize=address],[
     LDFLAGS="$LDFLAGS -fsanitize=address"
   ])
 ],[
