@@ -52,8 +52,8 @@ arblib_DATA = \
     arb_tcp.dat \
     $(ARBHOME)/lib/libCORE$(LIBEXT) \
     $(ARBHOME)/lib/libARBDB$(LIBEXT) 
-noinst_PROGRAMS = src/sina_probematch src/kmer_test
-noinst_LTLIBRARIES = src/libsina.la
+
+arblib_LTLIBRARIES = src/libsina.la
 
 arb_message_SOURCES=
 arb_pt_server_SOURCES=
@@ -67,6 +67,8 @@ src_sina_SOURCES = src/sina.cpp
 src_sina_LDADD = $(sina_libs)
 lib_LTLIBRARIES = src/libsina.la
 endif
+
+noinst_PROGRAMS = src/sina_probematch src/kmer_test
 
 CLEANFILES    = $(bin_SCRIPTS)
 
