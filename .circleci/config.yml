@@ -68,14 +68,18 @@ jobs:
             make -C ~/build dist-gzip
             ls -la ~/build/*.gz
       - run:
+          name: Cleaning Up
+          command: make -C ~/build clean
+      - run:
           <<: *configure
           environment:
             EXTRA_CONFIG_ARGS: --enable-fat-tar
       - run:
           name: Running Make
+          command: make -C ~/build
+      - run:
+          name: Building Binary Package
           command: |
-            make -C ~/build clean
-            make -C ~/build
             make -C ~/build bindist-gzip
             ls -la ~/build/*.gz
 
