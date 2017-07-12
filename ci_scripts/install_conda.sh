@@ -1,10 +1,21 @@
 #!/bin/bash
 
-CONDA_PACKAGES="autoconf automake libtool toolchain pkg-config boost gcc arb-bio"
+CONDA_PACKAGES="autoconf automake libtool toolchain pkg-config boost arb-bio"
 CONDA_PACKAGES="$CONDA_PACKAGES pcre libiconv"
 
+case "$(uname)" in
+    Linux)
+	CONDA_OSNAME=Linux
+	CONDA_PACKAGES="$CONDA_PACKAGES gcc"
+	;;
+    Darwin)
+	CONDA_OSNAME=MacOSX
+	CONDA_PACKAGES="$CONDA_PACKAGES llvm"
+	;;
+esac
+
 # Make sure we have conda in the PATH always
-if ! grep $MINICONDA/bin $BASH_ENVx; then
+if ! grep $MINICONDA/bin $BASH_ENV; then
    echo "Prepending $MINICONDA/bin to PATH in $BASH_ENV"
    echo export PATH="$MINICONDA/bin:$PATH" >> $BASH_ENV
    source $BASH_ENV
@@ -24,10 +35,6 @@ fi
 if test -d $MINICONDA; then
     echo "Found conda install"
 else
-    case `uname` in
-	Linux)  CONDA_OSNAME=Linux;;
-	Darwin) CONDA_OSNAME=MacOSX;;
-    esac
 
     CONDA_BASEURL=https://repo.continuum.io/miniconda
     curl $CONDA_BASEURL/Miniconda3-latest-$CONDA_OSNAME-x86_64.sh -o miniconda.sh
