@@ -51,14 +51,15 @@ conda info
 
 # Homemade save_cache
 # Clean out tarballs, update cache if there were any (=> something was installed)
-if conda clean --yes --tarballs | grep Removed; then
-   if test -e "LOCAL"; then
-       echo -n "Packing local conda cache..."
-       tar -C / -czf conda.tgz $MINICONDA
-       echo "done"
-   else
-       (conda info; conda list) >> conda_state.txt
-   fi
+if test -e "LOCAL"; then
+    if conda clean --yes --tarballs | grep Removed; then
+	echo -n "Packing local conda cache..."
+	tar -C / -czf conda.tgz $MINICONDA
+	echo "done"
+    fi
+else
+    conda clean --yes --tarballs
+    (conda info; conda list) >> conda_state.txt
 fi
 
 
