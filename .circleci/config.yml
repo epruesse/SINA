@@ -30,7 +30,7 @@ jobs:
               --with-arbhome=/root/miniconda/lib/arb \
               LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,/root/miniconda/lib" \
             || (cat config.log; false)
-      - run: make -C ~/build V=1
+      - run: make -C ~/build V=1 -j2
       - run: make -C ~/build check
       - run: make -C ~/build install
       - run: ldd ~/install/bin/sina
