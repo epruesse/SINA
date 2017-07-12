@@ -64,7 +64,7 @@ jobs:
           command: ~/install/bin/sina --help
       - run:
           name: Building Source Package
-          command: make -C ~/build dist-gzip
+          command: make -C ~/build dist-bzip2
       - run:
           name: Cleaning Up
           command: make -C ~/build clean
@@ -77,10 +77,10 @@ jobs:
           command: make -C ~/build
       - run:
           name: Building Binary Package
-          command: make -C ~/build bindist-gzip
+          command: make -C ~/build bindist-bzip2
       - run:
           name: Copy tarballs
-          command: mkdir -p /tmp/artifacts; cp ~/build/* /tmp/artifacts
+          command: mkdir -p /tmp/artifacts; cp ~/build/*.tar.* /tmp/artifacts
       - store_artifacts:
           path: /tmp/artifacts
 
