@@ -19,7 +19,7 @@ esac
 if ! grep $MINICONDA/bin $BASH_ENV; then
     echo "Prepending $MINICONDA/bin to PATH in $BASH_ENV"
     cat - $BASH_ENV > $BASH_ENV.tmp <<EOF
-echo export PATH="$MINICONDA/bin:$PATH" >> $BASH_ENV
+export PATH="$MINICONDA/bin:$PATH" >> $BASH_ENV
 EOF
     mv $BASH_ENV.tmp $BASH_ENV
     source $BASH_ENV
