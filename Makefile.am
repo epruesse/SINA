@@ -119,15 +119,16 @@ src_libsina_la_LDFLAGS = $(ARB_LDFLAGS)
 src_libsina_la_LIBADD = \
     $(Z_LIB) \
     $(ARB_LIBS) \
-    $(ARB_PROBE_LIBS) \
-    $(ARB_HELIX_LIBS) \
     $(BOOST_PROGRAM_OPTIONS_LIB) \
     $(BOOST_THREAD_LIB) \
     $(BOOST_SERIALIZATION_LIB) \
     $(BOOST_SYSTEM_LIB)
 
 
-sina_libs = src/libsina.la
+sina_libs = \
+    src/libsina.la \
+    $(ARB_PROBE_LIBS) \
+    $(ARB_HELIX_LIBS)
 
 src_sina_probematch_LDADD = $(sina_libs)
 src_kmer_test_LDADD = $(sina_libs)
