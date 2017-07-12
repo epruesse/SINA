@@ -33,5 +33,9 @@ jobs:
       - run: make -C ~/build V=1
       - run: make -C ~/build check
       - run: make -C ~/build install
+      - run: ldd ~/install/bin/sina
+      - run: readelf -d ~/install/bin/sina
+      - run: readelf -d ~/install/lib/libsina*.so
       - run: ~/install/bin/sina --help
-    
+
+        
