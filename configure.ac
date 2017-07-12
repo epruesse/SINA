@@ -112,22 +112,26 @@ AC_ARG_WITH([buildinfo], AS_HELP_STRING([--with-buildinfo=<NO>]),
 # ARB dependencies
 PKG_CHECK_MODULES([GLIB], [glib-2.0 > 2.2])
 if test x"$GLIB_LIBS" = x""; then
-  missing_libs="$missing_libs\n glib-2.0 (libglib)"
+  missing_libs="$missing_libs
+  glib-2.0 (libglib)"
 fi
 
 AX_LIB_ARBDB
 if test x"$ARB_LIBS" = x""; then
-  missing_libs="$missing_libs\n ARB libraries (libARBDB)"
+  missing_libs="$missing_libs
+  ARB libraries (libARBDB)"
 fi
 
 AX_LIB_ARB_PROBE
 if test x"$ARB_PROBE_LIBS" = x""; then
-  missing_libs="$missing_libs\n ARB PROBE library (PROBE_COM/client.a)"
+  missing_libs="$missing_libs
+  ARB PROBE library (PROBE_COM/client.a)"
 fi
 
 AX_LIB_ARB_HELIX
 if test x"$ARB_HELIX_LIBS" = x""; then
-  missing_libs="$missing_libs\n ARB HELIX library (SL/HELIX/HELIX.a)"
+  missing_libs="$missing_libs
+  ARB HELIX library (SL/HELIX/HELIX.a)"
 fi
 
 
@@ -161,10 +165,29 @@ AC_SUBST(ARB_FILES)
 
 AX_BOOST_BASE([1.48])
 AX_BOOST_THREAD
+if test x"$BOOST_THREAD_LIB" = x""; then
+  missing_libs="$missing_libs
+  BOOST Thread (libboost_thread)"
+fi
 AX_BOOST_PROGRAM_OPTIONS
+if test x"$BOOST_PROGRAM_OPTIONS_LIB" = x""; then
+  missing_libs="$missing_libs
+  BOOST Program Options (libboost_program_options)"
+fi
 AX_BOOST_SERIALIZATION
+if test x"$BOOST_SERIALIZATION_LIB" = x""; then
+  missing_libs="$missing_libs
+  BOOST Serialization (libboost_serialization)"
+fi
 AX_BOOST_SYSTEM
+if test x"$BOOST_SYSTEM_LIB" = x""; then
+  missing_libs="$missing_libs
+  BOOST System (libboost_system)"
+fi
 AX_BOOST_UNIT_TEST_FRAMEWORK
+#if test x"$BOOST_UNIT_TEST_FRAMEWORK_LIBS" = x""; then
+#  missing_libs="$missing_libs\n BOOST Unit Test Framework (libboost_unit_test_framework)"
+#fi
 
 # Generate output
 
@@ -224,9 +247,7 @@ AC_MSG_NOTICE([  zlib:         ${Z_LIB}])
 ### check that all deps are satisfied
 
 if test x"$missing_libs" != x""; then
-  AC_MSG_FAILURE([ Required libraries found missing:
-  $missing_libs
-  ])
+  AC_MSG_FAILURE(Required libraries found missing:  $missing_libs )
 fi
 
 AC_OUTPUT
