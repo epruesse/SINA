@@ -17,9 +17,12 @@ esac
 
 # Make sure we have conda in the PATH always
 if ! grep $MINICONDA/bin $BASH_ENV; then
-   echo "Prepending $MINICONDA/bin to PATH in $BASH_ENV"
-   echo export PATH="$MINICONDA/bin:$PATH" >> $BASH_ENV
-   source $BASH_ENV
+    echo "Prepending $MINICONDA/bin to PATH in $BASH_ENV"
+    cat - $BASH_ENV > $BASH_ENV.tmp <<EOF
+echo export PATH="$MINICONDA/bin:$PATH" >> $BASH_ENV
+EOF
+    mv $BASH_ENV.tmp $BASH_ENV
+    source $BASH_ENV
 fi
 
 # Homemade restore_cache
