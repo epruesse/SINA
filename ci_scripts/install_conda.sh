@@ -2,7 +2,6 @@
 #
 # Installs Bio-Conda and all dependencies
 # - adds miniconda PATH to bashrc (for CircleCI)
-# - can be sourced (for Travis)
 # - manages a tarball if file `LOCAL` present (for ./cicleci build)
 # - creates conda_state.txt for caching with circleci "{{checksum}}"
 # - updates packages with every run
@@ -25,15 +24,11 @@ case "$(uname)" in
 esac
 
 # Make sure we have conda in the PATH always
-if ! grep $MINICONDA/bin $BASH_ENV; then
+if test -n "$BASH_ENV"; then
     echo "Prepending $MINICONDA/bin to PATH in $BASH_ENV"
-    touch $BASH_ENV
-    cat - $BASH_ENV > $BASH_ENV.tmp <<EOF
-export PATH="$MINICONDA/bin:$PATH" >> $BASH_ENV
-EOF
-    mv $BASH_ENV.tmp $BASH_ENV
-    source $BASH_ENV
+    echo export PATH="$MINICONDA/bin:$PATH" >> $BASH_ENV
 fi
+export PATH="$MINICONDA/bin:$PATH" >> $BASH_ENV
 
 # Homemade restore_cache
 if test -e "LOCAL"; then
