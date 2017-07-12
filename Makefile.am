@@ -25,8 +25,16 @@ AM_CFLAGS = \
     $(CODE_COVERAGE_CFLAGS)
 
 
-# Some extra files to put into source tarfile
+# Files to copy into distribution packages
+EXTRA_BINDIST= \
+    LICENSE \
+    CHANGELOG \
+    README.md \
+    arb_LICENSE.txt \
+    arb_PUBLIB_LICENSE.txt
+
 EXTRA_DIST= \
+    $(EXTRA_BINDIST) \
     LICENSE \
     CHANGELOG \
     README.md \
@@ -34,7 +42,11 @@ EXTRA_DIST= \
     arb_PUBLIB_LICENSE.txt \
     Makefile.am \
     configure.ac \
-    autogen.sh 
+    autogen.sh \
+    tools/latex2man \
+    tools/latex2man.sty \
+    tools/latex2man.cfg \
+    tools/test_driver.sh
 
 
 ### TARGETS ###
@@ -43,17 +55,15 @@ EXTRA_DIST= \
 # internal libs and binaries to .../bin and .../lib subdirs
 
 if ENABLE_FAT_TAR 
-arbbindir = $(pkglibdir)/bin
-arblibdir = $(pkglibdir)/lib
+arbbindir = $(libdir)/arb/bin
+arblibdir = $(libdir)/arb/lib
 
 bin_SCRIPTS = src/sina
-arbbin_PROGRAMS = src/sina.real arb_pt_server arb_message
+bin_PROGRAMS = src/sina.real arb_pt_server arb_message
 arblib_DATA = \
     arb_tcp.dat \
     $(ARBHOME)/lib/libCORE$(LIBEXT) \
     $(ARBHOME)/lib/libARBDB$(LIBEXT) 
-
-arblib_LTLIBRARIES = src/libsina.la
 
 arb_message_SOURCES=
 arb_pt_server_SOURCES=
@@ -65,9 +75,9 @@ else
 bin_PROGRAMS = src/sina
 src_sina_SOURCES = src/sina.cpp
 src_sina_LDADD = $(sina_libs)
-lib_LTLIBRARIES = src/libsina.la
 endif
 
+lib_LTLIBRARIES = src/libsina.la
 noinst_PROGRAMS = src/sina_probematch src/kmer_test
 
 CLEANFILES    = $(bin_SCRIPTS)
@@ -159,15 +169,10 @@ dist_doc_DATA = doc/sina.tex
 
 CLEANFILES += sina-manual.log
 LATEXTOMAN=$(top_srcdir)/tools/latex2man
-EXTRA_DIST +=  \
-    tools/latex2man \
-    tools/latex2man.sty \
-    tools/latex2man.cfg \
-    tools/test_driver.sh
 
 export TEXINPUTS=$(top_srcdir):$(top_srcdir)/tools/:
 
-CLEANFILES += $(doc_DATA) $(man1_MANS) $(arblib_DATA) doc/sina-manual.log  doc/sina-manual.toc doc/sina-manual.aux doc/sina-manual.out
+CLEANFILES += $(doc_DATA) $(man1_MANS) doc/sina-manual.log  doc/sina-manual.toc doc/sina-manual.aux doc/sina-manual.out
 
 
 %.txt: sina_%.txt
@@ -194,25 +199,31 @@ CLEANFILES += $(doc_DATA) $(man1_MANS) $(arblib_DATA) doc/sina-manual.log  doc/s
 
 ### PACKAGE ###
 
-BINDISTDIR = sina-$(VERSION)-$(OSNAME)
+BINDISTFILES =
+bindistdir = $(PACKAGE)-$(VERSION)-$(OSNAME)
 
-bindist: $(BINDISTDIR)
-
-$(BINDISTDIR): all
-	rm -rf $(BINDISTDIR)
-	$(MAKE) DESTDIR=$(abspath $(BINDISTDIR)) install
-	mv -f $(BINDISTDIR)/$(prefix)/* $(BINDISTDIR)
-	cd $(BINDISTDIR); for f in bin/sina share/doc/sina*; do \
+bindistdir: all
+	rm -rf $(bindistdir)
+	mkdir $(bindistdir)
+	$(MAKE) DESTDIR=$(abspath $(bindistdir)) install
+	mv -f $(bindistdir)/$(prefix)/* $(bindistdir)
+	cd $(bindistdir); for f in bin/sina share/doc/sina*; do \
 	  test -f $$f && $(LN_S) $$f; done || true
-	find $(BINDISTDIR) -depth -type d -empty -exec rmdir {} \;
-	cp $(EXTRA_DIST) $(BINDISTDIR)
+	for f in $(EXTRA_BINDIST); do \
+          cp -fpR $(top_srcdir)/$$f $(bindistdir)$$f; done
+	find $(bindistdir) -depth -type d -empty -exec rmdir {} \;
 
-bindist-gzip: $(BINDISTDIR).tar.gz
+bindist-gzip: bindistdir
+	tardir=$(bindistdir) && $(am__tar) | GZIP=$(GZIP_ENV) gzip -c >$(bindistdir).tar.gz
+	rm -rf $(bindistdir)
+bindist-bzip2: bindistdir
+	tardir=$(bindistdir) && $(am__tar) | BZIP2=$${BZIP2--9} bzip2 -c >$(bindistdir).tar.bz2
+	rm -rf $(bindistdir)
 
-$(BINDISTDIR).tar.gz: $(BINDISTDIR)
-	tar -cv $^ | gzip --best > $@
 
-.PHONY: $(BINDISTDIR) $(BINDISTDIR).tar.gz
+.PHONY: bindistdir bindist-gzip bindist-bzip2
+
+
 ### Unit Tests ###
 
 test_libs = $(sina_libs) \
