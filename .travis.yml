@@ -29,7 +29,7 @@ script:
   - make
   - make check
   - make install
-  - ./install/bin/sina --help
+  - $HOME/install/bin/sina --help
   
 #  - make bindist-gzip
 #  - if test `uname` = Linux; then make dist-gzip && make distcheck; fi
