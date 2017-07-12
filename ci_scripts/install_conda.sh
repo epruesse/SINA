@@ -1,5 +1,14 @@
 #!/bin/bash
-set -x
+#
+# Installs Bio-Conda and all dependencies
+# - adds miniconda PATH to bashrc (for CircleCI)
+# - can be sourced (for Travis)
+# - manages a tarball if file `LOCAL` present (for ./cicleci build)
+# - creates conda_state.txt for caching with circleci "{{checksum}}"
+# - updates packages with every run
+# - needs BASH_ENV to point to the bashrc
+# - needs MINICONDA to point to the miniconda install path
+
 
 CONDA_PACKAGES="autoconf automake libtool toolchain pkg-config boost arb-bio"
 CONDA_PACKAGES="$CONDA_PACKAGES pcre libiconv"

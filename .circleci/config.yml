@@ -1,12 +1,28 @@
 version: 2
 
+references:
+  configure:
+    name: Running Configure
+    command: |
+      cd ~/build
+      /root/sina/configure \
+      --disable-docs \
+      --prefix=/root/install \
+      --with-boost=/root/miniconda  \
+      --with-boost-libdir=/root/miniconda/lib \
+      --with-arbhome=/root/miniconda/lib/arb \
+      $EXTRA_CONFIG_ARGS \
+      LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,/root/miniconda/lib" \
+      || (cat config.log; false)
+
 jobs:
   build:
     docker:
       - image: condaforge/linux-anvil
         environment:
           MINICONDA: /root/miniconda
-          JUNIT_REPORT_PATH: /root/reports
+          JUNIT_REPORT_PATH: /root/reports/ # trailing slash required
+          MAKEFLAGS: -j2
 
     working_directory: /root/sina
     steps:
@@ -14,32 +30,52 @@ jobs:
       - restore_cache:
           keys:
             - conda
-      - run: |
-          ci_scripts/install_conda.sh
+      - run:
+          name: Preparing Conda Environment
+          command: ./ci_scripts/install_conda.sh
       - save_cache:
           key: conda-{{ checksum "conda_state.txt" }}
           paths: /root/miniconda
-      - run: ./autogen.sh
-      - run: |
-          mkdir ~/build
-          cd ~/build
-          /root/sina/configure \
-              --disable-docs \
-              --prefix=/root/install \
-              --with-boost=/root/miniconda  \
-              --with-boost-libdir=/root/miniconda/lib \
-              --with-arbhome=/root/miniconda/lib/arb \
-              LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,/root/miniconda/lib" \
-            || (cat config.log; false)
-      - run: make -C ~/build V=1 -j2
-      - run: |
-          mkdir $JUNIT_REPORT_PATH
-          make -C ~/build check -j2
-      - run: set -x; ls -R $JUNIT_REPORT_PATH
-      - run: find ~/build -name \*.xml
+
+      - run:
+          name: Preparing Directory Structure
+          command: mkdir ~/build $JUNIT_REPORT_PATH
+
+      - run:
+          name: Boostrapping Configure
+          command: ./autogen.sh
+      - run:
+          <<: *configure
+      - run:
+          name: Running Make
+          command: make -C ~/build
+      - run:
+          name: Running Unit Tests
+          command: |
+            make -C ~/build check
+            ls -la $JUNIT_REPORT_PATH
       - store_test_results:
           path: /root/reports
-      - run: make -C ~/build install
-      - run: ~/install/bin/sina --help
+      - run:
+          name: Installing
+          command: make -C ~/build install
+      - run:
+          name: Running Integration Tests
+          command: ~/install/bin/sina --help
+      - run:
+          name: Building Source Package
+          command: |
+            make -C ~/build dist-gzip
+            ls -la *.gz
+      - run:
+          <<: *configure
+          environment:
+            EXTRA_CONFIG_ARGS: --enable-fat-tar
+      - run:
+          name: Running Make
+          command: |
+            make -C ~/build clean
+            make -C ~/build
+            make -C ~/build bindist-gzip
+            ls -la *.gz
 
-        
