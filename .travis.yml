@@ -22,7 +22,7 @@ script:
        --with-boost=$MINICONDA
        --with-boost-libdir=$MINICONDA/lib
        --disable-docs
-       LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,/root/miniconda/lib"
+       LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,$MINICONDA/lib"
        || (cat config.log; false)
   - make -j2
   - if test `uname` = Linux; then make check V=1; fi
