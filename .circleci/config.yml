@@ -6,6 +6,7 @@ jobs:
       - image: condaforge/linux-anvil
         environment:
           MINICONDA: /root/miniconda
+          JUNIT_REPORT_PATH: /root/report
 
     working_directory: /root/sina
     steps:
@@ -32,6 +33,8 @@ jobs:
             || (cat config.log; false)
       - run: make -C ~/build V=1 -j2
       - run: make -C ~/build check
+      - store_test_results:
+          path: /root/reports
       - run: make -C ~/build install
       - run: ldd ~/install/bin/sina
       - run: readelf -d ~/install/bin/sina
