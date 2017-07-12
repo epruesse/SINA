@@ -32,13 +32,12 @@ jobs:
               LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,/root/miniconda/lib" \
             || (cat config.log; false)
       - run: make -C ~/build V=1 -j2
-      - run: make -C ~/build check
+      - run: make -C ~/build check -j2
+      - run: set -x; ls -R $JUNIT_REPORT_PATH
+      - run: find ~/build -name \*.xml
       - store_test_results:
           path: /root/reports
       - run: make -C ~/build install
-      - run: ldd ~/install/bin/sina
-      - run: readelf -d ~/install/bin/sina
-      - run: readelf -d ~/install/lib/libsina*.so
       - run: ~/install/bin/sina --help
 
         
