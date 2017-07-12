@@ -51,7 +51,7 @@ AC_DEFUN([AX_LIB_ARBDB],
 
         AC_MSG_CHECKING([for libARBDB])
 
-        ax_arb_ldflags="-L$ax_arb_path/lib"
+        ax_arb_ldflags="-L$ax_arb_path/lib -Wl,-rpath -Wl,$ax_arb_path/lib"
         ax_arb_libs="-lARBDB -lCORE $GLIB_LIBS"
         ax_arb_cppflags="-I$ax_arb_path/INCLUDE $GLIB_CFLAGS"
 
