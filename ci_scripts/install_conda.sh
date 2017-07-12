@@ -18,6 +18,7 @@ esac
 # Make sure we have conda in the PATH always
 if ! grep $MINICONDA/bin $BASH_ENV; then
     echo "Prepending $MINICONDA/bin to PATH in $BASH_ENV"
+    touch $BASH_ENV
     cat - $BASH_ENV > $BASH_ENV.tmp <<EOF
 export PATH="$MINICONDA/bin:$PATH" >> $BASH_ENV
 EOF
