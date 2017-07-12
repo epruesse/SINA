@@ -1,19 +1,28 @@
 language: cpp
+
 os:
   - linux
   - osx
+
 cache: ccache
 
+env:
+  global:
+    MINICONDA: $HOME/miniconda
+    BASH_ENV: $HOME/.bashrc
+
 install:
-  - source ci_scripts/install_conda.sh
+  - ./ci_scripts/install_conda.sh
 
 script:
-  - sh autogen.sh
-  - ./configure --with-arbhome=$ARBHOME 
-                --with-boost=$CONDA_PREFIX 
-                --enable-fat-tar 
-                --disable-docs 
-                || cat config.log
+  - echo $PATH
+  - ./autogen.sh
+  - ./configure
+       --with-arbhome=$MINICONDA/lib/arb
+       --with-boost=$MINICONDA
+       --with-boost-libdir=$MINICONDA/lib
+       --disable-docs
+       || (cat config.log; false)
   - make -j2
   - if test `uname` = Linux; then make check V=1; fi
   - make bindist-gzip
