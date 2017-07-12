@@ -1,7 +1,7 @@
 version: 2
 
 references:
-  configure:
+  configure: &configure
     name: Running Configure
     command: |
       cd ~/build
