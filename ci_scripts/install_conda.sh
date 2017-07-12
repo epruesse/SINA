@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 CONDA_PACKAGES="autoconf automake libtool toolchain pkg-config boost arb-bio"
 CONDA_PACKAGES="$CONDA_PACKAGES pcre libiconv"
