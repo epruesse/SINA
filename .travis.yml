@@ -15,7 +15,7 @@ install:
   - ./ci_scripts/install_conda.sh
 
 script:
-  - echo $PATH
+  - cat $BASH_ENV
   - ./autogen.sh
   - ./configure
        --with-arbhome=$MINICONDA/lib/arb
