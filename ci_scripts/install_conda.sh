@@ -15,7 +15,7 @@ CONDA_PACKAGES="$CONDA_PACKAGES pcre libiconv"
 case "$(uname)" in
     Linux)
 	CONDA_OSNAME=Linux
-	CONDA_PACKAGES="$CONDA_PACKAGES gcc"
+	CONDA_PACKAGES="$CONDA_PACKAGES gcc patchelf"
 	;;
     Darwin)
 	CONDA_OSNAME=MacOSX

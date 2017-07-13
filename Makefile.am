@@ -212,6 +212,9 @@ bindistdir: all
 	for f in $(EXTRA_BINDIST); do \
           cp -fpR $(top_srcdir)/$$f $(bindistdir)$$f; done
 	find $(bindistdir) -depth -type d -empty -exec rmdir {} \;
+	binaries=$$(find $(bindistdir) -type f -exec file -I {} \; | \
+                grep application/x-mach | cut -d: -f1); \
+        for binary in $$binaries; do $(top_srcdir)/tools/fix_libpaths.sh "$$binary"; done
 
 bindist-gzip: bindistdir
 	tardir=$(bindistdir) && $(am__tar) | GZIP=$(GZIP_ENV) gzip -c >$(bindistdir).tar.gz
