@@ -29,7 +29,7 @@ get_needed() {
 }
 
 remove_rpaths_Darwin() {
-    for rpath in `get_rpaths_Darwin $1`; do
+    for rpath in $(get_rpaths_Darwin $1); do
 	logrun install_name_tool -delete_rpath $rpath "$1"
     done
 }
@@ -52,8 +52,8 @@ set_rpath() {
 }
 
 copy_libs_needed() {
-    rpaths=`get_rpaths $1`
-    dtneed=`get_needed $1 | grep -v /usr/lib`
+    rpaths=$(get_rpaths $1)
+    dtneed=$(get_needed $1 | grep -v /usr/lib)
     dest=$(dirname $1)/../lib
     for lib in $dtneed; do
 	name="${lib#@rpath/}"
@@ -87,7 +87,7 @@ make_rpath_relative_Darwin() {
 }
 
 make_absolute_path_relative_Darwin() {
-    for lib in `get_needed_Darwin $1`; do
+    for lib in $(get_needed_Darwin $1); do
 	if test ${lib:0:1} = "/"; then
 	    name=$(basename $lib)
 	    dir="$(dirname $lib)"
