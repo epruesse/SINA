@@ -30,6 +30,7 @@ script:
   - make check
   - make install
   - $HOME/install/bin/sina --help
+  - if test "$(uname)" = "Linux"; then make dist-bzip2 && make distcheck; fi
   
 #  - make bindist-gzip
 #  - if test `uname` = Linux; then make dist-gzip && make distcheck; fi
@@ -43,7 +44,7 @@ deploy:
   api_key:
     secure: PAMAHWSFyRawrBjfsQiQxXvjWm85kZWsBn3MZ87ZIsIFLJxsd5JDl1V3VLYbDqo2v2GYXx1Ew9fkffr9O76XdWwdY0OCUn1P7jBcJXSiLKAQUS7agyV3U0H4gVu2Ghyrr3qiNNLPbKij8iXmKKoqgYq1PXAXzn6d9rqc0Cloh8gxhlhjAJAJfMchbeTaf6VulIpSk0hlFIvDhPXqpQ/Nrrac3c4aVn3CIC0TVcy8hMFjPNiLio5Vxj3XT5UjJChen8Af3sm1Kj+HzgyYzNHuCJ5sBw5kqh2gKlTvFyl9SOcludVAPRIHquJ5pmp8+EPJ6Yv0upe4QrdnJh6nGAZTkXbAb2VqOaZqR53w+F0+EsQqzkAnFCTJPfUco4yS41H6880gJTuONcWyQWyLgvNp43aK26rADfGlBf6O3p5upm9VyktpR/y2UWtWZZgoHjDMty9QNKd1vpUwr7gySU5nkYlBoixhJ6+qfhufuAcF6Btxll1ypIfbifPcGCeqQ5s2qGfuPJ7sRrB1KlpzttcmBHj5qidWSqktqQ3DnlSv3RCc10dE/iU+AngdO+3xaLax4dnlzA1/kbHmTHJVOzkXvec/lbF725fTqK9sJNa11a7HIG4mtg+8ywclDyESISUS5HWD3ejvbBOsKdq3dP7SFQg0nmHsvXcK+y3JESuDK/Q=
   file_glob: true
-  file: sina-*.tar.gz
+  file: sina-*.tar.{gz,bz2}
   skip_cleanup: true
   on:
     repo: epruesse/SINA
