@@ -4,6 +4,9 @@
 [![Build Status Travis](https://img.shields.io/travis/epruesse/SINA.svg?label=build%20(TravisCI))](https://travis-ci.org/epruesse/SINA)
 [![Build Status CircleCI](https://img.shields.io/circleci/project/github/epruesse/SINA.svg?label=build%20(CircleCI))](https://circleci.com/gh/epruesse/SINA)
 
+[![GitHub (pre-)release](https://img.shields.io/github/release/epruesse/SINA/all.svg?label=latest)]()
+[![GitHub release](https://img.shields.io/github/release/epruesse/SINA.svg)]()
+
 <!---
 [pubmed](https://www.ncbi.nlm.nih.gov/pubmed/22556368)
 [bioinformatics](https://academic.oup.com/bioinformatics/article-lookup/doi/10.1093/bioinformatics/bts252)
