@@ -77,4 +77,4 @@ if [ "$*" == "manual" ]; then
   exit
 fi
 
-exec "$me".real "$@"
+exec "$PREFIX/bin/sina.real" "$@"
