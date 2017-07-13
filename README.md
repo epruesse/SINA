@@ -15,7 +15,8 @@ SINA is a tool to add sequences to an existing multiple sequence alignment. It n
  - Use the [online](https://www.arb-silva.de/aligner) version hosted by the SILVA project to align small batches of LSU and SSU sequences to their databses.
  - The preferred way to install SINA locally is via Bioconda ([full instructions](https://github.com/epruesse/SINA/wiki/Installation#using-bioconda))
    ```
-   conda install sina 
+   conda create -n sina sina 
+   source activate sina
    ```
 # Documentation
 
