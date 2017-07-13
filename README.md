@@ -6,6 +6,9 @@
 
 [![GitHub (pre-)release](https://img.shields.io/github/release/epruesse/SINA/all.svg?label=latest)]()
 [![GitHub release](https://img.shields.io/github/release/epruesse/SINA.svg)]()
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/sina/badges/version.svg)](https://anaconda.org/bioconda/sina)
+
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/sina/badges/license.svg)](https://anaconda.org/bioconda/sina)
 
 <!---
 [pubmed](https://www.ncbi.nlm.nih.gov/pubmed/22556368)
