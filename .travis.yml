@@ -30,7 +30,7 @@ script:
   - make check
   - make install
   - $HOME/install/bin/sina --help
-  - if test "$(uname)" = "Linux"; then make dist-bzip2 && make distcheck; fi
+  - if test "$(uname)" = "Linux"; then make dist-bzip2; fi
   
 #  - make bindist-gzip
 #  - if test `uname` = Linux; then make dist-gzip && make distcheck; fi
