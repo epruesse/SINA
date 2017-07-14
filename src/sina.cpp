@@ -413,6 +413,36 @@ int main(int argc, char** argv) {
         PipeElement<tray, tray> *printer;
         printer = Log::make_printer();
 
+#ifdef HAVE_TBB
+        tf::graph g;
+        tf::source_node<tray> node_src(g, [&](tray &t) -> bool {
+                try {
+                    t = source->operator()();
+                    return true;
+                } catch (PipeEOF &peof) {
+                    return false;
+                }
+            });
+        tf::function_node<tray,tray> node_famfinder(g, 1, [&](tray t) -> tray {
+                return (*famfinder)(t);
+            });
+        tf::function_node<tray,tray> node_aligner(g, 1, [&](tray t) -> tray {
+                return (*aligner)(t);
+            });
+        tf::function_node<tray,tray> node_printer(g, 1, [&](tray t) -> tray {
+                return (*printer)(t);
+            });
+        tf::function_node<tray> node_sink(g, 1, [&](const tray t) -> bool {
+                (*sink)(t);
+                return true;
+            });
+        tf::make_edge(node_famfinder, node_aligner);
+        tf::make_edge(node_aligner, node_printer);
+        tf::make_edge(node_printer, node_sink);
+        // attach src last, it starts runnning immediately
+        tf::make_edge(node_src, node_famfinder);
+        g.wait_for_all();
+#else
         if (famfinder) {
             aligner = new PipeSerialSegment<tray, tray>(*famfinder | *aligner);
         }
@@ -430,6 +460,7 @@ int main(int argc, char** argv) {
         cerr << "Time for alignment phase: " << after-before << "s" << endl;
 
         p.destroy();
+#endif
   
         cerr << "SINA finished." << endl;
     } catch (std::exception &e) {
