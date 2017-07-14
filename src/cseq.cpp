@@ -331,9 +331,8 @@ cseq::assignFromCompressed(const void* data, size_t len) {
 
 char
 cseq::operator[](cseq::vidx_type i) {
-    // FIXME: probably broken
     vector<aligned_base>::const_iterator it = getIterator(i);
-    if (i == it->getPosition())
+    if (it != bases.end() && i == it->getPosition())
         return it->getBase();
     else
         return '-';
