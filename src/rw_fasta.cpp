@@ -174,13 +174,13 @@ private:
 };
 
 
-typed_PipeElement<void, tray>*
+PipeElement<void, tray>*
 rw_fasta::make_reader(po::variables_map& vm) {
     return new reader(vm["in"].as<string>());
 }
 
 
-typed_PipeElement<tray,void>*
+PipeElement<tray,void>*
 rw_fasta::make_writer(po::variables_map& vm) {
     return new writer(vm["out"].as<string>());
 }

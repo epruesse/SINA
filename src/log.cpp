@@ -139,7 +139,7 @@ private:
 
 
 
-typed_PipeElement<tray, tray>*
+PipeElement<tray, tray>*
 Log::make_printer() {
     return new printer();
 }

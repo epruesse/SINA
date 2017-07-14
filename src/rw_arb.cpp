@@ -169,7 +169,7 @@ public:
 };
 
 
-typed_PipeElement<void,tray>*
+PipeElement<void,tray>*
 rw_arb::make_reader(po::variables_map& vm) {
     return new reader(vm["in"].as<string>());
 }
@@ -253,7 +253,7 @@ private:
 };
 
 
-typed_PipeElement<tray,void>*
+PipeElement<tray,void>*
 rw_arb::make_writer(po::variables_map& vm) {
     return new writer(vm["out"].as<string>());
 }
