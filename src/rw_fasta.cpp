@@ -325,6 +325,9 @@ string escape_string(const string& in) {
 
 void
 rw_fasta::writer::operator()(tray t) {
+    if (t.input_sequence == 0) {
+        throw std::runtime_error("Received broken tray in " __FILE__);
+    }
     if (t.aligned_sequence == 0) {
         std::cerr << "Sequence " << t.input_sequence->getName() 
                   << " was not aligned. Nothing to write to FASTA output."
