@@ -44,7 +44,7 @@ public:
 
     static boost::program_options::options_description get_options_description();
     static void validate_vm(boost::program_options::variables_map&);
-    static typed_PipeElement<tray,tray>* make_printer();
+    static PipeElement<tray,tray>* make_printer();
 
 private:
     class printer;

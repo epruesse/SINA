@@ -540,7 +540,7 @@ public:
 };
 
 
-typed_PipeElement<tray,tray>*
+PipeElement<tray,tray>*
 aligner::make_aligner() {
     famfinder *f = new famfinder();
     galigner *g = new galigner(*f);

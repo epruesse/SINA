@@ -39,7 +39,7 @@ class null_filter
   : public PipeElement<tray,tray>
 {
 public:
-  static typed_PipeElement<tray,tray>* make_null_filter() {
+  static PipeElement<tray,tray>* make_null_filter() {
         return new null_filter();
     }
     tray operator()(tray c) {

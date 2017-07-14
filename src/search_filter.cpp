@@ -213,7 +213,7 @@ private:
     vector<cseq*> sequences;
 };
 
-typed_PipeElement<tray, tray>*
+PipeElement<tray, tray>*
 search_filter::make_search_filter() {
     return new search();
 }

@@ -39,7 +39,7 @@ class copy_alignment
   : public PipeElement<tray,tray>
 {
 public:
-  static typed_PipeElement<tray,tray>* make_copy_alignment() {
+  static PipeElement<tray,tray>* make_copy_alignment() {
     return new copy_alignment();
   }
   tray operator()(tray c) {

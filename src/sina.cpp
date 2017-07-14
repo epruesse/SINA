@@ -353,7 +353,7 @@ int main(int argc, char** argv) {
     }
 
     try {
-        typed_PipeElement<void,tray> *source;
+        PipeElement<void,tray> *source;
         switch (vm["intype"].as<SEQUENCE_DB_TYPE>()) {
         case SEQUENCE_DB_ARB:
             source = rw_arb::make_reader(vm);
@@ -365,7 +365,7 @@ int main(int argc, char** argv) {
             throw logic_error("input type undefined");
         }
 
-        typed_PipeElement<tray,void> *sink;
+        PipeElement<tray,void> *sink;
         switch(vm["outtype"].as<SEQUENCE_DB_TYPE>()) {
         case SEQUENCE_DB_ARB:
             sink = rw_arb::make_writer(vm);
@@ -377,7 +377,7 @@ int main(int argc, char** argv) {
             throw logic_error("output type outdefined");
         }
 
-        typed_PipeElement<tray, tray> *aligner;
+        PipeElement<tray, tray> *aligner;
         if (vm["no-align"].as<bool>()) {
             aligner = null_filter::make_null_filter();
         } else if (vm["prealigned"].as<bool>()) {
@@ -386,14 +386,14 @@ int main(int argc, char** argv) {
             aligner = aligner::make_aligner();        
         }
 
-        typed_PipeElement<tray, tray> *search;
+        PipeElement<tray, tray> *search;
         if (vm["search"].as<bool>()) {
             search = search_filter::make_search_filter();
         } else {
             search = null_filter::make_null_filter();
         }
 
-        typed_PipeElement<tray, tray> *printer;
+        PipeElement<tray, tray> *printer;
         printer = Log::make_printer();
 
         Pipe p = *source | *aligner | *search | *printer | *sink;

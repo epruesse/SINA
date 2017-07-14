@@ -48,7 +48,7 @@ class search_filter {
 
     class search;
 public:
-    static typed_PipeElement<tray,tray>* make_search_filter();
+    static PipeElement<tray,tray>* make_search_filter();
 
     static boost::program_options::options_description
     get_options_description();

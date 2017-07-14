@@ -52,8 +52,8 @@ public:
     class reader;
     class writer;
 
-    static typed_PipeElement<void,tray>* make_reader(boost::program_options::variables_map&);
-    static typed_PipeElement<tray,void>* make_writer(boost::program_options::variables_map&);
+    static PipeElement<void,tray>* make_reader(boost::program_options::variables_map&);
+    static PipeElement<tray,void>* make_writer(boost::program_options::variables_map&);
 
     static boost::program_options::options_description get_options_description();
     static void validate_vm(boost::program_options::variables_map&);    
