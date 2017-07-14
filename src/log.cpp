@@ -197,6 +197,9 @@ Log::printer::operator()(tray t) {
 /*
     c.set_attr(fn_qual, std::min(100, std::max(0, (int)(-100 * c.getScore()))));
 */
+    if (t.input_sequence == 0) {
+        throw std::runtime_error("Received broken tray in " __FILE__);
+    }
 
     tmp << "sequence_number: " << ++sequence_num << endl
         << "sequence_identifier: " << t.input_sequence->getName() << endl;
