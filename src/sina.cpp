@@ -52,9 +52,10 @@ using boost::thread_group;
 using std::exception;
 using std::logic_error;
 
-
+#ifdef HAVE_TBB
 #include "tbb/flow_graph.h"
 namespace tf = tbb::flow;
+#endif
 
 #include "famfinder.h"
 #include "align.h"
