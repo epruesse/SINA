@@ -30,6 +30,14 @@ for the parts of ARB used as well as that of the covered work.
 #include "tray.h"
 #include <sstream>
 
+//#define DEBUG_TRAY
+#ifdef DEBUG_TRAY
+#define DBG(x) std::cerr << "TRAY (" << this << "): " << x << std::endl
+#else
+#define DBG(x)
+#endif
+
+
 namespace sina {
 
 tray::tray() 
@@ -39,6 +47,7 @@ tray::tray()
       search_result(0), 
       logstream(0)
 {
+    DBG("Construct");
 }
 
 tray::tray(const tray& o) 
@@ -48,6 +57,7 @@ tray::tray(const tray& o)
       search_result(o.search_result), 
       logstream(o.logstream)
 {
+    DBG("Copy from" << &o);
 }
 
 tray&
@@ -58,10 +68,13 @@ tray::operator=(const tray& o) {
     search_result=o.search_result;
     logstream=o.logstream;
 
+    DBG("Assign from" << &o);
+
     return *this;
 }
 
 tray::~tray() {
+    DBG("Destruct");
 }
 
 void
@@ -71,6 +84,8 @@ tray::destroy() {
     if (alignment_reference) delete alignment_reference;
     if (search_result) delete search_result;
     if (logstream) delete logstream;
+
+    DBG("Destroy");
 }
 
 };
