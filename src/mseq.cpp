@@ -68,22 +68,27 @@ mseq::mseq(vector<cseq>::iterator seqs_begin,
 
     vector<cseq::iterator> citv;
     citv.reserve(num_seqs);
+    vector<cseq::iterator> citv_end;
+    citv_end.reserve(num_seqs);
     for (vector<cseq>::iterator seq_it = seqs_begin;
          seq_it != seqs_end; ++seq_it) {
         citv.push_back(seq_it->begin());
+        citv_end.push_back(seq_it->end());
     }
     aligned_base::idx_type min_next=0;
     vector<iterator>::size_type nodes_size = std::numeric_limits<value_type::base_type>().max();
     vector<iterator> nodes(nodes_size);
 
     vector<iterator> last(num_seqs);
+    // iterate over alignment columns left to right
     for (unsigned int i=0; i < bases_width; i++) {
         if (min_next > i) continue;
         min_next = std::numeric_limits<int>().max();
         nodes.assign(nodes_size,iterator());
 
+        // check all sequences for that column
         for (unsigned int j = 0; j < num_seqs; j++) {
-            if ( citv[j]->getPosition() == i) {
+            if (citv[j] != citv_end[j] && citv[j]->getPosition() == i) {
                 iterator newnode;
                 unsigned char base = citv[j]->getBase();
                 if (nodes[base].isNull()) {
@@ -98,7 +103,9 @@ mseq::mseq(vector<cseq>::iterator seqs_begin,
 
                 ++citv[j];
             }
-            min_next=min(min_next,citv[j]->getPosition());
+            if (citv[j] != citv_end[j]) {
+                min_next=min(min_next,citv[j]->getPosition());
+            }
         }
 
         for (vector<iterator>::iterator it = nodes.begin();
