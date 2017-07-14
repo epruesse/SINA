@@ -575,12 +575,13 @@ public:
 };
 
 
-PipeElement<tray,tray>*
-aligner::make_aligner() {
-    famfinder *f = new famfinder();
-    galigner *g = new galigner();
-    return new PipeSerialSegment<tray, tray>(*f | *g);
+void
+aligner::make_aligner(PipeElement<tray,tray> **f,
+                      PipeElement<tray,tray> **g) {
+    *f = new famfinder();
+    *g = new galigner();
 }
+
 
 aligner::famfinder::famfinder()
     : pt(opts->pt_port.c_str(), opts->pt_database.c_str()),

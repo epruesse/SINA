@@ -75,8 +75,8 @@ public:
     class famfinder;
     class galigner;
 
-    static PipeElement<tray,tray>* make_aligner();
-
+    static void make_aligner(PipeElement<tray,tray>**,
+                             PipeElement<tray,tray>**);
     static const char* fn_turn;
     static const char* fn_acc;
     static const char* fn_start;

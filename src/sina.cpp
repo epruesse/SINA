@@ -377,13 +377,14 @@ int main(int argc, char** argv) {
             throw logic_error("output type outdefined");
         }
 
+        PipeElement<tray, tray> *famfinder = 0;
         PipeElement<tray, tray> *aligner;
         if (vm["no-align"].as<bool>()) {
             aligner = null_filter::make_null_filter();
         } else if (vm["prealigned"].as<bool>()) {
             aligner = copy_alignment::make_copy_alignment();
         } else {
-            aligner = aligner::make_aligner();        
+            aligner::make_aligner(&famfinder, &aligner);
         }
 
         PipeElement<tray, tray> *search;
@@ -396,11 +397,13 @@ int main(int argc, char** argv) {
         PipeElement<tray, tray> *printer;
         printer = Log::make_printer();
 
+        if (famfinder) {
+            aligner = new PipeSerialSegment<tray, tray>(*famfinder | *aligner);
+        }
         Pipe p = *source | *aligner | *search | *printer | *sink;
 
         // workaround for double reference because aligner is pss itself
-        if (vm["no-align"].as<bool>() == false
-            && vm["prealigned"].as<bool>() == false) {
+        if (famfinder) {
             delete aligner;
         }
 
