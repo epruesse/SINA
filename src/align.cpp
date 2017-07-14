@@ -482,6 +482,41 @@ void aligner::validate_vm(boost::program_options::variables_map& vm) {
     if (opts->fs_req < 1) {
         throw logic_error("fs-req must be >= 1");
     }
+
+    query_arb *arb = query_arb::getARBDB(opts->pt_database);
+
+    int termini_begin = -1, termini_end = -1;
+    string termini = arb->getFilter("termini");
+    if (!termini.empty()) {
+        termini_begin = termini.find_first_of('x')+1 ;
+        termini_end = termini.find_last_of('x')+1;
+        std::cerr << "Found TERMINI filter: "
+                  << termini_begin << " - " << termini_end
+                  << endl;
+    }
+
+        if (opts->gene_start < 1) {
+        if (termini_begin == -1) {
+            opts->gene_start = 0;
+        } else {
+            opts->gene_start = termini_begin;
+        }
+    }
+    if (opts->gene_end < 1 || opts->gene_end > arb->getAlignmentWidth()) {
+        if (termini_end == -1) {
+            opts->gene_end = arb->getAlignmentWidth();
+        } else {
+            opts->gene_end = termini_end;
+        }
+    }
+    std::cerr << "Range of gene within alignment: "
+              << opts->gene_start << " - " << opts->gene_end
+              << endl;
+    // decrement range ... we start at 0 around here
+    --opts->gene_start;
+    --opts->gene_end;
+
+
 }
 
 
@@ -522,7 +557,7 @@ public:
 class aligner::galigner
     : public PipeElement<tray, tray> {
     friend class aligner;
-    galigner(famfinder&);
+    galigner();
     vector<alignment_stats> vastats;
     alignment_stats *nullstats;
     std::vector<int> pairs;
@@ -543,7 +578,7 @@ public:
 PipeElement<tray,tray>*
 aligner::make_aligner() {
     famfinder *f = new famfinder();
-    galigner *g = new galigner(*f);
+    galigner *g = new galigner();
     return new PipeSerialSegment<tray, tray>(*f | *g);
 }
 
@@ -555,47 +590,17 @@ aligner::famfinder::famfinder()
     pt.set_probe_len(opts->fs_kmer_len);
     pt.set_mismatches(opts->fs_kmer_mm);
     pt.set_sort_type(opts->fs_kmer_norel);
+    pt.set_range(opts->gene_start, opts->gene_end);
 
     //posvar_filter
     //readonly
 }
 
-aligner::galigner::galigner(famfinder& ff)
-    : vastats(ff.arb->getAlignmentStats()), pairs(ff.arb->getPairs())
+aligner::galigner::galigner()
 {
-
-    int termini_begin = -1, termini_end = -1;
-    string termini = ff.arb->getFilter("termini");
-    if (!termini.empty()) {
-        termini_begin = termini.find_first_of('x')+1 ;
-        termini_end = termini.find_last_of('x')+1;
-        std::cerr << "Found TERMINI filter: "
-                  << termini_begin << " - " << termini_end
-                  << endl;
-    }
-
-    if (opts->gene_start < 1) {
-        if (termini_begin == -1) {
-            opts->gene_start = 0;
-        } else {
-            opts->gene_start = termini_begin;
-        }
-    }
-    if (opts->gene_end < 1 || opts->gene_end > ff.arb->getAlignmentWidth()) {
-        if (termini_end == -1) {
-            opts->gene_end = ff.arb->getAlignmentWidth();
-        } else {
-            opts->gene_end = termini_end;
-        }
-    }
-    std::cerr << "Range of gene within alignment: "
-              << opts->gene_start << " - " << opts->gene_end
-              << endl;
-    // decrement range ... we start at 0 around here
-    --opts->gene_start;
-    --opts->gene_end;
-
-    ff.pt.set_range(opts->gene_start, opts->gene_end);
+    query_arb *arb = query_arb::getARBDB(opts->pt_database);
+    vastats = arb->getAlignmentStats();
+    pairs = arb->getPairs();
 
     nullstats = new alignment_stats();
     // yeah, the above is technically a leak, as it will live
