@@ -54,6 +54,14 @@ AC_CHECK_LIB(z, compress, [Z_LIB=-lz], [AC_MSG_ERROR([libz.so not found!])])
 AC_SUBST(Z_LIB)
 AC_CHECK_LIB(rt, clock_gettime)
 
+AH_TEMPLATE(HAVE_TBB, [Define to 1 if you have (and want to use) Intel TBB])
+AC_CHECK_LIB(tbb, main,
+  TBB_LIB=-ltbb
+  AC_DEFINE(HAVE_TBB)
+)
+
+AC_SUBST(TBB_LIB)
+
 # Define something for PSTREAMS (to get rid of warnings)
 AH_TEMPLATE(REDI_EVISCERATE_PSTREAMS, 
             [Define interpreted by PSTREAMS header lib, only
@@ -245,6 +253,7 @@ AC_MSG_NOTICE([    SERIALIZATION:   ${BOOST_SERIALIZATION_LIB}])
 AC_MSG_NOTICE([    SYSTEM:          ${BOOST_SYSTEM_LIB}])
 AC_MSG_NOTICE([    UNIT_TEST:       ${BOOST_UNIT_TEST_FRAMEWORK_LIB}])
 AC_MSG_NOTICE([  zlib:         ${Z_LIB}])
+AC_MSG_NOTICE([  tbb:          ${TBB_LIB}])
 
 ### check that all deps are satisfied
 

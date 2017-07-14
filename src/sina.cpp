@@ -52,6 +52,10 @@ using boost::thread_group;
 using std::exception;
 using std::logic_error;
 
+
+#include "tbb/flow_graph.h"
+namespace tf = tbb::flow;
+
 #include "famfinder.h"
 #include "align.h"
 #include "rw_arb.h"
