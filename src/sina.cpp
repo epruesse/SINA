@@ -429,6 +429,9 @@ int main(int argc, char** argv) {
         tf::function_node<tray,tray> node_aligner(g, 1, [&](tray t) -> tray {
                 return (*aligner)(t);
             });
+        tf::function_node<tray,tray> node_search(g, 1, [&](tray t) -> tray {
+                return (*search)(t);
+            });
         tf::function_node<tray,tray> node_printer(g, 1, [&](tray t) -> tray {
                 return (*printer)(t);
             });
@@ -437,7 +440,8 @@ int main(int argc, char** argv) {
                 return true;
             });
         tf::make_edge(node_famfinder, node_aligner);
-        tf::make_edge(node_aligner, node_printer);
+        tf::make_edge(node_aligner, node_search);
+        tf::make_edge(node_search, node_printer);
         tf::make_edge(node_printer, node_sink);
         timestamp before;
         // attach src last, it starts runnning immediately
