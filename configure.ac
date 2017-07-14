@@ -74,6 +74,7 @@ CXXFLAGS="$CXXFLAGS -w"
 AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
 [
   CPPFLAGS="$CPPFLAGS -DDEBUG"
+  CXXFLAGS="$(echo $CXXFLAGS | sed 's/-O@<:@@<:@:alnum:@:>@@:>@*//g')"
   CXXFLAGS="$CXXFLAGS -O1 -ggdb3"
   AX_CHECK_COMPILE_FLAG([-fsanitize=address],[ 
     CXXFLAGS="$CXXFLAGS -fsanitize=address"
