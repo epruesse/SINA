@@ -68,7 +68,9 @@ using std::pair;
 #include <stdio.h>
 
 // ARB needs either DEBUG or NDEBUG defined
-#ifndef DEBUG
+#ifdef DEBUG
+#  define typeof __typeof__
+#else
 # ifndef NDEBUG
 #  define NDEBUG 1
 # endif
