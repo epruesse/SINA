@@ -325,9 +325,9 @@ parse_options(int argc, char** argv) {
         }
 
         Log::validate_vm(vm);
-        aligner::validate_vm(vm);
         rw_arb::validate_vm(vm);
         rw_fasta::validate_vm(vm);
+        aligner::validate_vm(vm);
         search_filter::validate_vm(vm);
 
         po::notify(vm);
