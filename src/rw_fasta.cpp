@@ -79,7 +79,7 @@ std::ostream& operator<<(std::ostream& out, const sina::FASTA_META_TYPE& m) {
         out << "csv";
     break;
     default:
-        out << "[UNKNOWN!]";
+        out << "[UNKNOWN!] (value=" << (int)m << ")";
     }
     return out;
 }
@@ -119,7 +119,7 @@ rw_fasta::get_options_description() {
 
     od.add_options()
         ("meta-fmt",
-         po::value<FASTA_META_TYPE>(&opts->fastameta),
+         po::value<FASTA_META_TYPE>(&opts->fastameta)->default_value(FASTA_META_NONE),
          "(none|header|comment|csv) output format for meta data")
 
         ("line-length",
@@ -278,7 +278,7 @@ rw_fasta::reader::operator()() {
         delete t.input_sequence;
         return (*this)();
     }
-        
+
     return t;
 }
 
@@ -412,6 +412,8 @@ rw_fasta::writer::operator()(tray t) {
 
         out_csv << "\r\n";
         break;
+    default:
+        throw std::runtime_error("Unknown meta-fmt output option");
     }
 
     string seq  = c.getAlignedNoDots();
