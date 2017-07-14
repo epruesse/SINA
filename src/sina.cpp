@@ -439,9 +439,12 @@ int main(int argc, char** argv) {
         tf::make_edge(node_famfinder, node_aligner);
         tf::make_edge(node_aligner, node_printer);
         tf::make_edge(node_printer, node_sink);
+        timestamp before;
         // attach src last, it starts runnning immediately
         tf::make_edge(node_src, node_famfinder);
         g.wait_for_all();
+        timestamp after;
+        cerr << "Time for alignment phase: " << after-before << "s" << endl;
 #else
         if (famfinder) {
             aligner = new PipeSerialSegment<tray, tray>(*famfinder | *aligner);
