@@ -40,22 +40,24 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
-tray::tray() 
-    : input_sequence(0), 
-      aligned_sequence(0), 
-      alignment_reference(0), 
-      search_result(0), 
-      logstream(0)
+tray::tray()
+    : input_sequence(0),
+      aligned_sequence(0),
+      alignment_reference(0),
+      search_result(0),
+      logstream(0),
+      astats(0)
 {
     DBG("Construct");
 }
 
-tray::tray(const tray& o) 
-    : input_sequence(o.input_sequence), 
-      aligned_sequence(o.aligned_sequence), 
-      alignment_reference(o.alignment_reference), 
-      search_result(o.search_result), 
-      logstream(o.logstream)
+tray::tray(const tray& o)
+    : input_sequence(o.input_sequence),
+      aligned_sequence(o.aligned_sequence),
+      alignment_reference(o.alignment_reference),
+      search_result(o.search_result),
+      logstream(o.logstream),
+      astats(o.astats)
 {
     DBG("Copy from" << &o);
 }
@@ -67,6 +69,7 @@ tray::operator=(const tray& o) {
     alignment_reference=o.alignment_reference;
     search_result=o.search_result;
     logstream=o.logstream;
+    astats=o.astats;
 
     DBG("Assign from" << &o);
 
@@ -79,11 +82,12 @@ tray::~tray() {
 
 void
 tray::destroy() {
-    if (input_sequence) delete input_sequence;
-    if (aligned_sequence) delete aligned_sequence;
-    if (alignment_reference) delete alignment_reference;
-    if (search_result) delete search_result;
-    if (logstream) delete logstream;
+    if (input_sequence) { delete input_sequence; }
+    if (aligned_sequence) { delete aligned_sequence; }
+    if (alignment_reference) {delete alignment_reference; }
+    if (search_result) { delete search_result; }
+    if (logstream) { delete logstream; }
+    if (astats) { delete astats; }
 
     DBG("Destroy");
 }
