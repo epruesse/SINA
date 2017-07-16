@@ -38,6 +38,7 @@ for the parts of ARB used as well as that of the covered work.
 #include<sstream>
 #include<cmath>
 #include<set>
+#include <memory>
 
 #include "align.h"
 #include "graph.h"
@@ -47,7 +48,8 @@ namespace sina {
 
 template<typename SEQ_MASTER,
          typename SEQ_SLAVE,
-         typename DATA>
+         typename DATA,
+         typename ALLOCATOR = std::allocator<DATA> >
 class mesh
 {
 public:
@@ -60,8 +62,9 @@ public:
     typedef typename SEQ_SLAVE::idx_type slave_idx_type;
 
     typedef DATA value_type;
+    typedef ALLOCATOR allocator_type;
 
-    typedef std::vector<value_type> vector_type;
+    typedef std::vector<value_type, ALLOCATOR> vector_type;
     typedef typename vector_type::iterator vector_iterator;
     typedef typename vector_type::size_type size_type;
 
@@ -108,12 +111,16 @@ public:
     // private:
     SEQ_MASTER _master;
     SEQ_SLAVE _slave;
-    std::vector<value_type> _A;
+    vector_type _A;
 
     master_iterator_type _master_begin;
     slave_iterator_type _slave_begin;
 
     template<typename T> friend void compute(T&);
+
+    static size_type guessMem(SEQ_MASTER &m, SEQ_SLAVE &s) {
+        return sizeof(value_type) * m.size() * s.size();
+    }
 
 #if 0
     // unused code
@@ -125,9 +132,6 @@ public:
     }
     */
 
-    static size_type guessMem(SEQ_MASTER &m, SEQ_SLAVE &s) {
-        return sizeof(value_type) * m.size() * s.size();
-    }
 
     void
     reuse(SEQ_MASTER &m, SEQ_SLAVE &s) {
@@ -143,12 +147,14 @@ public:
 
 template<typename SEQ_MASTER,
          typename SEQ_SLAVE,
-         typename DATA>
+         typename DATA,
+         typename ALLOCATOR>
 class mesh<SEQ_MASTER,
            SEQ_SLAVE,
-           DATA>::iterator {
+           DATA,
+           ALLOCATOR>::iterator {
 public:
-    typedef mesh<SEQ_MASTER, SEQ_SLAVE, DATA> MESH_TYPE;
+    typedef mesh<SEQ_MASTER, SEQ_SLAVE, DATA, ALLOCATOR> MESH_TYPE;
     typedef SEQ_MASTER master_type;
     typedef typename master_type::iterator miterator_type;
     typedef typename master_type::idx_type midx_type;
