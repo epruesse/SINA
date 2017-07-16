@@ -426,7 +426,7 @@ int main(int argc, char** argv) {
         tf::function_node<tray,tray> node_famfinder(g, 1, [&](tray t) -> tray {
                 return (*famfinder)(t);
             });
-        tf::function_node<tray,tray> node_aligner(g, 1, [&](tray t) -> tray {
+        tf::function_node<tray,tray> node_aligner(g, 3, [&](tray t) -> tray {
                 return (*aligner)(t);
             });
         tf::function_node<tray,tray> node_search(g, 1, [&](tray t) -> tray {
