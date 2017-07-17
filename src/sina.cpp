@@ -422,7 +422,7 @@ int main(int argc, char** argv) {
                 } catch (PipeEOF &peof) {
                     return false;
                 }
-            });
+            }, /*is_active=*/false);
         tf::function_node<tray,tray> node_famfinder(g, 1, [&](tray t) -> tray {
                 return (*famfinder)(t);
             });
@@ -439,13 +439,18 @@ int main(int argc, char** argv) {
                 (*sink)(t);
                 return true;
             });
-        tf::make_edge(node_famfinder, node_aligner);
+
+        if (famfinder != 0) {
+            tf::make_edge(node_src, node_famfinder);
+            tf::make_edge(node_famfinder, node_aligner);
+        } else {
+            tf::make_edge(node_src, node_aligner);
+        }
         tf::make_edge(node_aligner, node_search);
         tf::make_edge(node_search, node_printer);
         tf::make_edge(node_printer, node_sink);
         timestamp before;
-        // attach src last, it starts runnning immediately
-        tf::make_edge(node_src, node_famfinder);
+        node_src.activate();
         g.wait_for_all();
         timestamp after;
         cerr << "Time for alignment phase: " << after-before << "s" << endl;
