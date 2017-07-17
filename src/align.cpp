@@ -414,6 +414,10 @@ aligner::galigner::operator()(tray t) {
             }
             t.log() << "containing exact candidate removed from family;";
             vc.erase(it, vc.end());
+            if (it == vc.begin()) {
+                t.log() << "that's ALL of them. skipping sequence;";
+                return t;
+            }
         } else { // ...or steal their alignment
             vector<cseq>::iterator exact_match = find_if(it,vc.end(),iequals_cmp(bases));
             if (exact_match != vc.end()) {
