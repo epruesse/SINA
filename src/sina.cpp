@@ -52,6 +52,7 @@ using boost::thread_group;
 using std::exception;
 using std::logic_error;
 
+#include "famfinder.h"
 #include "align.h"
 #include "rw_arb.h"
 #include "rw_fasta.h"
@@ -216,6 +217,7 @@ parse_options(int argc, char** argv) {
     desc.add(rw_arb::get_options_description());
     desc.add(rw_fasta::get_options_description());
     desc.add(aligner::get_options_description());
+    desc.add(famfinder::get_options_description());
     desc.add(search_filter::get_options_description());
 
     po::options_description all_opts(desc);
@@ -328,6 +330,7 @@ parse_options(int argc, char** argv) {
         rw_arb::validate_vm(vm);
         rw_fasta::validate_vm(vm);
         aligner::validate_vm(vm);
+        famfinder::validate_vm(vm);
         search_filter::validate_vm(vm);
 
         po::notify(vm);
@@ -384,7 +387,8 @@ int main(int argc, char** argv) {
         } else if (vm["prealigned"].as<bool>()) {
             aligner = copy_alignment::make_copy_alignment();
         } else {
-            aligner::make_aligner(&famfinder, &aligner);
+            aligner = aligner::make_aligner();
+            famfinder = famfinder::make_famfinder();
         }
 
         PipeElement<tray, tray> *search;

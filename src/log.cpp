@@ -53,7 +53,7 @@ using std::pair;
 
 #include "cseq.h"
 #include "query_arb.h"
-#include "align.h"
+#include "query_arb.h"
 
 using namespace sina;
 namespace po = boost::program_options;
@@ -207,7 +207,7 @@ Log::printer::operator()(tray t) {
     if (!t.aligned_sequence) {
         out << tmp.str() 
             << "align_log_slv:" << t.logstream->str() << endl
-            << aligner::fn_fullname << ":" << t.input_sequence->get_attr<string>(aligner::fn_fullname) << endl
+            << query_arb::fn_fullname << ":" << t.input_sequence->get_attr<string>(query_arb::fn_fullname) << endl
             << "alignment failed!" << endl << endl;
         return t;
     }
@@ -218,11 +218,11 @@ Log::printer::operator()(tray t) {
 
     float bps = c.calcPairScore(helix_pairs);
 
-    c.set_attr(aligner::fn_nuc, (int)c.size());
-    c.set_attr(aligner::fn_bpscore, (int)(100 * bps));
+    c.set_attr(query_arb::fn_nuc, (int)c.size());
+    c.set_attr(query_arb::fn_bpscore, (int)(100 * bps));
     if (c.size()) {
-        c.set_attr(aligner::fn_astart, (int)c.begin()->getPosition());
-        c.set_attr(aligner::fn_astop, (int)((--c.end())->getPosition()));
+        c.set_attr(query_arb::fn_astart, (int)c.begin()->getPosition());
+        c.set_attr(query_arb::fn_astop, (int)((--c.end())->getPosition()));
     }
 
     

@@ -106,6 +106,26 @@ using boost::lambda::bind;
 
 using namespace sina;
 
+// const fieldnames for arb export
+const char* query_arb::fn_turn       = "turn";
+const char* query_arb::fn_acc        = "acc";
+const char* query_arb::fn_start      = "start";
+const char* query_arb::fn_qual       = "align_quality_slv";
+const char* query_arb::fn_head       = "align_cutoff_head_slv";
+const char* query_arb::fn_tail       = "align_cutoff_tail_slv";
+const char* query_arb::fn_date       = "aligned_slv";
+const char* query_arb::fn_astart     = "align_startpos_slv";
+const char* query_arb::fn_astop      = "align_stoppos_slv";
+const char* query_arb::fn_idty       = "align_ident_slv";
+const char* query_arb::fn_nuc        = "nuc";
+const char* query_arb::fn_nuc_gene   = "nuc_gene_slv";
+const char* query_arb::fn_bpscore    = "align_bp_score_slv";
+const char* query_arb::fn_family_str = "align_family_slv";
+const char* query_arb::fn_used_rels  = "used_rels";
+const char* query_arb::fn_family     = "NONE";
+const char* query_arb::fn_fullname   = "full_name";
+
+
 static boost::mutex arb_db_access;
 struct query_arb::priv_data {
     priv_data() :

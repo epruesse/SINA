@@ -27,67 +27,44 @@ non-source form of such a combination shall include the source code
 for the parts of ARB used as well as that of the covered work.
 */
 
+#ifndef _FAMFINDER_H_
+#define _FAMFINDER_H_
 
-#ifndef _ALIGN_H_
-#define _ALIGN_H_
-
-#include "pipe.h"
 #include "tray.h"
+#include "pipe.h"
 
-#include <vector>
 #include <boost/program_options.hpp>
 
 namespace sina {
 
-/** Parameter Types 
- **/
-enum OVERHANG_TYPE {
-    OVERHANG_ATTACH,
-    OVERHANG_REMOVE,
-    OVERHANG_EDGE
-};
-std::ostream& operator<<(std::ostream&, const sina::OVERHANG_TYPE&);
-void validate(boost::any&, const std::vector<std::string>&,
-              sina::OVERHANG_TYPE*,int);
-
-enum LOWERCASE_TYPE {
-    LOWERCASE_NONE,
-    LOWERCASE_ORIGINAL,
-    LOWERCASE_UNALIGNED
-};
-std::ostream& operator<<(std::ostream&, const sina::LOWERCASE_TYPE&);
-void validate(boost::any&, const std::vector<std::string>&,
-              sina::LOWERCASE_TYPE*,int);
-
-enum INSERTION_TYPE {
-  INSERTION_SHIFT,
-  INSERTION_FORBID,
-  INSERTION_REMOVE
-};
-std::ostream& operator<<(std::ostream&, const sina::INSERTION_TYPE&);
-void validate(boost::any&, const std::vector<std::string>&,
-              sina::INSERTION_TYPE*,int);
-
-
-class aligner {
+class famfinder {
 private:
     struct options;
     static struct options *opts;
-
+    std::vector<float> weights;
 public:
-    class galigner;
-
-    static PipeElement<tray,tray>* make_aligner();
+    class _famfinder;
+    static PipeElement<tray,tray>* make_famfinder();
 
     static boost::program_options::options_description get_options_description();
     static void validate_vm(boost::program_options::variables_map&);
 };
 
+enum TURN_TYPE {
+    TURN_NONE=0,
+    TURN_REVCOMP=1,
+    TURN_ALL=2
+};
+
+std::ostream& operator<<(std::ostream&, const sina::TURN_TYPE&);
+void validate(boost::any&, const std::vector<std::string>&,
+              sina::TURN_TYPE*,int);
 
 } // namespace sina
 
 
-#endif // _ALIGN_H
+
+#endif // _FAMFINDER_H_
 
 /*
   Local Variables:

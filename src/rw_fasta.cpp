@@ -42,7 +42,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
-#include "align.h"
+#include "query_arb.h"
 
 using std::ifstream;
 using std::ofstream;
@@ -236,7 +236,7 @@ rw_fasta::reader::operator()() {
         if (blank == 0) blank = line.size();
         c.setName(line.substr(1, blank-1));
         if (blank < line.size()) {
-            c.set_attr<string>(aligner::fn_fullname, line.substr(blank+1));
+            c.set_attr<string>(query_arb::fn_fullname, line.substr(blank+1));
         }
     } else {
         // didn't get a title
@@ -336,9 +336,9 @@ rw_fasta::writer::operator()(tray t) {
         t.destroy(); // free data in tray
         return;
     }
-    if (opts->min_idty > t.aligned_sequence->get_attr<float>(aligner::fn_idty)) {
+    if (opts->min_idty > t.aligned_sequence->get_attr<float>(query_arb::fn_idty)) {
         std::cerr << "Sequence " << t.input_sequence->getName() 
-                  << " was below idty threshold at " << t.aligned_sequence->get_attr<float>(aligner::fn_idty) << " and excluded from FASTA output." 
+                  << " was below idty threshold at " << t.aligned_sequence->get_attr<float>(query_arb::fn_idty) << " and excluded from FASTA output."
                   << std::endl;
         ++excluded;
         t.destroy(); // free data in tray
@@ -350,7 +350,7 @@ rw_fasta::writer::operator()(tray t) {
     pair<string,cseq::variant> ap;
 
     out << ">" << c.getName();
-    string fname = c.get_attr<string>(aligner::fn_fullname);
+    string fname = c.get_attr<string>(query_arb::fn_fullname);
     if (!fname.empty()) {
         out << " " << fname;
     }
@@ -361,8 +361,8 @@ rw_fasta::writer::operator()(tray t) {
         break;
     case FASTA_META_HEADER:
         BOOST_FOREACH(ap, attrs) {
-            if (ap.first != aligner::fn_family 
-                && ap.first != aligner::fn_fullname) {
+            if (ap.first != query_arb::fn_family
+                && ap.first != query_arb::fn_fullname) {
                 out << " [" << ap.first << "="
                     << boost::apply_visitor(lexical_cast_visitor<string>(),
                                             ap.second)
@@ -375,7 +375,7 @@ rw_fasta::writer::operator()(tray t) {
         out << endl;
 
         BOOST_FOREACH(ap, attrs) {
-            if (ap.first != aligner::fn_family) {
+            if (ap.first != query_arb::fn_family) {
                 out << "; " << ap.first << "="
                     << boost::apply_visitor(lexical_cast_visitor<string>(),
                                             ap.second)
@@ -390,7 +390,7 @@ rw_fasta::writer::operator()(tray t) {
         if (seqnum == 0) {
             out_csv << "name";
             BOOST_FOREACH(ap, attrs) {
-              if (ap.first != aligner::fn_family) {
+              if (ap.first != query_arb::fn_family) {
                   out_csv << "," << escape_string(ap.first);
               }
             }
@@ -399,7 +399,7 @@ rw_fasta::writer::operator()(tray t) {
 
         out_csv << c.getName();
         BOOST_FOREACH(ap, attrs) {
-            if (ap.first != aligner::fn_family) {
+            if (ap.first != query_arb::fn_family) {
                 out_csv << ","
                         << escape_string(
                             boost::apply_visitor(

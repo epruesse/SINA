@@ -73,6 +73,25 @@ class query_arb{
      */
     static query_arb* getARBDB(std::string file_name);
 
+    static const char* fn_turn;
+    static const char* fn_acc;
+    static const char* fn_start;
+    static const char* fn_qual;
+    static const char* fn_head;
+    static const char* fn_tail;
+    static const char* fn_date;
+    static const char* fn_astart;
+    static const char* fn_astop;
+    static const char* fn_idty;
+    static const char* fn_family;
+    static const char* fn_family_str;
+    static const char* fn_nuc;
+    static const char* fn_nuc_gene;
+    static const char* fn_bpscore;
+    static const char* fn_used_rels;
+    static const char* fn_fullname;
+
+
     /**
      * Saves the database using the default filename in binary format.
      * @note The filename is specified in init().

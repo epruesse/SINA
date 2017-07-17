@@ -93,6 +93,8 @@ src_libsina_la_SOURCES = \
     src/cseq_impl.h \
     src/cseq_comparator.cpp \
     src/cseq_comparator.h \
+    src/famfinder.h \
+    src/famfinder.cpp \
     src/graph.h \
     src/mesh.h \
     src/mesh_debug.h \
