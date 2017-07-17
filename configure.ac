@@ -54,14 +54,6 @@ AC_CHECK_LIB(z, compress, [Z_LIB=-lz], [AC_MSG_ERROR([libz.so not found!])])
 AC_SUBST(Z_LIB)
 AC_CHECK_LIB(rt, clock_gettime)
 
-AH_TEMPLATE(HAVE_TBB, [Define to 1 if you have (and want to use) Intel TBB])
-AC_CHECK_LIB(tbb, main,
-  TBB_LIB=-ltbb
-  AC_DEFINE(HAVE_TBB)
-)
-
-AC_SUBST(TBB_LIB)
-
 # Define something for PSTREAMS (to get rid of warnings)
 AH_TEMPLATE(REDI_EVISCERATE_PSTREAMS, 
             [Define interpreted by PSTREAMS header lib, only
@@ -93,8 +85,10 @@ AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
   AX_CHECK_LINK_FLAG([-fsanitize=address],[
     LDFLAGS="$LDFLAGS -fsanitize=address"
   ])
+  tbb_suffix="_debug"
 ],[
   CPPFLAGS="$CPPFLAGS -DNDEBUG"
+  tbb_suffix=""
 ])
 
 # Add option to disable building docs (needs latex...)
@@ -117,6 +111,15 @@ AC_ARG_WITH([buildinfo], AS_HELP_STRING([--with-buildinfo=<NO>]),
   AC_DEFINE_UNQUOTED([PACKAGE_BUILDINFO], ["${withval}"], [Add extra buildinfo])
   PACKAGE_BUILDINFO="$withval"
 )
+
+AH_TEMPLATE(HAVE_TBB, [Define to 1 if you have (and want to use) Intel TBB])
+AC_CHECK_LIB(tbb$tbb_suffix, main,
+  TBB_LIB=-ltbb$tbb_suffix
+  AC_DEFINE(HAVE_TBB)
+)
+
+AC_SUBST(TBB_LIB)
+
 
 # ARB dependencies
 PKG_CHECK_MODULES([GLIB], [glib-2.0 > 2.2])
