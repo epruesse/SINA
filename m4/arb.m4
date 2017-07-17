@@ -27,7 +27,11 @@ AC_DEFUN([AX_LIB_ARBDB],
     ARB_LIBS=""
 
     if test x"$WANT_ARB" = x"yes"; then
-        AC_MSG_CHECKING([for arbdb.h])
+        if test x"$GLIB_LIBS" = x""; then
+            PKG_CHECK_MODULES([GLIB], [glib-2.0 > 2.2])
+        fi
+
+	AC_MSG_CHECKING([for ARB])
         for ax_arb_path_tmp in $ax_arb_path $ARBHOME /usr/lib/arb; do
             if test -f "$ax_arb_path_tmp/INCLUDE/arbdb.h" \
             && test -r "$ax_arb_path_tmp/INCLUDE/arbdb.h"; then
@@ -36,19 +40,19 @@ AC_DEFUN([AX_LIB_ARBDB],
             fi
         done
         if test -n "$ax_arb_path"; then
-            AC_MSG_RESULT([yes ($ax_arb_path/INCLUDE/arbdb.h)])
+            AC_MSG_RESULT([$ax_arb_path])
             success="yes"
         else
-            AC_MSG_RESULT([no])
+            AC_MSG_RESULT([not found])
             success="no"
         fi
+        saved_CPPFLAGS="$CPPFLAGS"
+	CPPFLAGS="$CPPFLAGS -I$ax_arb_path/INCLUDE $GLIB_CFLAGS"
+	AC_CHECK_HEADER([arbdb.h])
+        CPPFLAGS="$saved_CPPFLAGS"
     fi
     
     if test x"$success" = x"yes"; then
-        if test x"$GLIB_LIBS" = x""; then
-            PKG_CHECK_MODULES([GLIB], [glib-2.0 > 2.2])
-        fi
-
         AC_MSG_CHECKING([for libARBDB])
 
         ax_arb_ldflags="-L$ax_arb_path/lib -Wl,-rpath -Wl,$ax_arb_path/lib"
@@ -165,7 +169,6 @@ AC_DEFUN([AX_LIB_ARB_PROBE],
         ARB_PROBE_LIBS="$ax_arb_probe_libs"
         AC_SUBST(ARB_PROBE_LIBS)
         AC_DEFINE(HAVE_ARB_PROBE)
-	AC_REPLACE_FUNCS([GBT_find_sequence])
     fi
 ])
 
