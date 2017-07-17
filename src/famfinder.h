@@ -44,7 +44,7 @@ private:
     std::vector<float> weights;
 public:
     class _famfinder;
-    static PipeElement<tray,tray>* make_famfinder();
+    static PipeElement<tray,tray>* make_famfinder(int n=0);
 
     static boost::program_options::options_description get_options_description();
     static void validate_vm(boost::program_options::variables_map&);
