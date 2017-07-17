@@ -71,6 +71,7 @@ CXXFLAGS="$CXXFLAGS -w"
 #fi
 
 # Add debug option
+AH_TEMPLATE([DEBUG])
 AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
 [
   CPPFLAGS="$CPPFLAGS -DDEBUG"
@@ -85,10 +86,9 @@ AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
   AX_CHECK_LINK_FLAG([-fsanitize=address],[
     LDFLAGS="$LDFLAGS -fsanitize=address"
   ])
-  tbb_suffix="_debug"
+  AC_DEFINE([DEBUG])
 ],[
   CPPFLAGS="$CPPFLAGS -DNDEBUG"
-  tbb_suffix=""
 ])
 
 # Add option to disable building docs (needs latex...)
@@ -111,14 +111,6 @@ AC_ARG_WITH([buildinfo], AS_HELP_STRING([--with-buildinfo=<NO>]),
   AC_DEFINE_UNQUOTED([PACKAGE_BUILDINFO], ["${withval}"], [Add extra buildinfo])
   PACKAGE_BUILDINFO="$withval"
 )
-
-AH_TEMPLATE(HAVE_TBB, [Define to 1 if you have (and want to use) Intel TBB])
-AC_CHECK_LIB(tbb$tbb_suffix, main,
-  TBB_LIB=-ltbb$tbb_suffix
-  AC_DEFINE(HAVE_TBB)
-)
-
-AC_SUBST(TBB_LIB)
 
 
 # ARB dependencies
@@ -176,6 +168,9 @@ for lib in CORE ARBDB; do
 done
 AC_SUBST(ARB_FILES)
 
+AX_LIB_TBB
+AX_LIB_TBB_MALLOC
+
 AX_BOOST_BASE([1.48])
 AX_BOOST_THREAD
 if test x"$BOOST_THREAD_LIB" = x""; then
@@ -201,6 +196,7 @@ AX_BOOST_UNIT_TEST_FRAMEWORK
 #if test x"$BOOST_UNIT_TEST_FRAMEWORK_LIBS" = x""; then
 #  missing_libs="$missing_libs\n BOOST Unit Test Framework (libboost_unit_test_framework)"
 #fi
+
 
 # Generate output
 
@@ -241,12 +237,12 @@ AC_MSG_NOTICE([  CC:       $CC])
 AC_MSG_NOTICE([  CXX:      $CXX])
 AC_MSG_NOTICE([  LD:       $LD])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([  ARB:            ${ARBHOME}])
-AC_MSG_NOTICE([    CPPFLAGS:     ${ARB_CPPFLAGS}])
-AC_MSG_NOTICE([    LDFLAGS:      ${ARB_LDFLAGS}])
-AC_MSG_NOTICE([    LIBS:         ${ARB_LIBS}])
-AC_MSG_NOTICE([    PROBE LIBS:   ${ARB_PROBE_LIBS}])
-AC_MSG_NOTICE([    HELIX LIBS:   ${ARB_HELIX_LIBS}])
+AC_MSG_NOTICE([  ARB:               ${ARBHOME}])
+AC_MSG_NOTICE([    CPPFLAGS:        ${ARB_CPPFLAGS}])
+AC_MSG_NOTICE([    LDFLAGS:         ${ARB_LDFLAGS}])
+AC_MSG_NOTICE([    LIBS:            ${ARB_LIBS}])
+AC_MSG_NOTICE([    PROBE LIBS:      ${ARB_PROBE_LIBS}])
+AC_MSG_NOTICE([    HELIX LIBS:      ${ARB_HELIX_LIBS}])
 AC_MSG_NOTICE([  BOOST:])
 AC_MSG_NOTICE([    LDPATH:          ${BOOST_LDPATH}])
 AC_MSG_NOTICE([    CPPFLAGS:        ${BOOST_CPPFLAGS}])
@@ -255,8 +251,13 @@ AC_MSG_NOTICE([    THREAD:          ${BOOST_THREAD_LIB}])
 AC_MSG_NOTICE([    SERIALIZATION:   ${BOOST_SERIALIZATION_LIB}])
 AC_MSG_NOTICE([    SYSTEM:          ${BOOST_SYSTEM_LIB}])
 AC_MSG_NOTICE([    UNIT_TEST:       ${BOOST_UNIT_TEST_FRAMEWORK_LIB}])
-AC_MSG_NOTICE([  zlib:         ${Z_LIB}])
-AC_MSG_NOTICE([  tbb:          ${TBB_LIB}])
+AC_MSG_NOTICE([  zlib:])
+AC_MSG_NOTICE([    LIBS:            ${Z_LIB}])
+AC_MSG_NOTICE([  tbb:])
+AC_MSG_NOTICE([    CPPFLAGS:        ${TBB_CPPFLAGS}])
+AC_MSG_NOTICE([    LDFLAGS:         ${TBB_LDFLAGS}])
+AC_MSG_NOTICE([    LIBS:            ${TBB_LIB}])
+
 
 ### check that all deps are satisfied
 
