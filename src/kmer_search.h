@@ -40,22 +40,23 @@ namespace sina {
 class query_arb;
 class cseq;
 
+
 class kmer_search {
 public:
     class result_iterator;
 
-    kmer_search();
+    kmer_search(int k=8);
     ~kmer_search();
     
     void 
     build_index(query_arb& db);
-    
-    std::pair<result_iterator, result_iterator>
-    find(const cseq& query, unsigned int max);
+
+    void
+    find(const cseq& query, std::vector<cseq>& family, int max);
 
 private:
-    std::vector<std::string> seqNames;
-    std::vector<std::vector<unsigned int> > map;
+    class index;
+    index &data;
 };
 
 class kmer_search::result_iterator {

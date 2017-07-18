@@ -39,6 +39,9 @@ for the parts of ARB used as well as that of the covered work.
 #define foreach BOOST_FOREACH
 
 using namespace sina;
+using std::cerr;
+using std::endl;
+
 
 int main(int argc, const char** argv) {
   timer t;
@@ -51,54 +54,46 @@ int main(int argc, const char** argv) {
   t.start();
   query_arb* arbdb = query_arb::getARBDB(argv[1]);
   t.stop();
+  /*
   query_pt pt("localhost:4040", argv[1]);
   t.stop();
-  kmer_search search_index;
-  std::vector<std::string> seqNames = arbdb->getSequenceNames();
-  t.stop(); 
-  search_index.build_index(*arbdb);
-  t.stop();
+  */
 
+  t.stop();
+  cerr << "Preloading sequence cache..." << endl;
+  std::vector<std::string> seqNames = arbdb->getSequenceNames();
   for (int i = 0; i < 100; i++) {
     cseq target = arbdb->getCseq(seqNames[i]);
   }
+    t.stop();
+    kmer_search search_index(10);
+  search_index.build_index(*arbdb);
+
   t.stop();
-  for (int i = 0; i < 100; i++) {
+  std::vector<cseq> family;
+  for (int i = 0; i < 1000; i++) {
     cseq target = arbdb->getCseq(seqNames[i]);
-    search_index.find(target, 10);
+    search_index.find(target, family, 10);
+    if (seqNames[i] != family[0].getName()) {
+      std::cerr << seqNames[i] << ": " << std::endl;
+      for (int i=0; i<family.size(); i++) {
+	std::cerr << family[i].getNameScore() << std::endl;
+      }
+      std::cerr << std::endl;
+    }
   }
   t.stop();
   
+  /*
+  t.stop();
   for (int i = 0; i < 100; i++) {
     cseq target = arbdb->getCseq(seqNames[i]);
     std::vector<cseq> family;
     pt.match(family, target, 40, 40, 0);
   }
-  t.stop();
-  ;
-
-
-    /*
-
-
-    std::cerr << target.getName() << ": ";
-    foreach(cseq c, family) {
-      std::cerr << c.getName() << " ";
-    }
-    std::cerr << std::endl << std::endl;
-    t.stop();
-    */
-    t.end_loop(1);
-    t.stop();
+  */
   std::cerr << t << std::endl;
-
-    /*
-    BOOST_FOREACH(cseq& c, search_index.find(target, 10)) {
-    std::cout << c.getName() << std::endl;
-    }*/
   
-  
-
 
   return 0;
 }
