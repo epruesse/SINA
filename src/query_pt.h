@@ -34,57 +34,98 @@ for the parts of ARB used as well as that of the covered work.
 #include <vector>
 #include <exception>
 
+#include <boost/program_options.hpp>
+#include <boost/core/noncopyable.hpp>
+
 namespace sina {
 
 class cseq;
 class query_arb;
 
-class query_pt {
-  query_pt& operator=(const query_pt&);
-  query_pt(const query_pt&);
+class query_pt : private boost::noncopyable {
+private:
+    void init();
+    void exit();
+    void restart();
+public:
+    query_pt(const char* portname, const char* dbname);
+    ~query_pt();
 
-  void init();
-  void exit();
-  void restart();
- public:
-  query_pt(const char* portname, const char* dbname);
-  ~query_pt();
+    /**
+     * match runs a word search using the PT server
+     *
+     * arguments:
+     *  family:    will contain scored results
+     *  query:     query sequence
+     *  min_match: minimum number of results required
+     *  max_match: maximum number of results desired
+     *  min_score: minimum relative score
+     *  max_score: maximum relative score
+     *  arb:       pointer to matching arb database
+     *  noid:      skip matches containing query
+     *  min_len:   skip matches shorter
+     *  num_full:  minimum "full length", ignoring score
+     *  minlen_full: length to be considered "full"
+     *  range_cover: minimum sequences touching alignment edge
+     *  leave_query_out: drop sequence with matching id
+     */
+    double match(std::vector<cseq> &family,
+                 const cseq& query,
+                 int min_match,
+                 int max_match,
+                 float min_score,
+                 float max_score,
+                 query_arb *arb,
+                 bool noid,
+                 int minlen,
+                 int num_full,
+                 int minlen_full,
+                 int range_cover,
+                 bool leave_query_out);
 
-  double match(std::vector<cseq> &family, const cseq& query,
-	       int min_match, int max_match, float min_score, float max_score,
-	       query_arb *arb, bool noid, int minlen,
-	       int num_full, int minlen_full, int range_cover, bool leave_query_out);
+    double match(std::vector<cseq> &family, const cseq& sequence,
+                 int min_match, int max_match, float min_score) {
+        return match(family, sequence, min_match, max_match, min_score, 2.0,
+                     0, false, 0, 0, 0, 0, false);
+    };
 
-  double match(std::vector<cseq> &family, const cseq& sequence,
-	       int min_match, int max_match, float min_score) {
-    return match(family, sequence, min_match, max_match, min_score, 2.0,
-		 0, false, 0, 0, 0, 0, false);
-  };
+    int turn_check(const cseq& query, bool all);
 
-  int turn_check(const cseq& query, bool all);
+    void set_find_type_fast(bool fast);
+    void set_probe_len(int len);
+    void set_mismatches(int len);
+    void set_sort_type(bool absolute);
+    void set_range(int startpos, int stoppos);
+    void unset_range();
 
-  void set_find_type_fast(bool fast);
-  void set_probe_len(int len);
-  void set_mismatches(int len);
-  void set_sort_type(bool absolute);
-  void set_range(int startpos, int stoppos);
-  void unset_range();
+    class exception : public std::exception {
+        std::string message;
+    public:
+        exception(std::string _message) throw();
+        ~exception() throw();
+        virtual const char* what() const throw();
+    };
 
-  class exception : public std::exception {
-      std::string message;
-  public: 
-      exception(std::string _message) throw();
-      ~exception() throw();
-      virtual const char* what() const throw();
-  };
-
- private:
-  struct priv_data;
-  priv_data &data;
-  bool find_type_fast;
-
+    static boost::program_options::options_description get_options_description();
+    static void validate_vm(boost::program_options::variables_map&);
+private:
+    struct priv_data;
+    priv_data &data;
+    struct options;
+    static struct options *opts;
 };
 
 } // namespace sina
 
 #endif // _QUERY_PT_H
+
+/*
+  Local Variables:
+  mode:c++
+  c-file-style:"stroustrup"
+  c-file-offsets:((innamespace . 0)(inline-open . 0)(case-label . 0))
+  indent-tabs-mode:nil
+  fill-column:99
+  End:
+*/
+// vim: filetype=cpp:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:encoding=utf-8:textwidth=99 :

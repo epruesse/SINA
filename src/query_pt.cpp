@@ -59,14 +59,39 @@ using std::vector;
 #include <boost/algorithm/string/predicate.hpp>
 #include "../include/pstream.h"
 
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
+
+
 boost::mutex arb_pt_start;
 
-using namespace sina;
+namespace sina {
+
+struct query_pt::options {
+};
+struct query_pt::options *query_pt::opts;
+
+po::options_description
+query_pt::get_options_description() {
+    po::options_description od("ARB PT-server search");
+    opts =  new struct query_pt::options();
+    od.add_options()
+        ;
+}
+
+void query_pt::validate_vm(po::variables_map& vm) {
+}
+
 
 struct query_pt::priv_data {
     priv_data(const char* port, const char* db)
-        : portname(port), dbname(db), arb_pt_server(NULL), 
-          range_begin(-1), range_end(-1) {}
+        : portname(port),
+          dbname(db),
+          arb_pt_server(NULL),
+          range_begin(-1),
+          range_end(-1),
+          find_type_fast(false)
+    {}
     aisc_com *link;
     T_PT_MAIN com;
     T_PT_LOCS locs;
@@ -77,7 +102,8 @@ struct query_pt::priv_data {
     redi::pstream *arb_pt_server;
     int range_begin;
     int range_end;
-    
+    bool find_type_fast;
+
     void create_context();
 };
 
@@ -224,10 +250,9 @@ query_pt::restart() {
 }
 
 query_pt::query_pt(const char* portname, const char* dbname)
-    : data(*(new priv_data(portname,dbname))), find_type_fast(false)
+    : data(*(new priv_data(portname,dbname)))
 {
     init();
-    set_find_type_fast(true);
 }
 
 query_pt::~query_pt() {
@@ -242,7 +267,7 @@ query_pt::set_find_type_fast(bool fast) {
                        FAMILYFINDER_FIND_TYPE, fast?1:0,
                        NULL);
     if (err) cerr << "Unable to set find_type" << endl;
-    else find_type_fast = fast;
+    else data.find_type_fast = fast;
 }
 
 void
@@ -358,7 +383,7 @@ match_retry:
     }
 
     err = aisc_get(data.link,
-                       PT_FAMILYFINDER, data.ffinder,
+                   PT_FAMILYFINDER, data.ffinder,
                    FAMILYFINDER_FAMILY_LIST, f_list.as_result_param(),
                    NULL);
     if (err || !f_list.exists() ) {
@@ -534,6 +559,7 @@ query_pt::exception::what() const throw() {
     return message.c_str();
 }
 
+} // namespace sina
 
 #else // TEST
 
