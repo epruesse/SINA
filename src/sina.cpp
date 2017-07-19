@@ -222,6 +222,7 @@ parse_options(int argc, char** argv) {
 
     po::options_description all_opts(desc);
     all_opts.add(global_get_hidden_options_description());
+    all_opts.add(famfinder::get_hidden_options_description());
 
     try {
         po::store(po::parse_command_line(argc,argv,all_opts),vm);
@@ -252,12 +253,9 @@ parse_options(int argc, char** argv) {
             exit(EXIT_SUCCESS);
         }
 
-        if (vm.count("in") == 0) {
-            throw logic_error("need input file");
-        }
 
         // Autodetect / validate intype selection
-        if (vm["intype"].defaulted()) {
+        if (vm["intype"].defaulted() && vm.count("in")) {
             const string in = vm["in"].as<string>();
             if (iends_with(in, ".arb")
                 || iequals(in, ":")) {
@@ -276,7 +274,7 @@ parse_options(int argc, char** argv) {
         }
 
         // Pick suitable output if no output given
-        if (vm.count("out") == 0) {
+        if (not vm.count("out") && vm.count("in")) {
             std::vector<string> cmd(4);
             switch(vm["intype"].as<SEQUENCE_DB_TYPE>()) {
             case SEQUENCE_DB_ARB: 
@@ -301,7 +299,7 @@ parse_options(int argc, char** argv) {
         }
 
         // Autodetect / validate outtype selection
-        if (vm["outtype"].defaulted()) {
+        if (vm["outtype"].defaulted() && vm.count("out")) {
             const string in = vm["out"].as<string>();
             if (iends_with(in, ".arb")
                 || iequals(in, ":")) {
@@ -330,8 +328,13 @@ parse_options(int argc, char** argv) {
         rw_arb::validate_vm(vm);
         rw_fasta::validate_vm(vm);
         aligner::validate_vm(vm);
-        famfinder::validate_vm(vm);
+        famfinder::validate_vm(vm, desc);
         search_filter::validate_vm(vm);
+
+
+        if (vm.count("in") == 0) {
+            throw logic_error("need input file");
+        }
 
         po::notify(vm);
 
