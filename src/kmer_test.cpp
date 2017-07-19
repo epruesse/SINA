@@ -62,12 +62,12 @@ int main(int argc, const char** argv) {
   t.stop();
   cerr << "Preloading sequence cache..." << endl;
   std::vector<std::string> seqNames = arbdb->getSequenceNames();
-  for (int i = 0; i < 100; i++) {
-    cseq target = arbdb->getCseq(seqNames[i]);
+  for (int i = 0; i < seqNames.size(); i++) {
+    //cseq target = arbdb->getCseq(seqNames[i]);
   }
-    t.stop();
-    kmer_search search_index(10);
-  search_index.build_index(*arbdb);
+  t.stop();
+  kmer_search search_index(arbdb, 10);
+  search_index.init();
 
   t.stop();
   std::vector<cseq> family;

@@ -54,6 +54,12 @@ using std::hex;
 #define foreach BOOST_FOREACH
 
 #include <boost/progress.hpp>
+using progress = boost::progress_display;
+
+#include <stdio.h>
+#include <sys/stat.h>
+
+#include "zlib.h"
 
 using namespace sina;
 
@@ -183,26 +189,237 @@ class kmer_search::index {
     query_arb* arbdb;
 
 public:
-    index(int k_) :
+    index(int k_, query_arb* arbdb_) :
         k(k_),
-        n_kmers(1<<k*2),
+        n_kmers(1<<(k_*2)),
         n_sequences(0),
         sequence_names(),
-        kmer_counts(n_kmers, 0),
-        kmer_offsets(n_kmers+1),
+        kmer_counts(1<<(k_*2), 0),
+        kmer_offsets(1<<(k*2)+1),
         kmer_idx(),
-        arbdb(0)
+        arbdb(arbdb_)
     {
     }
 
     const_range<idx_type> get_matching_seqnum(unsigned int kmer) {
         return make_const_range(kmer_idx, kmer_offsets[kmer], kmer_counts[kmer]);
     }
+
+    void save_index();
+    bool try_load_index();
+private:
+    bool vector_write(gzFile fp, idx_type &v, progress &p);
+    bool vector_read(gzFile fp, idx_type &v, progress &p);
 };
 
-kmer_search::kmer_search(int k)
-    : data(* new index(k))
+const uint64_t idx_header_magic = 0x53494e414b494458; // SINAKIDX
+const uint16_t idx_header_vers  = 0;
+struct idx_header {
+    uint64_t magic;
+    uint16_t vers;  // 0
+    uint16_t k;
+    uint32_t n_sequences;
+    uint64_t kmer_idx_size;
+    uint64_t total_size;
+};
+
+const uint64_t chunk_size = 1024*1024;
+bool
+kmer_search::index::vector_write(gzFile fp, idx_type &v, progress &p) {
+    uint64_t size = v.size();
+    if (gzwrite(fp, &size, sizeof(size)) <= 0) {
+        return false;
+    }
+    p += sizeof(size);
+    size_t chunk_items = chunk_size / sizeof(idx_type::value_type);
+    for (size_t offset=0; offset < size; offset += chunk_items) {
+        size_t bytes =
+            std::min((size_t)size-offset, chunk_items)
+            * sizeof(idx_type::value_type) ;
+        if (gzwrite(fp, v.data() + offset, bytes) <= 0) {
+            return false;
+        }
+        p += bytes;
+    }
+    return true;
+}
+
+bool
+kmer_search::index::vector_read(gzFile fp, idx_type &v, progress &p) {
+    uint64_t size;
+    if (gzread(fp, &size, sizeof(size)) <= 0) {
+        return false;
+    }
+    p += sizeof(size);
+    v.resize(size);
+    size_t chunk_items = chunk_size / sizeof(idx_type::value_type);
+    for (size_t offset=0; offset < size; offset += chunk_items) {
+        size_t bytes =
+            std::min((size_t)size-offset, chunk_items)
+            * sizeof(idx_type::value_type) ;
+        if (gzread(fp, v.data() + offset, bytes) <= 0) {
+            return false;
+        }
+        p += bytes;
+    }
+    return true;
+}
+
+void
+kmer_search::index::save_index() {
+    string idx_fn = arbdb->getFileName() + ".sidx";
+    gzFile fp = gzopen(idx_fn.c_str(), "wb");
+    if (not fp) { return; }
+    gzsetparams(fp, 1, Z_DEFAULT_STRATEGY);
+
+    size_t total_size = sizeof(idx_header);
+    for (const auto& name : sequence_names) {
+        total_size += sizeof(uint32_t) + name.size();
+    }
+    total_size += sizeof(idx_type::value_type) * kmer_idx.size();
+    total_size += sizeof(idx_type::value_type) * kmer_counts.size();
+    total_size += sizeof(idx_type::value_type) * kmer_offsets.size();
+    total_size += 3 * sizeof(uint64_t);
+
+    progress p(total_size, cerr);
+
+    idx_header header;
+    header.magic = idx_header_magic;
+    header.vers  = idx_header_vers;
+    header.k     = k;
+    header.n_sequences = n_sequences;
+    header.kmer_idx_size = kmer_idx.size();
+    header.total_size = total_size;
+
+    if (gzwrite(fp, &header, sizeof(header)) <= 0) {
+        goto fail;
+    }
+    p += sizeof(header);
+
+    for (const auto& name : sequence_names) {
+        uint32_t size = name.size();
+        if (gzwrite(fp, &size, sizeof(size)) <= 0) {
+            goto fail;
+        }
+        if (gzwrite(fp, name.c_str(), size) <= 0) {
+            goto fail;
+        }
+        p += sizeof(size) + name.size();
+    }
+    gzsetparams(fp, 1, Z_FILTERED);
+
+    if (not vector_write(fp, kmer_idx, p)) {
+        goto fail;
+    }
+    if (not vector_write(fp, kmer_counts, p)) {
+        goto fail;
+    }
+    if (not vector_write(fp, kmer_offsets, p)) {
+        goto fail;
+    }
+    if (gzclose(fp) != Z_OK) {
+        goto fail;
+    }
+    return;
+fail:
+    int errnum = 0;
+    cerr << "Writing index failed with"
+         << gzerror(fp, &errnum)
+         << ":" << errnum
+         << endl;
+    return;
+}
+
+bool
+kmer_search::index::try_load_index() {
+    string db_fn = arbdb->getFileName();
+    string idx_fn = db_fn + ".sidx";
+    struct stat db_stat, idx_stat;
+
+    // Load index only if it is newer than the database
+    if (stat(db_fn.c_str(), &db_stat) // no database
+        ||
+        stat(idx_fn.c_str(), &idx_stat) // no index
+        ||
+        idx_stat.st_mtime < db_stat.st_mtime) { // outdated
+        return false;
+    }
+
+    gzFile fp = gzopen(idx_fn.c_str(), "rb");
+    if (not fp) {
+        cerr << "WARNING: Failed to open existing index " << idx_fn << std::endl;
+        return false;
+    }
+
+    idx_header header;
+    if (gzread(fp, &header, sizeof(header)) <= 0) {
+        int errnum = 0;
+        cerr << "Reading index failed with"
+             << gzerror(fp, &errnum)
+             << ":" << errnum
+             << endl;
+    }
+    if (header.magic != idx_header_magic) {
+        cerr << "WARNING: not a sina kmer index" << endl;
+        return false;
+    }
+    if (header.vers != idx_header_vers) {
+        cerr << "WARNING: wrong version" << endl;
+        return false;
+    }
+
+    k = header.k; // FIXME: should this be part of fn?
+    n_kmers = 1<<k*2;
+    n_sequences = header.n_sequences;
+
+    cerr << "Loading index for k=" << k
+         << " on " << n_sequences << " sequences"
+         << " with " << header.kmer_idx_size << " kmers"
+         << endl;
+
+    progress p(header.total_size, cerr);
+    p += sizeof(header);
+
+    sequence_names.clear();
+    sequence_names.reserve(n_sequences);
+    for (int i=0; i<n_sequences; i++) {
+        uint32_t size;
+        gzread(fp, &size, sizeof(size));
+        char buf[size];
+        gzread(fp, buf, size);
+        sequence_names.push_back(string(buf, size));
+        p += sizeof(size) + size;
+    }
+
+    if (not vector_read(fp, kmer_idx, p)) {
+        goto fail;
+    }
+    if (not vector_read(fp, kmer_counts, p)) {
+        goto fail;
+    }
+    if (not vector_read(fp, kmer_offsets, p)) {
+        goto fail;
+    }
+    if (gzclose(fp) != Z_OK) {
+        goto fail;
+    }
+
+    return true;
+fail:
+    int errnum = 0;
+    cerr << "Reading index failed with"
+         << gzerror(fp, &errnum)
+         << ":" << errnum
+         << endl;
+    n_sequences = 0;
+    //FIXME: re-init data
+    return false;
+}
+
+kmer_search::kmer_search(query_arb* arbdb, int k)
+    : data(* new index(k, arbdb))
 {
+    cerr << data.kmer_counts.size() << endl;
 }
 
 kmer_search::~kmer_search() {
@@ -210,16 +427,28 @@ kmer_search::~kmer_search() {
 }
 
 void
-kmer_search::build_index(query_arb& arbdb) {
-    data.arbdb = &arbdb;
-    data.sequence_names = arbdb.getSequenceNames();
+kmer_search::init() {
+    cerr << data.kmer_counts.size() << endl;
+    cerr << "Trying to load index from disk..." << endl;
+    if (data.try_load_index()) {
+        cerr << "Loaded index" << endl;
+        return;
+    } else {
+        build_index();
+        data.save_index();
+    }
+}
+
+void
+kmer_search::build_index() {
+    data.sequence_names = data.arbdb->getSequenceNames();
     
     // count in how many sequences each kmer occurs
     cerr << "Loading sequences and counting kmers..." << endl;
     {
         boost::progress_display p(data.sequence_names.size(), cerr);
         for (string& name : data.sequence_names) {
-            const cseq& c = arbdb.getCseq(name);
+            const cseq& c = data.arbdb->getCseq(name);
             const vector<aligned_base>& bases = c.const_getAlignedBases();
             for (unsigned int kmer: unique_kmers(bases, data.k)) {
                 ++data.kmer_counts[kmer];
@@ -246,7 +475,7 @@ kmer_search::build_index(query_arb& arbdb) {
     data.kmer_idx.resize(total);
     boost::progress_display p(data.sequence_names.size(), cerr);
     for (int i=0; i<data.n_sequences; ++i) {
-        const cseq& c = arbdb.getCseq(data.sequence_names[i]);
+        const cseq& c = data.arbdb->getCseq(data.sequence_names[i]);
         const vector<aligned_base>& bases = c.const_getAlignedBases();
         for (unsigned int kmer : unique_kmers(bases, data.k)) {
             data.kmer_idx[data.kmer_offsets[kmer] +
@@ -254,6 +483,10 @@ kmer_search::build_index(query_arb& arbdb) {
         }
         ++p;
     }
+
+    cerr << "Saving index..." << endl;
+    data.save_index();
+    cerr << "Index done" << endl;
 }
 
 struct score {
@@ -288,35 +521,16 @@ kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {
                       std::greater<std::pair<int,string> >());
     results.clear();
     results.reserve(max);
-    query_arb* arbdb = data.arbdb;
     std::transform(scored_names.begin(), scored_names.begin()+max,
                    std::back_inserter(results),
                    [&] (std::pair<int, string> hit) {
-                       cseq c = arbdb->getCseq(hit.second);
+                       cseq c = data.arbdb->getCseq(hit.second);
                        c.setScore(hit.first);
                        return c;
                    });
     
 }
 
-
-kmer_search::result_iterator::result_iterator() {
-}
-
-kmer_search::result_iterator::~result_iterator() {
-}
-
-cseq&
-kmer_search::result_iterator::operator*() {
-}
-
-kmer_search::result_iterator&
-kmer_search::result_iterator::operator++() {
-}
-
-bool
-kmer_search::result_iterator::operator==(const result_iterator& /*rhs*/ ) const {
-}
 
 /*
   Local Variables:

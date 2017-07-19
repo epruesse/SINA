@@ -45,34 +45,16 @@ class kmer_search {
 public:
     class result_iterator;
 
-    kmer_search(int k=8);
+    kmer_search(query_arb* db, int k=8);
     ~kmer_search();
     
-    void 
-    build_index(query_arb& db);
-
-    void
-    find(const cseq& query, std::vector<cseq>& family, int max);
+    void build_index();
+    void init();
+    void find(const cseq& query, std::vector<cseq>& family, int max);
 
 private:
     class index;
     index &data;
-};
-
-class kmer_search::result_iterator {
-public:
-    result_iterator();
-    ~result_iterator();
-
-    typedef cseq value_type;
-    typedef cseq* pointer;
-    typedef cseq& reference;
-    typedef std::forward_iterator_tag iterator_category;
-    typedef int difference_type;
-
-    cseq& operator*();
-    result_iterator& operator++();
-    bool operator==(const result_iterator& rhs) const;
 };
 
 
