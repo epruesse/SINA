@@ -411,7 +411,7 @@ match_retry:
             continue;
         }
 
-        if (find_type_fast) {
+        if (data.find_type_fast) {
             f_relscore *= 4;
         }
 
@@ -475,7 +475,7 @@ match_retry:
                 cerr << "Unable to get next item in family list" << endl;
                 break;
             }
-            if (find_type_fast) {
+            if (data.find_type_fast) {
                 f_relscore *= 4;
             }
 
