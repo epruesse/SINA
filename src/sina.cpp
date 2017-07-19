@@ -157,6 +157,9 @@ global_get_hidden_options_description() {
         ("has-cli-vers",
          po::value<string>(),
          "verify support of cli version")
+        ("no-align",
+         po::bool_switch(),
+         "disable alignment stage (deprecated)")
     ;
     return hidden;
 }
@@ -167,35 +170,31 @@ global_get_options_description() {
     po::options_description glob("SINA global options");
     glob.add_options()
         ("help,h",
-         "print help message")
+         "show help")
+        ("help-all",
+         "show full help (advanced options)")
+        ("in,i",
+         po::value<string>(),
+         "input file (arb or fasta)")
+        ("out,o",
+         po::value<string>(),
+         "output file (arb or fasta)")
+
         ("version",
-         "print version string")
+         "show version")
         ("show-conf",
          "show effective configuration")
 
-        // source (none => FAIL)
-        ("in,i",
-         po::value<string>(),
-         "input file")
         ("intype",
          po::value<SEQUENCE_DB_TYPE>()->default_value(SEQUENCE_DB_NONE),
-         "input file type")
-
-        // sink (none => source)
-        ("out,o",
-         po::value<string>(),
-         "output file")
+         "override input file type")
         ("outtype",
          po::value<SEQUENCE_DB_TYPE>()->default_value(SEQUENCE_DB_NONE),
-         "output file type")
+         "override output file type")
 
-        // pipe form
-        ("no-align",
-         po::bool_switch(),
-         "disable alignment stage")
         ("prealigned",
          po::bool_switch(),
-         "keep input alignment")
+         "skip alignment stage")
         ("search",
          po::bool_switch(),
          "enable search stage")
@@ -385,9 +384,9 @@ int main(int argc, char** argv) {
 
         PipeElement<tray, tray> *famfinder = 0;
         PipeElement<tray, tray> *aligner;
-        if (vm["no-align"].as<bool>()) {
-            aligner = null_filter::make_null_filter();
-        } else if (vm["prealigned"].as<bool>()) {
+        if (vm["no-align"].as<bool>()
+            ||
+            vm["prealigned"].as<bool>()) {
             aligner = copy_alignment::make_copy_alignment();
         } else {
             aligner = aligner::make_aligner();
