@@ -29,7 +29,6 @@ for the parts of ARB used as well as that of the covered work.
 
 #ifndef _SEARCH_H_
 #define _SEARCH_H_
-#endif // _SEARCH_H_
 
 #include <boost/core/noncopyable.hpp>
 #include <string>
@@ -42,8 +41,10 @@ class cseq;
 class query_arb;
 
 class search : private boost::noncopyable {
+protected:
+    search() {}
 public:
-    virtual ~search() = 0;
+    virtual ~search() {};
 
     /**
      * match runs a word search using the PT server
@@ -90,6 +91,8 @@ public:
 };
 
 } // namespace sina
+
+#endif // _SEARCH_H_
 
 /*
   Local Variables:
