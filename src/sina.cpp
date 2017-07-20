@@ -266,13 +266,13 @@ parse_options(int argc, char** argv) {
                 std::vector<string> cmd(2);
                 cmd[0]="--intype";
                 cmd[1]="ARB";
-                po::store(po::command_line_parser(cmd).options(opts).run(),
+                po::store(po::command_line_parser(cmd).options(all_opts).run(),
                           vm);
             } else {
                 std::vector<string> cmd(2);
                 cmd[0]="--intype";
                 cmd[1]="FASTA";
-                po::store(po::command_line_parser(cmd).options(opts).run(),
+                po::store(po::command_line_parser(cmd).options(all_opts).run(),
                           vm);
             } 
         }
@@ -285,7 +285,7 @@ parse_options(int argc, char** argv) {
                 // ARB files can be used for input and output
                 cmd[0]="-o";
                 cmd[1]=vm["in"].as<string>();
-                po::store(po::command_line_parser(cmd).options(opts).run(), vm);
+                po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
                 break;
             case SEQUENCE_DB_FASTA: 
                 // Use "input.fasta.aligned"
@@ -295,7 +295,7 @@ parse_options(int argc, char** argv) {
                 } else {
                     cmd[1]=vm["in"].as<string>()+".aligned";
                 }
-                po::store(po::command_line_parser(cmd).options(opts).run(), vm);
+                po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
                 break;
             default:
                 throw logic_error("broken output type");
@@ -310,13 +310,13 @@ parse_options(int argc, char** argv) {
                 std::vector<string> cmd(2);
                 cmd[0]="--outtype";
                 cmd[1]="ARB";
-                po::store(po::command_line_parser(cmd).options(opts).run(),
+                po::store(po::command_line_parser(cmd).options(all_opts).run(),
                           vm);
             } else {
                 std::vector<string> cmd(2);
                 cmd[0]="--outtype";
                 cmd[1]="FASTA";
-                po::store(po::command_line_parser(cmd).options(opts).run(),
+                po::store(po::command_line_parser(cmd).options(all_opts).run(),
                           vm);
             }
         }
@@ -325,7 +325,7 @@ parse_options(int argc, char** argv) {
         if (!vm["min-idty"].empty()) {
             std::vector<string> cmd(1);
             cmd[0]="--calc-idty";
-            po::store(po::command_line_parser(cmd).options(opts).run(), vm);
+            po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
         }
 
         Log::validate_vm(vm, opts);
