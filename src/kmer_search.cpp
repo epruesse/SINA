@@ -446,7 +446,6 @@ fail:
 kmer_search::kmer_search(query_arb* arbdb, int k)
     : data(* new index(k, arbdb))
 {
-    cerr << data.kmer_counts.size() << endl;
     init();
 }
 
@@ -456,7 +455,6 @@ kmer_search::~kmer_search() {
 
 void
 kmer_search::init() {
-    cerr << data.kmer_counts.size() << endl;
     cerr << "Trying to load index from disk..." << endl;
     if (data.try_load_index()) {
         cerr << "Loaded index" << endl;
