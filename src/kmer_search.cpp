@@ -376,6 +376,7 @@ kmer_search::index::try_load_index() {
         cerr << "WARNING: Failed to open existing index " << idx_fn << std::endl;
         return false;
     }
+    gzbuffer(fp, chunk_size);
 
     idx_header header;
     if (gzread(fp, &header, sizeof(header)) <= 0) {
