@@ -56,6 +56,8 @@ using std::hex;
 #include <boost/progress.hpp>
 using progress = boost::progress_display;
 
+#include <boost/thread/mutex.hpp>
+
 #include <stdio.h>
 #include <sys/stat.h>
 
@@ -164,6 +166,30 @@ template<typename T>
 const_range<T>
 make_const_range(const T &t, size_t offset, size_t length) {
     return const_range<T>(t.begin() + offset, t.begin() + offset + length);
+}
+
+std::map<string, kmer_search*> kmer_search::indices;
+static boost::mutex indices_access;
+
+kmer_search*
+kmer_search::get_kmer_search(std::string filename, int k) {
+    boost::mutex::scoped_lock lock(indices_access);
+    std::stringstream str;
+    str << filename << "%%k=" << k;
+    if (indices.size() == 0) {
+        atexit(kmer_search::destroy_indices);
+    }
+    if (not indices.count(str.str())) {
+        indices[str.str()] = new kmer_search(query_arb::getARBDB(filename), k);
+    }
+    return indices[str.str()];
+}
+
+void
+kmer_search::destroy_indices() {
+    for (const std::pair<std::string, kmer_search*>& pair: indices) {
+        delete pair.second;
+    }
 }
 
 class kmer_search::index {

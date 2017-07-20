@@ -66,14 +66,13 @@ int main(int argc, const char** argv) {
     //cseq target = arbdb->getCseq(seqNames[i]);
   }
   t.stop();
-  kmer_search search_index(arbdb, 10);
-  search_index.init();
+  kmer_search* search_index=kmer_search::get_kmer_search(argv[1], 10);
 
   t.stop();
   std::vector<cseq> family;
   for (int i = 0; i < 1000; i++) {
     cseq target = arbdb->getCseq(seqNames[i]);
-    search_index.find(target, family, 10);
+    search_index->find(target, family, 10);
     if (seqNames[i] != family[0].getName()) {
       std::cerr << seqNames[i] << ": " << std::endl;
       for (int i=0; i<family.size(); i++) {

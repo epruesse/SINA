@@ -383,7 +383,7 @@ famfinder::_famfinder::_famfinder(int n)
                              opts->fs_kmer_norel);
         break;
     case ENGINE_SINA_KMER:
-        index = new kmer_search(arb, opts->fs_kmer_len);
+        index = kmer_search::get_kmer_search(opts->database, opts->fs_kmer_len);
         break;
     default:
         throw std::runtime_error("Unknown sequence search engine type");
