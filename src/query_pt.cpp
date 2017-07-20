@@ -249,10 +249,15 @@ query_pt::restart() {
     // FIXME: settings need to be restored!
 }
 
-query_pt::query_pt(const char* portname, const char* dbname)
+query_pt::query_pt(const char* portname, const char* dbname,
+                   bool fast, int k, int mk, bool norel)
     : data(*(new priv_data(portname,dbname)))
 {
     init();
+    set_find_type_fast(fast);
+    set_probe_len(k);
+    set_mismatches(mk);
+    set_sort_type(norel);
 }
 
 query_pt::~query_pt() {
@@ -513,38 +518,6 @@ match_retry:
 
     return f_relscore;
 }
-
-int
-query_pt::turn_check(const cseq& query, bool all) {
-    std::vector<cseq> matches;
-    double score[4];
-
-    score[0] = match(matches, query, 1, 1, 0.0f);
-
-    cseq turn(query);
-    turn.reverse();
-    if (all) {
-        score[1] = match(matches, turn, 1, 1, 0.0f);
-
-        cseq comp(query);
-        comp.complement();
-        score[2] = match(matches, comp, 1, 1, 0.0f);
-    } else {
-        score[1] = score[2] = 0;
-    }
-
-    turn.complement();
-    score[3] = match(matches, turn, 1, 1, 0.0f);
-
-    double max = 0;
-    int best = 0;
-    for (int i = 0; i < 4; i++)
-        if (max < score[i])
-            max = score[i], best = i;
-
-    return best;
-}
-
 
 query_pt::exception::exception(std::string msg) throw()
     : message(msg)

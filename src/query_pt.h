@@ -30,25 +30,26 @@ for the parts of ARB used as well as that of the covered work.
 #ifndef _QUERY_PT_H_
 #define _QUERY_PT_H_
 
-#include <string>
-#include <vector>
+#include "search.h"
+
 #include <exception>
 
 #include <boost/program_options.hpp>
-#include <boost/core/noncopyable.hpp>
 
 namespace sina {
 
-class cseq;
-class query_arb;
-
-class query_pt : private boost::noncopyable {
+class query_pt : public search {
 private:
     void init();
     void exit();
     void restart();
 public:
-    query_pt(const char* portname, const char* dbname);
+    query_pt(const char* portname,
+             const char* dbname,
+             bool fast=true,
+             int k=10,
+             int mk=0,
+             bool norel=false);
     ~query_pt();
 
     /**
@@ -69,24 +70,27 @@ public:
      *  range_cover: minimum sequences touching alignment edge
      *  leave_query_out: drop sequence with matching id
      */
-    double match(std::vector<cseq> &family,
-                 const cseq& query,
-                 int min_match,
-                 int max_match,
-                 float min_score,
-                 float max_score,
-                 query_arb *arb,
-                 bool noid,
-                 int minlen,
-                 int num_full,
-                 int minlen_full,
-                 int range_cover,
-                 bool leave_query_out);
+    virtual double match(std::vector<cseq> &family,
+                         const cseq& query,
+                         int min_match,
+                         int max_match,
+                         float min_score,
+                         float max_score,
+                         query_arb *arb,
+                         bool noid,
+                         int minlen,
+                         int num_full,
+                         int minlen_full,
+                         int range_cover,
+                         bool leave_query_out) override;
 
-    double match(std::vector<cseq> &family, const cseq& sequence,
-                 int min_match, int max_match, float min_score) {
+    virtual double match(std::vector<cseq> &family,
+                         const cseq& sequence,
+                         int min_match,
+                         int max_match,
+                         float min_score) {
         return match(family, sequence, min_match, max_match, min_score, 2.0,
-                     0, false, 0, 0, 0, 0, false);
+                     NULL, false, 0, 0, 0, 0, false);
     };
 
     int turn_check(const cseq& query, bool all);
@@ -117,7 +121,7 @@ private:
 
 } // namespace sina
 
-#endif // _QUERY_PT_H
+#endif // _QUERY_PT_H_
 
 /*
   Local Variables:

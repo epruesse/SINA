@@ -94,7 +94,7 @@ struct famfinder::options {
     int   fs_min_len;
 
     int    fs_cover_gene;
-    string pt_database;
+    string database;
     string pt_port;
 
 };
@@ -141,7 +141,7 @@ famfinder::get_options_description(po::options_description& main,
 
     main.add_options()
         ("db,r",
-         po::value<string>(&opts->pt_database),
+         po::value<string>(&opts->database),
          "reference database")
         ("turn,t",
          po::value<TURN_TYPE>(&opts->turn_which)
@@ -188,7 +188,7 @@ famfinder::get_options_description(po::options_description& main,
     od.add_options()
         ("help-familyfinder", "show advanced module help")
         ("ptdb",
-         po::value<string>(&opts->pt_database),
+         po::value<string>(&opts->database),
          "PT server database (old name)")
         ("ptport",
 #ifdef HAVE_GETPID
@@ -303,11 +303,12 @@ void fixme() {
 class famfinder::_famfinder
     : public PipeElement<tray, tray > {
     friend class famfinder;
-    query_pt *pt;
+    search *index;
     query_arb *arb;
     vector<alignment_stats> vastats;
     
     void do_turn_check(cseq&);
+    int turn_check(const cseq&, bool);
     void select_astats(tray &t);
     
     _famfinder(int n);
@@ -324,7 +325,7 @@ PipeElement<tray,tray>* famfinder::make_famfinder(int n) {
 
 
 famfinder::_famfinder::_famfinder(int n)
-    : arb(query_arb::getARBDB(opts->pt_database))
+    : arb(query_arb::getARBDB(opts->database))
 {
     string pt_port = opts->pt_port;
     // FIXME: manage the port better. This works for unix sockets, but not
@@ -332,20 +333,20 @@ famfinder::_famfinder::_famfinder(int n)
     if (n != 0) {
         pt_port +=  boost::lexical_cast<std::string>(n);
     }
-    pt = new query_pt(pt_port.c_str(), opts->pt_database.c_str());
-    pt->set_find_type_fast(!opts->fs_no_fast);
-    pt->set_probe_len(opts->fs_kmer_len);
-    pt->set_mismatches(opts->fs_kmer_mm);
-    pt->set_sort_type(opts->fs_kmer_norel);
+    index = new query_pt(pt_port.c_str(), opts->database.c_str(),
+                         not opts->fs_no_fast,
+                         opts->fs_kmer_len,
+                         opts->fs_kmer_mm,
+                         opts->fs_kmer_norel);
     vastats = arb->getAlignmentStats();
-    //pt->set_range(opts->gene_start, opts->gene_end);
+    //index->set_range(opts->gene_start, opts->gene_end);
 
     //posvar_filter
     //readonly
 }
 
 famfinder::_famfinder::~_famfinder() {
-    delete pt;
+    delete index;
 }
 
 void
@@ -357,7 +358,7 @@ famfinder::_famfinder::do_turn_check(cseq &c) {
     // changed made to the alignment at the end. This is way easier if we
     // don't have to worry about sequence orientation.
     if (opts->turn_which != TURN_NONE) {
-        switch(pt->turn_check(c, opts->turn_which==TURN_ALL)) {
+        switch(turn_check(c, opts->turn_which==TURN_ALL)) {
         case 0:
             c.set_attr(query_arb::fn_turn, "none");
             break;
@@ -378,6 +379,38 @@ famfinder::_famfinder::do_turn_check(cseq &c) {
     } else {
         c.set_attr(query_arb::fn_turn, "turn-check disabled");
     }
+}
+
+
+int
+famfinder::_famfinder::turn_check(const cseq& query, bool all) {
+    std::vector<cseq> matches;
+    double score[4];
+
+    score[0] = index->match(matches, query, 1, 1, 0.0f);
+
+    cseq turn(query);
+    turn.reverse();
+    if (all) {
+        score[1] = index->match(matches, turn, 1, 1, 0.0f);
+
+        cseq comp(query);
+        comp.complement();
+        score[2] = index->match(matches, comp, 1, 1, 0.0f);
+    } else {
+        score[1] = score[2] = 0;
+    }
+
+    turn.complement();
+    score[3] = index->match(matches, turn, 1, 1, 0.0f);
+
+    double max = 0;
+    int best = 0;
+    for (int i = 0; i < 4; i++)
+        if (max < score[i])
+            max = score[i], best = i;
+
+    return best;
 }
 
 
@@ -461,9 +494,9 @@ famfinder::_famfinder::operator()(tray t) {
 
     // FIXME: int noid = opts->realign
     int noid = false;
-    pt->match(vc, c, opts->fs_min, opts->fs_max, opts->fs_msc, opts->fs_msc_max,
-             arb, noid, opts->fs_min_len, opts->fs_req_full,
-             opts->fs_full_len, opts->fs_cover_gene, opts->fs_leave_query_out);
+    index->match(vc, c, opts->fs_min, opts->fs_max, opts->fs_msc, opts->fs_msc_max,
+                 arb, noid, opts->fs_min_len, opts->fs_req_full,
+                 opts->fs_full_len, opts->fs_cover_gene, opts->fs_leave_query_out);
     
     stringstream tmp;
     BOOST_FOREACH(cseq &r, vc) {
