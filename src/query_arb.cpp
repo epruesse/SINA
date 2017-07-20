@@ -322,6 +322,7 @@ query_arb::closeOpenARBDBs() {
 
 query_arb*
 query_arb::getARBDB(std::string file_name) {
+    boost::mutex::scoped_lock lock(arb_db_access);
     if (not query_arb::priv_data::the_arb_shell) {
         query_arb::priv_data::the_arb_shell = new GB_shell();
     }
