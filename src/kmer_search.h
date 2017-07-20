@@ -30,6 +30,7 @@ for the parts of ARB used as well as that of the covered work.
 #ifndef _KMER_SEARCH_H_
 #define _KMER_SEARCH_H_
 
+#include <map>
 #include "search.h"
 
 namespace sina {
@@ -38,9 +39,7 @@ class kmer_search : public search {
 public:
     class result_iterator;
 
-    kmer_search(query_arb* db, int k=8);
-    ~kmer_search();
-
+    static kmer_search* get_kmer_search(std::string filename, int k=0);
 
     /**
      * match runs a word search using the PT server
@@ -88,8 +87,13 @@ public:
     void find(const cseq& query, std::vector<cseq>& family, int max);
 
 private:
+    kmer_search(query_arb* db, int k=8);
+    ~kmer_search();
+
     class index;
     index &data;
+    static std::map<std::string, kmer_search*> indices;
+    static void destroy_indices();
 };
 
 
