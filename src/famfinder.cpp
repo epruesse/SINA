@@ -134,56 +134,59 @@ std::ostream& operator<<(std::ostream& out, const TURN_TYPE& t) {
     return out;
 }
 
-po::options_description
-famfinder::get_options_description() {
+void
+famfinder::get_options_description(po::options_description& main,
+                                   po::options_description& adv) {
     opts = new struct famfinder::options();
 
-    po::options_description od("Family Finder");
-    od.add_options()
+    main.add_options()
         ("db,r",
          po::value<string>(&opts->pt_database),
          "reference database")
         ("turn,t",
-         po::value<TURN_TYPE>(&opts->turn_which)->default_value(TURN_NONE),
+         po::value<TURN_TYPE>(&opts->turn_which)
+         ->default_value(TURN_NONE, "")
+         ->implicit_value(TURN_REVCOMP, ""),
          "check other strand as well\n"
          "'all' checks all four frames")
-        ("help-familyfinder", "show advanced module help")
-        ("fs-kmer-len",
-         po::value<int>(&opts->fs_kmer_len)->default_value(10),
-         "length of k-mers")
-        ("fs-min",
-         po::value<int>(&opts->fs_min)->default_value(40),
-         "min number of used references")
-        ("fs-max",
-         po::value<int>(&opts->fs_max)->default_value(40),
-         "max number of used references")
-        ("fs-req",
-         po::value<int>(&opts->fs_req)->default_value(1),
-         "required number of references")
-        ("fs-req-full",
-         po::value<int>(&opts->fs_req_full)->default_value(1),
-         "required number of full length references")
-        ("fs-full-len",
-         po::value<int>(&opts->fs_full_len)->default_value(1400),
-         "minimum length of full length reference")
-        ("fs-req-gaps",
-         po::value<int>(&opts->fs_req_gaps)->default_value(10),
-         "ignore references with less internal gaps")
-        ("fs-min-len",
-         po::value<int>(&opts->fs_min_len)->default_value(150),
-         "min reference length")
         ;
-    return od;
-}
 
-po::options_description
-famfinder::get_hidden_options_description() {
-    if (!opts) {
-        throw logic_error("Family Finder: internal error");
-    }
+    po::options_description mid("Reference Selection");
+    mid.add_options()
+        ("fs-kmer-len",
+         po::value<int>(&opts->fs_kmer_len)->default_value(10,""),
+         "length of k-mers (10)")
+        ("fs-req",
+         po::value<int>(&opts->fs_req)->default_value(1,""),
+         "required number of reference sequences (1)\n"
+         "queries with less matches will be dropped")
+        ("fs-min",
+         po::value<int>(&opts->fs_min)->default_value(40,""),
+         "number of references used regardless of shared fraction (40)")
+        ("fs-max",
+         po::value<int>(&opts->fs_max)->default_value(40,""),
+         "number of references used at most (40)")
+        ("fs-msc",
+         po::value<float>(&opts->fs_msc)->default_value(.7, ""),
+         "required fractional identity of references (0.7)")
+        ("fs-req-full",
+         po::value<int>(&opts->fs_req_full)->default_value(1, ""),
+         "required number of full length references (1)")
+        ("fs-full-len",
+         po::value<int>(&opts->fs_full_len)->default_value(1400, ""),
+         "minimum length of full length reference (1400)")
+        ("fs-req-gaps",
+         po::value<int>(&opts->fs_req_gaps)->default_value(10, ""),
+         "ignore references with less internal gaps (10)")
+        ("fs-min-len",
+         po::value<int>(&opts->fs_min_len)->default_value(150, ""),
+         "minimal reference length (150)")
+        ;
+    main.add(mid);
 
-    po::options_description od("Family Finder Advanced Options");
+    po::options_description od("Advanced Reference Selection");
     od.add_options()
+        ("help-familyfinder", "show advanced module help")
         ("ptdb",
          po::value<string>(&opts->pt_database),
          "PT server database (old name)")
@@ -191,7 +194,7 @@ famfinder::get_hidden_options_description() {
 #ifdef HAVE_GETPID
          po::value<string>(&opts->pt_port)
          ->default_value(":/tmp/sina_pt_"
-                         + boost::lexical_cast<std::string>(getpid())),
+                         + boost::lexical_cast<std::string>(getpid()), ""),
 #else
          po::value<string>(&opts->pt_port)->default_value("localhost:4040"),
 #endif
@@ -200,49 +203,48 @@ famfinder::get_hidden_options_description() {
          po::bool_switch(&opts->fs_no_fast),
          "don't use fast family search")
         ("fs-kmer-mm",
-         po::value<int>(&opts->fs_kmer_mm)->default_value(0),
-         "allowed mismatches per k-mer")
+         po::value<int>(&opts->fs_kmer_mm)->default_value(0,""),
+         "allowed mismatches per k-mer (0)")
         ("fs-kmer-norel",
          po::bool_switch(&opts->fs_kmer_norel),
          "don't score k-mer distance relative to target length")
-        ("fs-msc",
-         po::value<float>(&opts->fs_msc)->default_value(.7, "0.7"),
-         "min identity of used references")
         ("fs-msc-max",
-         po::value<float>(&opts->fs_msc_max)->default_value(2, "none"),
+         po::value<float>(&opts->fs_msc_max)->default_value(2, ""),
          "max identity of used references (for evaluation)")
         ("fs-leave-query-out",
          po::bool_switch(&opts->fs_leave_query_out),
          "ignore candidate if found in reference (for evaluation)")
         ("gene-start",
-         po::value<int>(&opts->gene_start)->default_value(0),
-         "alignment position of first base of gene")
+         po::value<int>(&opts->gene_start)->default_value(0,""),
+         "alignment position of first base of gene (0)")
         ("gene-end",
-         po::value<int>(&opts->gene_end)->default_value(0),
-         "alignment position of last base of gene")
+         po::value<int>(&opts->gene_end)->default_value(0,""),
+         "alignment position of last base of gene (0)")
         ("fs-cover-gene",
-         po::value<int>(&opts->fs_cover_gene)->default_value(0),
-         "required number of references covering each gene end")
+         po::value<int>(&opts->fs_cover_gene)->default_value(0,""),
+         "required number of references covering each gene end (0)")
         ("filter",
-         po::value<string>(&opts->posvar_filter)->default_value("none"),
+         po::value<string>(&opts->posvar_filter)->default_value(""),
          "select posvar filter")
         ("auto-filter-field",
          po::value<string>(&opts->posvar_autofilter_field)->default_value(""),
          "select field for auto filter selection")
         ("auto-filter-threshold",
-         po::value<float>(&opts->posvar_autofilter_thres)->default_value(0.8, "0.8"),
-         "quorum for auto filter selection")
+         po::value<float>(&opts->posvar_autofilter_thres)->default_value(0.8, ""),
+         "quorum for auto filter selection (0.8)")
         ;
-    return od;
+    adv.add(od);
 }
 
-void famfinder::validate_vm(po::variables_map& vm, po::options_description& desc) {
+void famfinder::validate_vm(po::variables_map& vm,
+                            po::options_description& desc) {
     if (!opts) {
         throw logic_error("Family Finder: options not parsed?!");
     }
     if (vm.count("help-familyfinder")) {
-        std::cout << get_options_description().add(get_hidden_options_description())
-                  << std::endl;
+        po::options_description od;
+        get_options_description(od, od);
+        std::cout << od << std::endl;
         exit(EXIT_SUCCESS);
     }
     if (vm["db"].empty() && vm["ptdb"].empty()) {

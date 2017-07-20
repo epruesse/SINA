@@ -152,27 +152,41 @@ void show_conf(po::variables_map& vm) {
 // define hidden options
 po::options_description
 global_get_hidden_options_description() {
-    po::options_description hidden("");
+    po::options_description hidden("Advanced Options");
     hidden.add_options()
+        ("show-conf",
+         "show effective configuration")
+        ("intype",
+         po::value<SEQUENCE_DB_TYPE>()->default_value(SEQUENCE_DB_NONE,""),
+         "override input file type")
+        ("outtype",
+         po::value<SEQUENCE_DB_TYPE>()->default_value(SEQUENCE_DB_NONE,""),
+         "override output file type")
+
+        ("prealigned",
+         po::bool_switch(),
+         "skip alignment stage")
+
         ("has-cli-vers",
          po::value<string>(),
          "verify support of cli version")
         ("no-align",
          po::bool_switch(),
          "disable alignment stage (deprecated)")
-    ;
+
+        ;
     return hidden;
 }
 
 // define global options
 po::options_description
 global_get_options_description() {
-    po::options_description glob("SINA global options");
+    po::options_description glob("Options");
     glob.add_options()
         ("help,h",
-         "show help")
+         "show short help")
         ("help-all",
-         "show full help (advanced options)")
+         "show full help (long)")
         ("in,i",
          po::value<string>(),
          "input file (arb or fasta)")
@@ -182,19 +196,6 @@ global_get_options_description() {
 
         ("version",
          "show version")
-        ("show-conf",
-         "show effective configuration")
-
-        ("intype",
-         po::value<SEQUENCE_DB_TYPE>()->default_value(SEQUENCE_DB_NONE),
-         "override input file type")
-        ("outtype",
-         po::value<SEQUENCE_DB_TYPE>()->default_value(SEQUENCE_DB_NONE),
-         "override output file type")
-
-        ("prealigned",
-         po::bool_switch(),
-         "skip alignment stage")
         ("search",
          po::bool_switch(),
          "enable search stage")
@@ -209,28 +210,32 @@ parse_options(int argc, char** argv) {
 
     string infile, outfile;
     thread_group threads;
-    po::options_description desc;
+    po::options_description
+        opts = global_get_options_description(),
+        adv_opts = global_get_hidden_options_description();
 
-    desc.add(global_get_options_description());
-    desc.add(Log::get_options_description());
-    desc.add(rw_arb::get_options_description());
-    desc.add(rw_fasta::get_options_description());
-    desc.add(aligner::get_options_description());
-    desc.add(famfinder::get_options_description());
-    desc.add(search_filter::get_options_description());
+    Log::get_options_description(opts, adv_opts);
+    rw_arb::get_options_description(opts, adv_opts);
+    rw_fasta::get_options_description(opts, adv_opts);
+    aligner::get_options_description(opts, adv_opts);
+    famfinder::get_options_description(opts, adv_opts);
+    search_filter::get_options_description(opts, adv_opts);
 
-    po::options_description all_opts(desc);
-    all_opts.add(global_get_hidden_options_description());
-    all_opts.add(famfinder::get_hidden_options_description());
+
+    po::options_description all_opts(opts);
+    all_opts.add(adv_opts);
 
     try {
         po::store(po::parse_command_line(argc,argv,all_opts),vm);
 
         if (vm.count("help")) {
-            cerr << desc << endl;
+            cerr << opts << endl;
             exit(EXIT_SUCCESS);
         }
-
+        if (vm.count("help-all")) {
+            cerr << opts << endl << adv_opts << endl;
+            exit(EXIT_SUCCESS);
+        }
         if (vm.count("has-cli-vers")) {
             cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
                  << " present" << endl;
@@ -261,13 +266,13 @@ parse_options(int argc, char** argv) {
                 std::vector<string> cmd(2);
                 cmd[0]="--intype";
                 cmd[1]="ARB";
-                po::store(po::command_line_parser(cmd).options(desc).run(),
+                po::store(po::command_line_parser(cmd).options(opts).run(),
                           vm);
             } else {
                 std::vector<string> cmd(2);
                 cmd[0]="--intype";
                 cmd[1]="FASTA";
-                po::store(po::command_line_parser(cmd).options(desc).run(),
+                po::store(po::command_line_parser(cmd).options(opts).run(),
                           vm);
             } 
         }
@@ -280,7 +285,7 @@ parse_options(int argc, char** argv) {
                 // ARB files can be used for input and output
                 cmd[0]="-o";
                 cmd[1]=vm["in"].as<string>();
-                po::store(po::command_line_parser(cmd).options(desc).run(), vm);
+                po::store(po::command_line_parser(cmd).options(opts).run(), vm);
                 break;
             case SEQUENCE_DB_FASTA: 
                 // Use "input.fasta.aligned"
@@ -290,7 +295,7 @@ parse_options(int argc, char** argv) {
                 } else {
                     cmd[1]=vm["in"].as<string>()+".aligned";
                 }
-                po::store(po::command_line_parser(cmd).options(desc).run(), vm);
+                po::store(po::command_line_parser(cmd).options(opts).run(), vm);
                 break;
             default:
                 throw logic_error("broken output type");
@@ -305,13 +310,13 @@ parse_options(int argc, char** argv) {
                 std::vector<string> cmd(2);
                 cmd[0]="--outtype";
                 cmd[1]="ARB";
-                po::store(po::command_line_parser(cmd).options(desc).run(),
+                po::store(po::command_line_parser(cmd).options(opts).run(),
                           vm);
             } else {
                 std::vector<string> cmd(2);
                 cmd[0]="--outtype";
                 cmd[1]="FASTA";
-                po::store(po::command_line_parser(cmd).options(desc).run(),
+                po::store(po::command_line_parser(cmd).options(opts).run(),
                           vm);
             }
         }
@@ -320,15 +325,15 @@ parse_options(int argc, char** argv) {
         if (!vm["min-idty"].empty()) {
             std::vector<string> cmd(1);
             cmd[0]="--calc-idty";
-            po::store(po::command_line_parser(cmd).options(desc).run(), vm);
+            po::store(po::command_line_parser(cmd).options(opts).run(), vm);
         }
 
-        Log::validate_vm(vm);
-        rw_arb::validate_vm(vm);
-        rw_fasta::validate_vm(vm);
-        aligner::validate_vm(vm);
-        famfinder::validate_vm(vm, desc);
-        search_filter::validate_vm(vm);
+        Log::validate_vm(vm, opts);
+        rw_arb::validate_vm(vm, opts);
+        rw_fasta::validate_vm(vm, opts);
+        aligner::validate_vm(vm, opts);
+        famfinder::validate_vm(vm, opts);
+        search_filter::validate_vm(vm, opts);
 
 
         if (vm.count("in") == 0) {

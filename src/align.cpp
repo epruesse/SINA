@@ -224,73 +224,62 @@ std::ostream& operator<<(std::ostream& out, const INSERTION_TYPE& t) {
 }
 
 
-po::options_description
-aligner::get_options_description() {
-    po::options_description od("Aligner");
-
+void
+aligner::get_options_description(po::options_description& main,
+                                 po::options_description& adv) {
     opts = new struct aligner::options();
+
+    po::options_description od("Aligner");
     od.add_options()
         ("realign",
          po::bool_switch(&opts->realign),
          "do not copy alignment from reference")
-
         ("overhang",
-         po::value<OVERHANG_TYPE>(&opts->overhang)->default_value(OVERHANG_ATTACH),
-         "(attach|remove|edge) select type of overhang placement")
-
+         po::value<OVERHANG_TYPE>(&opts->overhang)->default_value(OVERHANG_ATTACH,""),
+         "select type of overhang placement [*attach*|remove|edge] ")
         ("lowercase",
-         po::value<LOWERCASE_TYPE>(&opts->lowercase)->default_value(LOWERCASE_NONE),
-         "(none|original|unaligned) select which bases to put in lower case")
-
+         po::value<LOWERCASE_TYPE>(&opts->lowercase)->default_value(LOWERCASE_NONE,""),
+         "select which bases to put in lower case [*none*|original|unaligned] ")
         ("insertion",
-         po::value<INSERTION_TYPE>(&opts->insertion)->default_value(INSERTION_SHIFT),
-         "(shift|forbid|remove) handling of insertions not accomodatable by reference alignment")
-
+         po::value<INSERTION_TYPE>(&opts->insertion)->default_value(INSERTION_SHIFT,""),
+         "handling of insertions not accomodatable by reference alignment [*shift*|forbid|remove]")
         ("fs-no-graph",
          po::bool_switch(&opts->fs_no_graph),
          "use profile vector instead of DAG to as template")
-
         ("fs-weight",
-         po::value<float>(&opts->fs_weight)->default_value(1),
-         "scales weight derived from fs base freq")
-
+         po::value<float>(&opts->fs_weight)->default_value(1,""),
+         "scales weight derived from fs base freq (1)")
         ("match-score", 
-         po::value<float>(&opts->match_score)->default_value(2),
-         "score awarded for a match")
-
+         po::value<float>(&opts->match_score)->default_value(2,""),
+         "score awarded for a match (2)")
         ("mismatch-score",
-         po::value<float>(&opts->mismatch_score)->default_value(-1),
-         "score awarded for a mismatch")
-
+         po::value<float>(&opts->mismatch_score)->default_value(-1,""),
+         "score awarded for a mismatch (-1)")
         ("pen-gap",
-         po::value<float>(&opts->gap_penalty)->default_value(5.0),
-         "affine gap penalty (open)")
-
+         po::value<float>(&opts->gap_penalty)->default_value(5.0,""),
+         "gap open penalty (5)")
         ("pen-gapext",
-         po::value<float>(&opts->gap_ext_penalty)->default_value(2.0),
-         "affine gap penalty (extend)")
-
+         po::value<float>(&opts->gap_ext_penalty)->default_value(2.0, ""),
+         "gap extend penalty (2)")
         ("debug-graph",
          po::bool_switch(&opts->debug_graph),
          "dump reference graphs to disk")
-
         ("use-subst-matrix",
          po::bool_switch(&opts->use_subst_matrix),
          "use experimental scoring system (slow)")
-
         ("write-used-rels",
          po::bool_switch(&opts->write_used_rels),
          "write used reference sequences to field 'used_rels'")
-
         ("calc-idty",
          po::bool_switch(&opts->calc_idty),
          "calculate highest identity of aligned sequence with any reference")
         ;
 
-    return od;
+    adv.add(od);
 }
 
-void aligner::validate_vm(boost::program_options::variables_map& vm) {
+void aligner::validate_vm(boost::program_options::variables_map& vm,
+                          po::options_description& desc) {
     if (vm.count("no-align")) {
         return;
     }

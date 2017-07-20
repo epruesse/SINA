@@ -45,11 +45,13 @@ public:
     class reader;
     class writer;
 
-    static boost::program_options::options_description get_options_description();
-    static void validate_vm(boost::program_options::variables_map&);
     static PipeElement<void,tray>* make_reader(boost::program_options::variables_map&);
     static PipeElement<tray,void>* make_writer(boost::program_options::variables_map&);
 
+    static void get_options_description(boost::program_options::options_description& all,
+                                        boost::program_options::options_description& adv);
+    static void validate_vm(boost::program_options::variables_map&,
+                            boost::program_options::options_description&);
 private:
     struct options;
     static struct options *opts;

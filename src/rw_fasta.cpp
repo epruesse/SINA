@@ -111,38 +111,40 @@ struct rw_fasta::options {
 };
 struct rw_fasta::options *rw_fasta::opts;
 
-// define options
-po::options_description
-rw_fasta::get_options_description() {
-    po::options_description od("SINA-FASTA interface");
+void
+rw_fasta::get_options_description(po::options_description& main,
+                                  po::options_description& adv) {
     opts = new options;
 
-    od.add_options()
+    main.add_options()
         ("meta-fmt",
-         po::value<FASTA_META_TYPE>(&opts->fastameta)->default_value(FASTA_META_NONE),
-         "(none|header|comment|csv) output format for meta data")
+         po::value<FASTA_META_TYPE>(&opts->fastameta)->default_value(FASTA_META_NONE,""),
+         "meta data in (*none*|header|comment|csv)")
+        ;
 
+    po::options_description od("Fasta I/O");
+    od.add_options()
         ("line-length",
-         po::value<int>(&opts->line_length)->default_value(70),
-         "wrap output sequence")
+         po::value<int>(&opts->line_length)->default_value(0, ""),
+         "wrap output sequence (unlimited)")
 
         ("min-idty",
-         po::value<float>(&opts->min_idty)->default_value(0.f),
-         "only write sequences with align_idty_slv > X (implies calc-idty)") 
-
-        ("fasta-block",
-         po::value<long>(&opts->fasta_block)->default_value(0),
-         "split file into blocks of n bytes length")
-
+         po::value<float>(&opts->min_idty)->default_value(0.f, ""),
+         "only write sequences with align_idty_slv > X, implies calc-idty")
         ("fasta-idx",
-         po::value<long>(&opts->fasta_idx)->default_value(0),
-         "process only n-th block")
+         po::value<long>(&opts->fasta_idx)->default_value(0, ""),
+         "process only sequences beginning in block <arg>")
+        ("fasta-block",
+         po::value<long>(&opts->fasta_block)->default_value(0, ""),
+         "length of blocks")
+
         ;
-    return od;
+    adv.add(od);
 }
 
 void
-rw_fasta::validate_vm(po::variables_map& /* vm */) {
+rw_fasta::validate_vm(po::variables_map& /* vm */,
+                      po::options_description& /*desc*/) {
 }
 
 class rw_fasta::reader : public PipeElement<void, tray> {

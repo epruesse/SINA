@@ -71,15 +71,22 @@ struct Log::options {
 
 struct Log::options *Log::opts;
 
-po::options_description
-Log::get_options_description() {
+void
+Log::get_options_description(po::options_description& main,
+                             po::options_description& adv) {
     opts = new struct options;
+
+    main.add_options()
+        ("log-file",
+         po::value<string>(&opts->logfile)->default_value("/dev/stderr", ""),
+         "write log to <arg> (stderr)")
+        ;
 
     po::options_description od("Logging");
     od.add_options()
         ("verbosity",
-         po::value<int>(&opts->verbosity)->default_value(3),
-         "verbosity level")
+         po::value<int>(&opts->verbosity)->default_value(3,""),
+         "verbosity level (3)")
         ("show-diff",
          po::bool_switch(&opts->show_diff),
          "show difference to original alignment")
@@ -92,17 +99,15 @@ Log::get_options_description() {
         ("colors",
          po::bool_switch(&opts->colors),
          "distinguish printed bases using colors")
-
-        ("log-file",
-         po::value<string>(&opts->logfile)->default_value("/dev/stderr"),
-         "log to file (default: STDERR)")
         ;
 
-    return od;
+    adv.add(od);
 }
 
+
 void
-Log::validate_vm(po::variables_map& vm) {
+Log::validate_vm(po::variables_map& vm,
+                 po::options_description& /*desc*/) {
     if (vm["orig-db"].empty()) {
         if (!vm["ptdb"].empty()) {
             opts->origdb = vm["ptdb"].as<string>();

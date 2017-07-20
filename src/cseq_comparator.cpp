@@ -417,21 +417,25 @@ cseq_comparator::get_options_description(const char* prefix) {
     std::string p(prefix);
     od.add_options()
         ((p + "iupac").c_str(),
-         po::value<CMP_IUPAC_TYPE>()->default_value(CMP_IUPAC_OPTIMISTIC),
-         "compare IUPAC encoded ambiguous bases optimistically"
-         "or pessimistically")
+         po::value<CMP_IUPAC_TYPE>()->default_value(CMP_IUPAC_OPTIMISTIC, ""),
+         "strategy for comparing ambiguous bases [pessimistic|*optimistic*]")
         
         ((p + "correction").c_str(),
-         po::value<CMP_DIST_TYPE>()->default_value(CMP_DIST_NONE),
-         "apply distance correction (none, jc)")
+         po::value<CMP_DIST_TYPE>()->default_value(CMP_DIST_NONE,""),
+         "apply distance correction. [*none*|jc]")
       
         ((p + "cover").c_str(),
-         po::value<CMP_COVER_TYPE>()->default_value(CMP_COVER_QUERY),
-         "compute comparative measure relative to 1 (abs), query sequence"
-         "length (query), target sequence length (target), average length"
-         " (avg), length of overlap (overlap), number of jointly covered"
-         " columns (all), length of longer (max) or shorter (min) of"
-         " query and target, columns without gaps (nogap)")
+         po::value<CMP_COVER_TYPE>()->default_value(CMP_COVER_QUERY,""),
+         "compute comparative measure relative to\n"
+         "  abs: 1\n"
+         " *query: query sequence length\n"
+         "  target: target sequence length\n"
+         "  min: length of shorter sequence\n"
+         "  max: length of longer sequence\n"
+         "  avg: average length\n"
+         "  overlap: length of overlap\n"
+         "  all: columns with bases in either\n"
+         "  nogap: columns with bases in both\n")
         
         ((p + "filter-lowercase").c_str(), 
          po::bool_switch(),

@@ -94,12 +94,12 @@ struct rw_arb::options {
 struct rw_arb::options *rw_arb::opts;
 
 
-po::options_description
-rw_arb::get_options_description() {
-    po::options_description od("SINA-ARB interface");
-
+void
+rw_arb::get_options_description(po::options_description& /*main*/,
+                                po::options_description& adv) {
     opts = new options();
 
+    po::options_description od("ARB I/O");
     od.add_options()
         ("markcopied",
          po::bool_switch(&opts->markcopied),
@@ -110,30 +110,32 @@ rw_arb::get_options_description() {
          "mark aligned sequences")
 
         ("prot-level",
-         po::value<int>(&opts->prot_lvl)->default_value(4),
-         "arb export protection level")
+         po::value<int>(&opts->prot_lvl)->default_value(4, ""),
+         "arb export protection level (4)")
 
         ("select-file",
          po::value<string>(&opts->select_file)->default_value(""),
          "file containting arb names to be used ('-' for STDIN)")
 
         ("select-step",
-         po::value<int>(&opts->select_step)->default_value(1),
-         "use every n-th sequence")
+         po::value<int>(&opts->select_step)->default_value(1, ""),
+         "use every n-th sequence (1)" )
 
         ("select-skip",
-         po::value<int>(&opts->select_skip)->default_value(0),
-         "skip the first n seuqences")
+         po::value<int>(&opts->select_skip)->default_value(0,""),
+         "skip the first n seuqences (0)")
 
         ("extra-fields",
          po::value<string>(&opts->extra_fields)->default_value(""),
          "load additional fields, colon separated")
         ;
-    return od;
+
+    adv.add(od);
 }
 
 void
-rw_arb::validate_vm(po::variables_map& /*vm*/) {
+rw_arb::validate_vm(po::variables_map& /*vm*/,
+                    po::options_description& /*desc*/) {
 //    opts->pt_database = vm["ptdb"].as<string>();
 }
 

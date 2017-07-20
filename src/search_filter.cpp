@@ -80,86 +80,81 @@ struct search_filter::options {
 
 struct search_filter::options *search_filter::opts;
 
-po::options_description
-search_filter::get_options_description(){
-    po::options_description od("Search");
+void
+search_filter::get_options_description(po::options_description& main,
+                                       po::options_description& adv){
+    opts = new struct search_filter::options();
 
-    if (opts == NULL) 
-         opts = new struct search_filter::options();
+    //main.add_options()
 
-    od.add_options()
+    po::options_description mid("Search & Classify");
+    mid.add_options()
         ("search-db",
          po::value<string>(&opts->pt_database),
-         "PT server database")
+         "reference db")
+        ("search-min-sim",
+         po::value<float>(&opts->min_sim)->default_value(.7, ""),
+         "required sequence similarity (0.7)")
+        ("search-max-result",
+         po::value<int>(&opts->max_result)->default_value(10, ""),
+         "desired number of search results (10)")
+        ("lca-fields",
+         po::value<string>(&opts->lca_fields)->default_value(""),
+         "names of fields containing source taxonomy (colon separated list)")
+        ("lca-quorum",
+         po::value<float>(&opts->lca_quorum)->default_value(.7, ""),
+         "fraction of search result that must share resulting classification (0.7)")
+        ;
+    main.add(mid);
 
+    po::options_description od("Search & Classify");
+    od.add_options()
         ("search-port",
 #ifdef HAVE_GETPID
-         po::value<string>(&opts->pt_port)->default_value(":/tmp/sina_pt2_"
-                           + boost::lexical_cast<std::string>(getpid())),
+         po::value<string>(&opts->pt_port)
+         ->default_value(":/tmp/sina_pt2_"
+                         + boost::lexical_cast<std::string>(getpid()),""),
 #else
          po::value<string>(&opts->pt_port)->default_value("localhost:4041"),
 #endif
          "PT server port")
-
         ("search-all",
          po::bool_switch(&opts->search_all),
          "do not use k-mer heuristic")
-
 //        ("search-filter",
 //         po::value<string>(&opts->posvar_filter)->default_value("none"),
 //         "select posvar filter")
-
         ("search-no-fast",
          po::bool_switch(&opts->fs_no_fast),
          "don't use fast family search")
-
         ("search-kmer-candidates",
-         po::value<int>(&opts->kmer_candidates)->default_value(1000),
-         "number of most similar sequences to acquire via kmer-step")
-
+         po::value<int>(&opts->kmer_candidates)->default_value(1000,""),
+         "number of most similar sequences to acquire via kmer-step (1000)")
         ("search-kmer-len",
-         po::value<int>(&opts->fs_kmer_len)->default_value(12),
-         "length of k-mers")
-
+         po::value<int>(&opts->fs_kmer_len)->default_value(12,""),
+         "length of k-mers (12)")
         ("search-kmer-mm",
-         po::value<int>(&opts->fs_kmer_mm)->default_value(0),
-         "allowed mismatches per k-mer")
-
+         po::value<int>(&opts->fs_kmer_mm)->default_value(0,""),
+         "allowed mismatches per k-mer (0)")
         ("search-kmer-norel",
          po::bool_switch(&opts->fs_kmer_norel),
          "don't score k-mer distance relative to target length")
-
-        ("search-min-sim",
-         po::value<float>(&opts->min_sim)->default_value(.7),
-         "required sequence similarity")
-        
         ("search-ignore-super",
          po::bool_switch(&opts->ignore_super),
          "ignore sequences containing query")
-
-        ("search-max-result",
-         po::value<int>(&opts->max_result)->default_value(10),
-         "maximum number of results to return")
-
         ("search-copy-fields",
          po::value<string>(&opts->copy_fields)->default_value(""),
          "copy fields from result sequences to query sequence")
-
-        ("lca-fields",
-         po::value<string>(&opts->lca_fields)->default_value(""),
-         "do LCA classification based on these fields")
-
-        ("lca-quorum",
-         po::value<float>(&opts->lca_quorum)->default_value(0.7),
-         "relax LCA to fraction of result")
         ;
-
     od.add(cseq_comparator::get_options_description("search-"));
-    return od;
+
+    adv.add(od);
 }
 
+
 void
-search_filter::validate_vm(boost::program_options::variables_map& vm) {
+search_filter::validate_vm(boost::program_options::variables_map& vm,
+                           po::options_description& desc) {
     if (!opts) {
         throw std::logic_error("search options not parsed?!");
     }
@@ -175,7 +170,7 @@ search_filter::validate_vm(boost::program_options::variables_map& vm) {
            std::vector<string> cmd(2);
            cmd[0]="--search-db";
            cmd[1]=vm["ptdb"].as<string>();
-           po::store(po::command_line_parser(cmd).options(get_options_description()).run(), vm);
+           po::store(po::command_line_parser(cmd).options(desc).run(), vm);
         } else {
           throw std::logic_error("need search-db to search");
         }
@@ -187,7 +182,7 @@ search_filter::validate_vm(boost::program_options::variables_map& vm) {
         std::vector<string> cmd(2);
         cmd[0]="--search-port";
         cmd[1]=vm["ptport"].as<string>();
-        po::store(po::command_line_parser(cmd).options(get_options_description()).run(), vm);
+        po::store(po::command_line_parser(cmd).options(desc).run(), vm);
     }
 
     opts->comparator = cseq_comparator::make_from_variables_map(vm, "search-");
