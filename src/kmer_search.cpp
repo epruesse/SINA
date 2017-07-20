@@ -420,6 +420,7 @@ kmer_search::kmer_search(query_arb* arbdb, int k)
     : data(* new index(k, arbdb))
 {
     cerr << data.kmer_counts.size() << endl;
+    init();
 }
 
 kmer_search::~kmer_search() {
@@ -496,6 +497,28 @@ struct score {
         return val > rhs.val;
     }
 };
+
+double
+kmer_search::match(std::vector<cseq>& results,
+                   const cseq& query,
+                   int min_match,
+                   int max_match,
+                   float min_score,
+                   float max_score,
+                   query_arb* arb,
+                   bool noid,
+                   int min_len,
+                   int num_full,
+                   int full_min_len,
+                   int range_cover,
+                   bool leave_query_out) {
+    find(query, results, max_match);
+    if (results.size() == 0) {
+        return 0;
+    } else {
+        return results[0].getScore();
+    }
+}
 
 void
 kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {

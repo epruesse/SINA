@@ -30,23 +30,58 @@ for the parts of ARB used as well as that of the covered work.
 #ifndef _KMER_SEARCH_H_
 #define _KMER_SEARCH_H_
 
-#include <utility> // std::pair
-#include <iterator>
-#include <vector>
-#include <string>
+#include "search.h"
 
 namespace sina {
 
-class query_arb;
-class cseq;
-
-
-class kmer_search {
+class kmer_search : public search {
 public:
     class result_iterator;
 
     kmer_search(query_arb* db, int k=8);
     ~kmer_search();
+
+
+    /**
+     * match runs a word search using the PT server
+     *
+     * arguments:
+     *  family:    will contain scored results
+     *  query:     query sequence
+     *  min_match: minimum number of results required
+     *  max_match: maximum number of results desired
+     *  min_score: minimum relative score
+     *  max_score: maximum relative score
+     *  arb:       pointer to matching arb database
+     *  noid:      skip matches containing query
+     *  min_len:   skip matches shorter
+     *  num_full:  minimum "full length", ignoring score
+     *  minlen_full: length to be considered "full"
+     *  range_cover: minimum sequences touching alignment edge
+     *  leave_query_out: drop sequence with matching id
+     */
+    virtual double match(std::vector<cseq> &family,
+                         const cseq& query,
+                         int min_match,
+                         int max_match,
+                         float min_score,
+                         float max_score,
+                         query_arb *arb,
+                         bool noid,
+                         int minlen,
+                         int num_full,
+                         int minlen_full,
+                         int range_cover,
+                         bool leave_query_out) override;
+
+    virtual double match(std::vector<cseq> &family,
+                         const cseq& sequence,
+                         int min_match,
+                         int max_match,
+                         float min_score) override {
+        return match(family, sequence, min_match, max_match, min_score, 2.0,
+                     NULL, false, 0, 0, 0, 0, false);
+    };
     
     void build_index();
     void init();

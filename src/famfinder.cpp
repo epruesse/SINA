@@ -30,6 +30,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "config.h"
 #include "query_pt.h"
 #include "query_arb.h"
+#include "kmer_search.h"
 
 #include <iostream>
 using std::endl;
@@ -68,8 +69,15 @@ using boost::algorithm::iequals;
 
 namespace sina {
 
+enum ENGINE_TYPE {
+    ENGINE_ARB_PT=0,
+    ENGINE_SINA_KMER=1
+};
+
+
 struct famfinder::options {
     TURN_TYPE turn_which;
+    ENGINE_TYPE engine;
 
     int gene_start;
     int gene_end;
@@ -96,9 +104,38 @@ struct famfinder::options {
     int    fs_cover_gene;
     string database;
     string pt_port;
-
 };
 struct famfinder::options *famfinder::opts;
+
+
+void validate(boost::any& v,
+              const std::vector<std::string>& values,
+              ENGINE_TYPE* /*tt*/, int) {
+    using namespace boost::program_options;
+    validators::check_first_occurrence(v);
+    const std::string& s = validators::get_single_string(values);
+    if (iequals(s, "pt-server")) {
+        v = ENGINE_ARB_PT;
+    } else if (iequals(s, "internal")) {
+        v = ENGINE_SINA_KMER;
+    } else {
+        throw po::invalid_option_value("must be 'pt-server' or 'internal'");
+    }
+}
+
+std::ostream& operator<<(std::ostream& out, const ENGINE_TYPE& t) {
+    switch(t) {
+    case ENGINE_ARB_PT:
+        out << "pt-server";
+        break;
+    case ENGINE_SINA_KMER:
+        out << "internal";
+        break;
+    default:
+        out << "[UNKNOWN!]";
+    }
+    return out;
+}
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
@@ -148,11 +185,15 @@ famfinder::get_options_description(po::options_description& main,
          ->default_value(TURN_NONE, "")
          ->implicit_value(TURN_REVCOMP, ""),
          "check other strand as well\n"
-         "'all' checks all four frames")
+        "'all' checks all four frames")
         ;
 
     po::options_description mid("Reference Selection");
     mid.add_options()
+        ("fs-engine",
+         po::value<ENGINE_TYPE>(&opts->engine),
+         "search engine to use for reference selection "
+         "[*pt-server*|internal]")
         ("fs-kmer-len",
          po::value<int>(&opts->fs_kmer_len)->default_value(10,""),
          "length of k-mers (10)")
@@ -333,11 +374,20 @@ famfinder::_famfinder::_famfinder(int n)
     if (n != 0) {
         pt_port +=  boost::lexical_cast<std::string>(n);
     }
-    index = new query_pt(pt_port.c_str(), opts->database.c_str(),
-                         not opts->fs_no_fast,
-                         opts->fs_kmer_len,
-                         opts->fs_kmer_mm,
-                         opts->fs_kmer_norel);
+    switch(opts->engine) {
+    case ENGINE_ARB_PT:
+        index = new query_pt(pt_port.c_str(), opts->database.c_str(),
+                             not opts->fs_no_fast,
+                             opts->fs_kmer_len,
+                             opts->fs_kmer_mm,
+                             opts->fs_kmer_norel);
+        break;
+    case ENGINE_SINA_KMER:
+        index = new kmer_search(arb, opts->fs_kmer_len);
+        break;
+    default:
+        throw std::runtime_error("Unknown sequence search engine type");
+    }
     vastats = arb->getAlignmentStats();
     //index->set_range(opts->gene_start, opts->gene_end);
 
