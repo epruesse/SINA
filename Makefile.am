@@ -82,7 +82,7 @@ src_sina_LDADD = $(sina_libs)
 endif
 
 lib_LTLIBRARIES = src/libsina.la
-noinst_PROGRAMS = src/sina_probematch src/kmer_test
+bin_PROGRAMS += src/sina_probematch src/kmer_test
 
 CLEANFILES    = $(bin_SCRIPTS)
 

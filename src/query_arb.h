@@ -116,6 +116,11 @@ class query_arb{
      */
     void saveAs(const char* fname, const char* type="b");
 
+    /**
+     * Returns filename of underlying ARB database file
+     */
+    std::string getFileName() const;
+
     void setProtectionLevel(int);
 
     int getSeqCount() const;

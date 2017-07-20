@@ -340,6 +340,11 @@ query_arb::save() {
     saveAs(data.filename.c_str());
 }
 
+std::string
+query_arb::getFileName() const {
+    return data.filename;
+}
+
 void
 query_arb::saveAs(const char* fname, const char* type) {
     {
