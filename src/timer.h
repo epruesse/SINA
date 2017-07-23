@@ -34,6 +34,8 @@ for the parts of ARB used as well as that of the covered work.
 #include <algorithm>
 #include <iomanip>
 #include <iterator>
+#include <string>
+#include <iostream>
 
 #ifndef _TIMER_H_
 #define _TIMER_H_
@@ -105,26 +107,26 @@ struct timestamp : private timeval {
 class timer {
     bool first_run;
     std::vector<timestamp> timestamps;
+    std::vector<const char*> names;
     std::vector<timestamp>::iterator time_it;
     timestamp t_last;
 
 public:
-    timer() : first_run(true), timestamps(1,0), t_last(0) {}
+    timer() : timestamps(1,0), t_last(0) {}
 
     void start() {
-        if (timestamps.size() > 1 )  first_run=false;
         time_it = timestamps.begin();
         t_last.get();
     }
 
-    void stop() {
+    void stop(const char* name=NULL) {
         timestamp t_now;
-        *time_it +=  t_now - t_last;
-        ++time_it;
-        if (time_it == timestamps.end()) {
+        if (++time_it == timestamps.end()) {
+            names.push_back(name);
             timestamps.push_back(timestamp(0));
-            time_it = timestamps.end()-1;
+            time_it = timestamps.end() - 1;
         }
+        *time_it +=  t_now - t_last;
         t_last.get();
     }
 
@@ -134,8 +136,15 @@ public:
     }
     friend std::ostream& operator<<(std::ostream& out , const timer& t) {
         out << "timed " << t.timestamps.size() << ":";
-        std::copy(t.timestamps.begin(), --t.timestamps.end(), 
-                  std::ostream_iterator<timestamp>(out," "));
+        std::transform(++t.timestamps.begin(), t.timestamps.end(),
+                       t.names.begin(),
+                       std::ostream_iterator<std::string>(out, " "),
+                       [](const timestamp &t, const char const* name) {
+                           std::stringstream tmp;
+                           if (name) tmp << name << "=";
+                           tmp << t;
+                           return tmp.str();
+                       });
         return out;
     }
 };
