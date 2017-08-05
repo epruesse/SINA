@@ -46,6 +46,7 @@ struct timeval {
   suseconds_t    tv_usec;  // microseconds
 };
 */
+
 namespace sina {
 
 struct timestamp : private timeval {
@@ -105,7 +106,6 @@ struct timestamp : private timeval {
 
 
 class timer {
-    bool first_run;
     std::vector<timestamp> timestamps;
     std::vector<const char*> names;
     std::vector<timestamp>::iterator time_it;
@@ -139,7 +139,7 @@ public:
         std::transform(++t.timestamps.begin(), t.timestamps.end(),
                        t.names.begin(),
                        std::ostream_iterator<std::string>(out, " "),
-                       [](const timestamp &t, const char const* name) {
+                       [](const timestamp &t, const char* name) {
                            std::stringstream tmp;
                            if (name) tmp << name << "=";
                            tmp << t;
