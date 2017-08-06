@@ -36,6 +36,23 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
+enum base_types {
+    BASE_A=0,
+    BASE_G=1,
+    BASE_C=2,
+    BASE_TU=3,
+    BASE_MAX=4,
+    BASE_LC=4
+};
+
+enum base_types_bitmask {
+    BASEM_A=1<<BASE_A,
+    BASEM_G=1<<BASE_G,
+    BASEM_C=1<<BASE_C,
+    BASEM_TU=1<<BASE_TU,
+    BASEM_LC=1<<BASE_LC
+};
+
 class base_iupac {
 public:
     typedef unsigned char value_type;
@@ -56,21 +73,6 @@ public:
     };
 
 
-    enum base_types {
-        BASE_A=0,
-        BASE_G=1,
-        BASE_C=2,
-        BASE_TU=3,
-        BASE_MAX=4,
-        BASE_LC=4
-    };
-    enum base_types_bitmask {
-        BASEM_A=1<<BASE_A,
-        BASEM_G=1<<BASE_G,
-        BASEM_C=1<<BASE_C,
-        BASEM_TU=1<<BASE_TU,
-        BASEM_LC=1<<BASE_LC
-    };
 
     base_iupac(unsigned char c) 
       : _data(iupac_char_to_bmask[c]) 
