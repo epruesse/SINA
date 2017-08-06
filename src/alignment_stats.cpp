@@ -133,22 +133,22 @@ alignment_stats::getSubstMatrix(double identity) const {
     aligned_base::matrix_type m;
     int total_bases = global_freqs.num_a + global_freqs.num_c + 
         global_freqs.num_g + global_freqs.num_u;
-    double f[aligned_base::BASE_MAX];
-    f[aligned_base::BASE_A] = (double)global_freqs.num_a/total_bases;
-    f[aligned_base::BASE_C] = (double)global_freqs.num_c/total_bases;
-    f[aligned_base::BASE_G] = (double)global_freqs.num_g/total_bases;
-    f[aligned_base::BASE_TU] = (double)global_freqs.num_u/total_bases;
+    double f[BASE_MAX];
+    f[BASE_A] = (double)global_freqs.num_a/total_bases;
+    f[BASE_C] = (double)global_freqs.num_c/total_bases;
+    f[BASE_G] = (double)global_freqs.num_g/total_bases;
+    f[BASE_TU] = (double)global_freqs.num_u/total_bases;
 
     double avgmm=0;
-    for (int i=0; i < aligned_base::BASE_MAX; i++) {
-        for (int j=0; j < aligned_base::BASE_MAX; j++) {
+    for (int i=0; i < BASE_MAX; i++) {
+        for (int j=0; j < BASE_MAX; j++) {
             double p;
             if (i==j) {
                 p = identity / 4;
             } else {
                 p = (1-identity) / 12;
             }
-            avgmm += m.v[i*aligned_base::BASE_MAX+j] = -log( p / (f[i] * f[j]) );
+            avgmm += m.v[i*BASE_MAX+j] = -log( p / (f[i] * f[j]) );
         }
     }
     avgmm /= 12;
