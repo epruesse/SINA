@@ -27,6 +27,9 @@ jobs:
     working_directory: /root/sina
     steps:
       - checkout
+      - run:
+          name: Checking out submodules
+          command: git submodule update --init --recursive --remote
       - restore_cache:
           keys:
             - conda
