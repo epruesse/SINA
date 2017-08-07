@@ -4,6 +4,7 @@
 #define unlikely(x) (__builtin_expect ((x), 0))
 #define likely(x) (__builtin_expect ((x), 1))
 
+#include <iostream>
 template<class T>
 auto operator<<(std::ostream& out, const T& t) -> decltype(t.print_to(out)) {
   // auto f()->decltype() used so that template only applies to
