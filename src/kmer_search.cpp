@@ -28,6 +28,7 @@ for the parts of ARB used as well as that of the covered work.
 */
 
 #include "kmer_search.h"
+#include "kmer.h"
 #include "query_arb.h"
 #include "helpers.h"
 
@@ -65,91 +66,6 @@ using progress = boost::progress_display;
 
 using namespace sina;
 
-class kmer_generator {
-private:
-    const unsigned int k;
-    const unsigned int mask;
-    unsigned int val;
-    unsigned int good_count;
-public:
-    kmer_generator(int k)
-        : val(0), good_count(0), k(10), mask((1UL<<(2*k))-1)
-    {
-        if (sizeof(val)*8 < 2*k) {
-            throw std::runtime_error("K too large!");
-        }
-    }
-    
-    void push(const base_iupac& b) {
-        if (unlikely(b.is_ambig())) {
-            good_count = 0;
-        } else {
-            good_count++;
-            val <<= 2;
-            val &= mask;
-            val += b.getBaseType();
-        }
-    }
-    
-    bool good() const {
-        return good_count >= k;
-    }
-    
-    operator unsigned int() const {
-        return val;
-    }
-};
-
-class unique_kmers {
-    typedef const std::vector<aligned_base> bases;
-    typedef bases::const_iterator base_iterator;
-public:
-    unique_kmers(bases &v, int k) :
-        _begin(v.begin()), _end(v.end()), _k(k) {}
-
-    class const_iterator {
-    public:
-        const_iterator() : _k(10) {}
-        const_iterator(base_iterator& begin, base_iterator& end, int k) :
-            _k(k), _begin(begin), _end(end) {
-            seen.reserve(_begin - _end);
-            this->operator++();
-        }
-        unsigned int operator*() const {
-            return _k;
-        }
-        const_iterator& operator++() {
-            _k.push(*_begin++);
-            while (likely(_begin != _end)
-                   &&
-                   not (_k.good()
-                        &&
-                        likely(seen.insert(_k).second)
-                       )) {
-                _k.push(*_begin++);
-            }
-        }
-        bool operator!=(const const_iterator& rhs) const {
-            return _begin != _end;
-        }
-    private:
-        kmer_generator _k;
-        base_iterator _begin, _end;
-        std::unordered_set<unsigned int> seen;
-    };
-
-    const_iterator begin() {
-        return const_iterator(_begin, _end, _k);
-    }
-    const_iterator end() {
-        return const_iterator();
-    }
-
-
-private:
-    base_iterator _begin, _end;
-    unsigned int _k;
-};
 
 template<typename T>
 class const_range {
