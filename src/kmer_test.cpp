@@ -73,7 +73,13 @@ int main(int argc, const char** argv) {
   for (int i = 0; i < 1000; i++) {
     cseq target = arbdb->getCseq(seqNames[i]);
     search_index->find(target, family, 10);
-    if (seqNames[i] != family[0].getName()) {
+    float max_score = family[0].getScore();
+    std::vector<cseq>::iterator self;
+    self = std::find_if(family.begin(), family.end(),
+			[&](const cseq &c) {
+			  return c.getName() == target.getName();}
+			);
+    if (self == family.end()) {
       std::cerr << seqNames[i] << ": " << std::endl;
       for (int i=0; i<family.size(); i++) {
 	std::cerr << family[i].getNameScore() << std::endl;
