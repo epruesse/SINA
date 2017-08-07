@@ -72,27 +72,37 @@ public:
         value_type character;
     };
 
+    /* empty default */
+    base_iupac() : _data(0) {}
 
-
-    base_iupac(unsigned char c) 
-      : _data(iupac_char_to_bmask[c]) 
-    {
-      if (_data == 0 && c != '-' && c != '.') 
-        throw bad_character_exception(c);
-    }
-    base_iupac() : _data(0) 
-    {
+    /* construct from char */
+    base_iupac(unsigned char c) : _data(iupac_char_to_bmask[c]) {
+        if (_data == 0 && c != '-' && c != '.') {
+            throw bad_character_exception(c);
+        }
     }
 
-    operator unsigned char() const { 
-        return bmask_to_iupac_char[_data]; 
-    }
-
+    /* assign from char */
     base_iupac& operator=(unsigned char c) {
         _data = iupac_char_to_bmask[c];
         if (_data == 0 && c != '-' && c != '.') 
             throw bad_character_exception(c);
         return *this;
+    }
+
+    /* implicit cast to char */
+    operator unsigned char() const {
+        return bmask_to_iupac_char[_data];
+    }
+
+    /* construct from base_type */
+    base_iupac(base_types b) {
+        _data = 1 << b;
+    }
+
+    /* explicit cast to base_type */
+    base_types getBaseType() const {
+        return static_cast<base_types>(__builtin_ctz(_data & 0xf));
     }
 
     void complement() {
@@ -121,9 +131,6 @@ public:
         return ambig_order() > 1;
     }
 
-    base_types getBaseType() const {
-        return static_cast<base_types>(__builtin_ctz(_data & 0xf));
-    }
 
     bool has_A()  const { return _data & BASEM_A;  }
     bool has_G()  const { return _data & BASEM_G;  }
