@@ -89,8 +89,12 @@ CLEANFILES    = $(bin_SCRIPTS)
 ### TARGET CONFIGS ###
 
 src_libsina_la_SOURCES = \
+    src/align.cpp \
+    src/align.h \
     src/aligned_base.cpp \
     src/aligned_base.h \
+    src/alignment_stats.cpp \
+    src/alignment_stats.h \
     src/copy_alignment.h \
     src/cseq.cpp \
     src/cseq.h \
@@ -119,16 +123,13 @@ src_libsina_la_SOURCES = \
     src/rw_arb.h \
     src/log.cpp \
     src/log.h \
-    src/align.cpp \
-    src/align.h \
     src/scoring_schemes.h \
     src/search_filter.cpp \
     src/search_filter.h \
     src/timer.h \
     src/tray.cpp \
     src/tray.h \
-    src/alignment_stats.cpp \
-    src/alignment_stats.h \
+    src/kmer.h \
     src/kmer_search.cpp \
     src/kmer_search.h \
     include/pstream.h
@@ -248,9 +249,12 @@ LOG_COMPILER = $(top_srcdir)/tools/test_driver.sh
 
 check_PROGRAMS = \
     src/unit_tests/cseq_test \
-    src/unit_tests/cseq_comparator_test
+    src/unit_tests/cseq_comparator_test \
+    src/unit_tests/kmer_test
 
 src_unit_tests_cseq_test_LDADD = $(test_libs)
 src_unit_tests_cseq_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_cseq_comparator_test_LDADD = $(test_libs)
 src_unit_tests_cseq_comparator_test_LDFLAGS = $(ARB_LDFLAGS)
+src_unit_tests_kmer_test_LDADD = $(test_libs)
+src_unit_tests_kmer_test_LDFLAGS = $(ARB_LDFLAGS)
