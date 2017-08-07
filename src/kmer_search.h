@@ -39,7 +39,7 @@ class kmer_search : public search {
 public:
     class result_iterator;
 
-    static kmer_search* get_kmer_search(std::string filename, int k=0);
+    static kmer_search* get_kmer_search(std::string filename, int k=10);
 
     /**
      * match runs a word search using the PT server
