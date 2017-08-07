@@ -244,6 +244,7 @@ LOG_COMPILER = $(top_srcdir)/tools/test_driver.sh
 check_PROGRAMS = \
     src/unit_tests/cseq_test \
     src/unit_tests/cseq_comparator_test \
+    src/unit_tests/idset_test \
     src/unit_tests/kmer_test \
     src/unit_tests/kmer_search_test
 
@@ -259,6 +260,8 @@ src_unit_tests_cseq_test_LDADD = $(test_libs)
 src_unit_tests_cseq_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_cseq_comparator_test_LDADD = $(test_libs)
 src_unit_tests_cseq_comparator_test_LDFLAGS = $(ARB_LDFLAGS)
+src_unit_tests_idset_test_LDADD = $(test_libs)
+src_unit_tests_idset_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_kmer_test_LDADD = $(test_libs)
 src_unit_tests_kmer_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_kmer_search_test_LDADD = $(test_libs)
