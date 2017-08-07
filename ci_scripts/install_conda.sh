@@ -9,7 +9,7 @@
 # - needs MINICONDA to point to the miniconda install path
 
 
-CONDA_PACKAGES="autoconf automake libtool toolchain pkg-config boost arb-bio"
+CONDA_PACKAGES="autoconf automake libtool toolchain pkg-config boost arb-bio git"
 CONDA_PACKAGES="$CONDA_PACKAGES tbb"
 
 case "$(uname)" in
