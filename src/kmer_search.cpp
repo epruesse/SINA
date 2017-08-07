@@ -29,6 +29,7 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "kmer_search.h"
 #include "kmer.h"
+#include "idset.h"
 #include "query_arb.h"
 #include "helpers.h"
 
@@ -66,24 +67,6 @@ using progress = boost::progress_display;
 
 using namespace sina;
 
-
-template<typename T>
-class const_range {
-public:
-    typedef typename T::const_iterator const_iterator;
-    const_range(const const_iterator & begin, const const_iterator & end) :
-        _begin(begin), _end(end) {}
-    const_iterator begin() const { return _begin; }
-    const_iterator end() const { return _end; }
-private:
-    const_iterator _begin, _end;
-};
-template<typename T>
-const_range<T>
-make_const_range(const T &t, size_t offset, size_t length) {
-    return const_range<T>(t.begin() + offset, t.begin() + offset + length);
-}
-
 std::map<string, kmer_search*> kmer_search::indices;
 static boost::mutex indices_access;
 
@@ -114,19 +97,8 @@ class kmer_search::index {
     int n_kmers;
     int n_sequences;
 
-    /* database kmer index:
-     *
-     * sequence_names: list of sequence IDs
-     * kmer_list:      references into sequence_names
-     * kmer_offsets:   references into list
-     * kmer_counts:    number of occurence of kmer
-     */
-
-    typedef typename std::vector<unsigned int> idx_type;
     std::vector<std::string> sequence_names;
-    idx_type kmer_idx;
-    idx_type kmer_counts;
-    idx_type kmer_offsets;
+    std::vector<idset*> kmer_idx;
 
     query_arb* arbdb;
 
@@ -136,15 +108,10 @@ public:
         n_kmers(1<<(k_*2)),
         n_sequences(0),
         sequence_names(),
-        kmer_counts(1<<(k_*2), 0),
-        kmer_offsets(1<<(k*2)+1),
-        kmer_idx(),
         arbdb(arbdb_)
+        kmer_idx(1<<(k_*2), NULL),
     {
     }
-
-    const_range<idx_type> get_matching_seqnum(unsigned int kmer) {
-        return make_const_range(kmer_idx, kmer_offsets[kmer], kmer_counts[kmer]);
     }
 };
 
@@ -189,44 +156,21 @@ kmer_search::init() {
 void
 kmer_search::build_index() {
     data.sequence_names = data.arbdb->getSequenceNames();
+    data.n_sequences = data.sequence_names.size();
     
-    // count in how many sequences each kmer occurs
-    cerr << "Loading sequences and counting kmers..." << endl;
-    {
-        boost::progress_display p(data.sequence_names.size(), cerr);
-        for (string& name : data.sequence_names) {
-            const cseq& c = data.arbdb->getCseq(name);
-            const vector<aligned_base>& bases = c.const_getAlignedBases();
-            for (unsigned int kmer: unique_kmers(bases, data.k)) {
-                ++data.kmer_counts[kmer];
-            }
-            ++data.n_sequences;
-            ++p;
-        }
+    cerr << "Building index..." << endl;
+    boost::progress_display p(data.n_sequences, cerr);
+    data.kmer_idx.clear();
+    data.kmer_idx.reserve(data.n_kmers);
+    for (int i=0; i < data.n_kmers; i++) {
+        data.kmer_idx.push_back(new vlimap(data.n_sequences));
     }
-
-    cerr << "Calculating offsets..." << endl;
-    // calculate offsets
-    unsigned long total = 0;
-    for (unsigned int i = 0; i < data.n_kmers; ++i) {
-        data.kmer_offsets[i] = total;
-        total += data.kmer_counts[i];
-    }
-    data.kmer_offsets[data.n_kmers] = total;
     
-    // reset counts
-    std::fill(data.kmer_counts.begin(), data.kmer_counts.end(), 0);
-
-    cerr << "Filling index..." << endl;
-    // fill indices
-    data.kmer_idx.resize(total);
-    boost::progress_display p(data.sequence_names.size(), cerr);
-    for (int i=0; i<data.n_sequences; ++i) {
+    for (int i=0; i < data.n_sequences; i++) {
         const cseq& c = data.arbdb->getCseq(data.sequence_names[i]);
-        const vector<aligned_base>& bases = c.const_getAlignedBases();
-        for (unsigned int kmer : unique_kmers(bases, data.k)) {
-            data.kmer_idx[data.kmer_offsets[kmer] +
-                          data.kmer_counts[kmer]++] = i;
+        const auto& bases = c.const_getAlignedBases();
+        for (const auto& kmer: unique_kmers(bases, data.k)) {
+            data.kmer_idx[kmer]->push_back(i);
         }
         ++p;
     }
@@ -266,14 +210,14 @@ kmer_search::match(std::vector<cseq>& results,
 
 void
 kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {
-    kmer_generator kmer(data.k);
+    if (data.n_sequences == 0) {
+        return;
+    }
     const vector<aligned_base>& bases = query.const_getAlignedBases();
-    vector<int> scores(data.n_sequences, 0);
+    vector<unsigned int> scores(data.n_sequences, 0);
 
     for (unsigned int kmer: unique_kmers(bases, data.k)) {
-        for (int idx : data.get_matching_seqnum(kmer)) {
-            scores[idx]++;
-        }
+        data.kmer_idx[kmer]->increment(scores);
     }
     std::vector<std::pair<int, string> > scored_names;
     scored_names.reserve(data.n_sequences);
