@@ -59,6 +59,7 @@ using std::hex;
 using progress = boost::progress_display;
 
 #include <boost/thread/mutex.hpp>
+#include "timer.h"
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -101,6 +102,7 @@ class kmer_search::index {
     std::vector<idset*> kmer_idx;
 
     query_arb* arbdb;
+    timer timeit;
 
 public:
     index(int k_, query_arb* arbdb_) :
@@ -108,10 +110,13 @@ public:
         n_kmers(1<<(k_*2)),
         n_sequences(0),
         sequence_names(),
-        arbdb(arbdb_)
         kmer_idx(1<<(k_*2), NULL),
+        arbdb(arbdb_),
+        timeit()
     {
     }
+    ~index() {
+        cerr << "Timings for Kmer Search: " << timeit << endl;
     }
 };
 
@@ -160,22 +165,30 @@ kmer_search::build_index() {
     
     cerr << "Building index..." << endl;
     boost::progress_display p(data.n_sequences, cerr);
+    timer t;
+    t.start();
     data.kmer_idx.clear();
     data.kmer_idx.reserve(data.n_kmers);
     for (int i=0; i < data.n_kmers; i++) {
         data.kmer_idx.push_back(new vlimap(data.n_sequences));
     }
+    t.stop("alloc");
     
     for (int i=0; i < data.n_sequences; i++) {
         const cseq& c = data.arbdb->getCseq(data.sequence_names[i]);
         const auto& bases = c.const_getAlignedBases();
+        t.stop("load");
         for (const auto& kmer: unique_kmers(bases, data.k)) {
             data.kmer_idx[kmer]->push_back(i);
         }
+        t.stop("hash");
+        t.end_loop(2);
         ++p;
     }
+    t.stop("count");
 
-    cerr << "Index done" << endl;
+    cerr << "Index done" << endl
+         << "Timings for Index Build: " << t << endl;
 }
 
 struct score {
@@ -213,12 +226,16 @@ kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {
     if (data.n_sequences == 0) {
         return;
     }
+    data.timeit.start();
     const vector<aligned_base>& bases = query.const_getAlignedBases();
     vector<unsigned int> scores(data.n_sequences, 0);
+    data.timeit.stop("load");
 
     for (unsigned int kmer: unique_kmers(bases, data.k)) {
         data.kmer_idx[kmer]->increment(scores);
     }
+    data.timeit.stop("sum");
+
     std::vector<std::pair<int, string> > scored_names;
     scored_names.reserve(data.n_sequences);
     std::transform(scores.begin(), scores.end(),
@@ -228,8 +245,12 @@ kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {
                        return std::make_pair(score, name);
                    }
         );
+    data.timeit.stop("assemble");
+
     std::partial_sort(scored_names.begin(), scored_names.begin()+max, scored_names.end(),
                       std::greater<std::pair<int,string> >());
+    data.timeit.stop("sort");
+
     results.clear();
     results.reserve(max);
     std::transform(scored_names.begin(), scored_names.begin()+max,
@@ -239,9 +260,8 @@ kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {
                        c.setScore(hit.first);
                        return c;
                    });
-    
+    data.timeit.stop("output");
 }
-
 
 /*
   Local Variables:
