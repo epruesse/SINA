@@ -27,6 +27,7 @@ non-source form of such a combination shall include the source code
 for the parts of ARB used as well as that of the covered work.
 */
 
+#include "config.h"
 #include "kmer_search.h"
 #include "query_arb.h"
 
@@ -37,6 +38,10 @@ for the parts of ARB used as well as that of the covered work.
 #include <string>
 #include <boost/foreach.hpp>
 #define foreach BOOST_FOREACH
+
+#ifdef HAVE_TBB
+#include <tbb/task_scheduler_init.h>
+#endif
 
 using namespace sina;
 using std::cerr;
@@ -50,6 +55,11 @@ int main(int argc, const char** argv) {
       std::cerr << "need arb db as argument" << std::endl;
       exit(1);
   }
+
+#ifdef HAVE_TBB
+  int n_threads = tbb::task_scheduler_init::default_num_threads();
+  tbb::task_scheduler_init init(n_threads);
+#endif
 
   t.start();
   query_arb* arbdb = query_arb::getARBDB(argv[1]);
