@@ -18,10 +18,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-#ifndef _CSEQ_TEST_HPP_
-#define _CSEQ_TEST_HPP_
-
 #include <vector>
 #include <algorithm> 
 #include <fstream>
@@ -266,11 +262,7 @@ CASE(test_dots){
 }
 
 
-
-
 BOOST_AUTO_TEST_SUITE_END(); // cseq_test
-
-#endif /* _CSEQ_TEST_HPP_ */
 
 /*
   Local Variables:

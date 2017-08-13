@@ -18,10 +18,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-#ifndef _CSEQ_COMPARATOR_TEST_HPP_
-#define _CSEQ_COMPARATOR_TEST_HPP_
-
 #define BOOST_TEST_MODULE CSEQ_COMPARATOR_module
 #include <boost/test/unit_test.hpp>
 
@@ -260,8 +256,6 @@ CASE(cover_max){
 
 
 BOOST_AUTO_TEST_SUITE_END(); // CSEQ_COMPARATOR_test
-
-#endif /* _CSEQ_COMPARATOR_TEST_HPP_ */
 
 /*
   Local Variables:
