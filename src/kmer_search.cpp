@@ -228,7 +228,7 @@ kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {
     }
     data.timeit.start();
     const vector<aligned_base>& bases = query.const_getAlignedBases();
-    vector<unsigned int> scores(data.n_sequences, 0);
+    vector<uint16_t> scores(data.n_sequences, 0);
     data.timeit.stop("load");
 
     for (unsigned int kmer: unique_kmers(bases, data.k)) {

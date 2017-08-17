@@ -39,7 +39,7 @@ for the parts of ARB used as well as that of the covered work.
 class idset {
 public:
     typedef uint32_t id_t;
-    typedef std::vector<uint32_t> inc_t;
+    typedef std::vector<uint16_t> inc_t;
     typedef std::vector<uint8_t> data_t;
 
     /* virtual destructor */
