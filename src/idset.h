@@ -125,9 +125,46 @@ public:
         data_t::const_iterator _it;
     public:
         const_iterator(const data_t::const_iterator& it) : _it(it) {}
-        id_t operator*() { // DO NOT CALL TWICE
+        inline id_t operator*()  __attribute__((always_inline)) { // DO NOT CALL TWICE
             id_t val;
+            // first byte
             uint8_t byte = *_it;
+#define SINA_UNROLL
+#ifdef SINA_UNROLL
+            if (!(byte & 0x80)) {
+                return byte;
+            }
+            // second byte
+            val = byte - 0x80;
+            byte = *(++_it);
+            val += byte << 7;
+            if (!(byte & 0x80)) {
+                return val;
+            }
+            // third byte
+            val -= 0x80 << 7;
+            byte = *(++_it);
+            val += byte << 14;
+            if (!(byte & 0x80)) {
+                return val;
+            }
+            // fourth byte
+            val -= 0x80 << 14;
+            byte = *(++_it);
+            val += byte << 21;
+            if (!(byte & 0x80)) {
+                return val;
+            }
+            // fifth byte
+            val -= 0x80 << 21;
+            byte = *(++_it);
+            val += byte << 28;
+            //if (unlikely(byte & 0x80)) {
+            //    throw something
+            //}
+
+            return val;
+#else // SINA_UNROLL undefined
             if (likely(byte < 128)) {
                 val = byte;
             } else {
@@ -140,6 +177,7 @@ public:
                 } while (byte >= 128);
             }
             return val;
+#endif // SINA_UNROLL
         }
         const_iterator& operator++() {
             _it++; // step to next encoded value
@@ -207,7 +245,7 @@ public:
         id_t last = 0;
         for (const_iterator it = begin(); it != end(); ++it) {
             last += *it;
-            t[last]++;
+            ++t[last];
         }
     }
 private:
