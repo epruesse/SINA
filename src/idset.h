@@ -38,58 +38,77 @@ for the parts of ARB used as well as that of the covered work.
  */
 class idset {
 public:
-    typedef uint32_t id_t;
+    typedef uint32_t value_type;
     typedef std::vector<uint16_t> inc_t;
     typedef std::vector<uint8_t> data_t;
 
     /* virtual destructor */
     virtual ~idset() {}
-    
-    /* create a new instance */
-    virtual idset* make_new(id_t size) const = 0;
 
-    /* get name of subclass */
-    virtual const char* name() const { return "idset"; }
+
+    size_t size() const {
+        return data.size();
+    }
     
+
     /* add id to container; MUST be monotonically rising! */
-    virtual void push_back(id_t n) = 0;
+    virtual void push_back(value_type n) = 0;
     
     /* increment vector at offsets included in set */
     virtual void increment(inc_t& data) const = 0;
+
+    ///// for unit testing: ////
+
+    /* create a new instance */
+    virtual idset* make_new(value_type size) const = 0;
+
+    /* get name of subclass */
+    virtual const char* name() const { return "idset"; }
+
 protected:
-    data_t data;
+    mutable data_t data;
 };
+
 
 /** idset implementation as bitmap **/
 class bitmap : public idset {
 public:
-    typedef typename data_t::value_type block_t;
-    const size_t block_size = sizeof(block_t);
+    typedef typename data_t::value_type block_type;
+    const size_t bits_per_block = sizeof(block_type) * 8;
 
-    bitmap(id_t maxid) {
-        data.resize((maxid+block_size-1)/block_size, 0);
+    bitmap(value_type maxid) {
+        int blocks_needed = (maxid + bits_per_block - 1 )/ bits_per_block;
+        data.resize(blocks_needed, 0);
+    }
+
+    size_t block_index(value_type id) const {
+        return id / bits_per_block;
+    }
+
+    size_t block_offset(value_type id) const {
+        return id % bits_per_block;
     }
 
     /* set bit at @id */
-    void set(id_t id) {
-        data[id / block_size] |= 1 << (id % block_size);
+    void set(value_type id) {
+        data[block_index(id)] |= 1 << (block_offset(id));
     }
 
     /* get value of bit at @id */
-    bool get(id_t id) const {
-        return data[id / block_size] & (1 << (id % block_size));
+    bool get(value_type id) const {
+        return data[block_index(id)] & (1 << (block_offset(id)));
     }
 
     /* count total number of set bits */
-    id_t count() const {
-        id_t total = 0;
+    value_type count() const {
+        value_type total = 0;
         for (const auto& block : data) {
             total += __builtin_popcount(block);
         }
         return total;
     }
 
-    virtual idset* make_new(id_t size) const override {
+    virtual idset* make_new(value_type size) const override {
         return new bitmap(size);
     }
     
@@ -97,16 +116,17 @@ public:
         return "bitmap";
     }
     
-    virtual void push_back(id_t id) override {
+    virtual void push_back(value_type id) override {
         set(id);
     }
-    
+
+
     virtual void increment(inc_t& t) const override {
-        for (id_t i=0; i < data.size(); i++) {
-            block_t block = data[i];
+        for (value_type i=0; i < data.size(); i++) {
+            block_type block = data[i];
             while (block != 0) {
                 auto j = __builtin_ctz(block);
-                ++t[i*block_size+j];
+                ++t[i*bits_per_block+j];
                 block ^= 1<<j;
             }
         }
@@ -125,8 +145,8 @@ public:
         data_t::const_iterator _it;
     public:
         const_iterator(const data_t::const_iterator& it) : _it(it) {}
-        inline id_t operator*()  __attribute__((always_inline)) { // DO NOT CALL TWICE
-            id_t val;
+        inline value_type operator*()  __attribute__((always_inline)) { // DO NOT CALL TWICE
+            value_type val;
             // first byte
             uint8_t byte = *_it;
 #define SINA_UNROLL
@@ -172,7 +192,7 @@ public:
                 unsigned int shift = 7;
                 do {
                     byte = *(++_it);
-                    val |= id_t(byte & 0x7f) << shift;
+                    val |= value_type(byte & 0x7f) << shift;
                     shift += 7;
                 } while (byte >= 128);
             }
@@ -200,7 +220,7 @@ public:
         return data.size();
     }
 
-    virtual idset* make_new(id_t size) const override {
+    virtual idset* make_new(value_type size) const override {
         return new vlimap_abs(size);
     }
     
@@ -208,7 +228,7 @@ public:
         return "vlimap_abs";
     }
     
-    virtual void push_back(id_t n) override {
+    virtual void push_back(value_type n) override {
         while (n > 127) {
             data.push_back(n | 0x80);
             n >>= 7;
@@ -226,9 +246,9 @@ public:
 /* idset implementation using variable length integer on distances */
 class vlimap : public vlimap_abs {
 public:
-    vlimap(id_t size) : vlimap_abs(size), last(0) {}
+    vlimap(value_type size) : vlimap_abs(size), last(0) {}
     
-    virtual idset* make_new(id_t size) const override {
+    virtual idset* make_new(value_type size) const override {
         return new vlimap(size);
     }
     
@@ -236,20 +256,20 @@ public:
         return "vlimap";
     }
     
-    virtual void push_back(id_t n) override {
+    virtual void push_back(value_type n) override {
         vlimap_abs::push_back(n-last);
         last = n;
     }
     
     virtual void increment(inc_t& t) const override {
-        id_t last = 0;
+        value_type last = 0;
         for (const_iterator it = begin(); it != end(); ++it) {
             last += *it;
             ++t[last];
         }
     }
 private:
-    id_t last;
+    value_type last;
 };
 
 /*

@@ -100,7 +100,7 @@ BOOST_DATA_TEST_CASE_F(test_set,
     BOOST_CHECK_EQUAL(n, b.count());
 
     // check increment()
-    std::vector<unsigned int> count(map_size, 0);
+    idset::inc_t count(map_size, 0);
     b.increment(count);
     matching_set = 0;
     for (auto i: data) {
@@ -127,7 +127,7 @@ BOOST_DATA_TEST_CASE_F(test_set,
     }
   
     // check increment()
-    std::vector<unsigned int> count(map_size, 0);
+    idset::inc_t count(map_size, 0);
     b->increment(count);
     int matching_set = 0;
     for (auto i: data) {
