@@ -1,7 +1,8 @@
 # SINA - reference based multiple sequence alignment
 [![GitHub (pre-)release](https://img.shields.io/github/release/epruesse/SINA/all.svg?label=latest)]()
 [![GitHub release](https://img.shields.io/github/release/epruesse/SINA.svg)]()
-[![Anaconda-Server Badge](https://anaconda.org/bioconda/sina/badges/version.svg)](https://anaconda.org/bioconda/sina)
+[![Bioconda](https://img.shields.io/conda/vn/Bioconda/sina.svg)](https://bioconda.github.io/recipes/sina/README.html)
+[![Platform](https://img.shields.io/conda/pn/Bioconda/sina.svg)](https://bioconda.github.io/recipes/sina/README.html)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/sina/badges/license.svg)](https://anaconda.org/bioconda/sina)
 
 [![Codacy Grade](https://img.shields.io/codacy/grade/28de7d354cef4661be84c1b3dcc9fd9f.svg?label=code%20quality%20(codacy))](https://www.codacy.com/app/elmar/SINA)
