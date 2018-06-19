@@ -138,7 +138,7 @@ if test x"$ARB_HELIX_LIBS" = x""; then
   ARB HELIX library (SL/HELIX/HELIX.a)"
 fi
 
-AC_REPLACE_FUNCS([GBT_find_sequence])
+AX_ARB_CHECK_FUNC([GBT_FIND_SEQUENCE], [GBT_find_sequence(NULL, NULL)])
 
 case "$host_os" in
   darwin*)

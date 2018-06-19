@@ -31,7 +31,7 @@ AC_DEFUN([AX_LIB_ARBDB],
             PKG_CHECK_MODULES([GLIB], [glib-2.0 > 2.2])
         fi
 
-	AC_MSG_CHECKING([for ARB])
+        AC_MSG_CHECKING([for ARB])
         for ax_arb_path_tmp in $ax_arb_path $ARBHOME /usr/lib/arb; do
             if test -f "$ax_arb_path_tmp/INCLUDE/arbdb.h" \
             && test -r "$ax_arb_path_tmp/INCLUDE/arbdb.h"; then
@@ -47,11 +47,11 @@ AC_DEFUN([AX_LIB_ARBDB],
             success="no"
         fi
         saved_CPPFLAGS="$CPPFLAGS"
-	CPPFLAGS="$CPPFLAGS -I$ax_arb_path/INCLUDE $GLIB_CFLAGS"
-	AC_CHECK_HEADER([arbdb.h])
+        CPPFLAGS="$CPPFLAGS -I$ax_arb_path/INCLUDE $GLIB_CFLAGS"
+        AC_CHECK_HEADER([arbdb.h])
         CPPFLAGS="$saved_CPPFLAGS"
     fi
-    
+
     if test x"$success" = x"yes"; then
         AC_MSG_CHECKING([for libARBDB])
 
@@ -60,14 +60,14 @@ AC_DEFUN([AX_LIB_ARBDB],
         ax_arb_cppflags="-I$ax_arb_path/INCLUDE $GLIB_CFLAGS"
 
         AC_LANG_PUSH(C++)
-	
+
         saved_CPPFLAGS="$CPPFLAGS"
-	saved_LIBS="$LIBS"
-	saved_LDFLAGS="$LDFLAGS"
-	
+        saved_LIBS="$LIBS"
+        saved_LDFLAGS="$LDFLAGS"
+
         CPPFLAGS="$CPPFLAGS $ax_arb_cppflags"
-	LIBS="$LIBS $ax_arb_libs"
-	LDFLAGS="$LDFLAGS $ax_arb_ldflags"
+        LIBS="$LIBS $ax_arb_libs"
+        LDFLAGS="$LDFLAGS $ax_arb_ldflags"
 
         AC_LINK_IFELSE([
             AC_LANG_PROGRAM([[
@@ -82,25 +82,64 @@ AC_DEFUN([AX_LIB_ARBDB],
             AC_MSG_RESULT([not found])
             success="no"
         ])
-	
+
         LIBS="$saved_LIBS"
         CPPFLAGS="$saved_CPPFLAGS"
         LDFLAGS="$saved_LDFLAGS"
-	
+
         AC_LANG_POP(C++)
     fi
 
     if test x"$success" == x"yes"; then
         ARB_CPPFLAGS="$ax_arb_cppflags"
         ARB_LDFLAGS="$ax_arb_ldflags"
-	ARB_LIBS="$ax_arb_libs"
+        ARB_LIBS="$ax_arb_libs"
         ARBHOME="$ax_arb_path"
         AC_SUBST(ARB_CPPFLAGS)
         AC_SUBST(ARB_LDFLAGS)
-	AC_SUBST(ARB_LIBS)
+        AC_SUBST(ARB_LIBS)
         AC_SUBST(ARBHOME)
         AC_DEFINE(HAVE_ARB)
     fi
+])
+
+
+### Check for a function in ARB
+# Since ARB exports as C++, the full synopsis is needed.
+# => Provide HAVE_xxx name in first argument and function in second argument
+AC_DEFUN([AX_ARB_CHECK_FUNC],
+[
+    AC_REQUIRE([AX_LIB_ARBDB])
+    AH_TEMPLATE([HAVE_$1])
+
+    AC_MSG_CHECKING([for $1 in libARBDB])
+
+    AC_LANG_PUSH(C++)
+
+    saved_CPPFLAGS="$CPPFLAGS"
+    saved_LIBS="$LIBS"
+    saved_LDFLAGS="$LDFLAGS"
+
+    CPPFLAGS="$CPPFLAGS $ARB_CPPFLAGS"
+    LIBS="$LIBS $ARB_LIBS"
+    LDFLAGS="$LDFLAGS $ARB_LDFLAGS"
+
+    AC_LINK_IFELSE([
+        AC_LANG_PROGRAM([[
+            #include <arbdbt.h>
+        ]], [[
+            $2;
+        ]])
+    ],[
+        AC_MSG_RESULT([yes])
+        AC_DEFINE(HAVE_$1)
+    ],[
+        AC_MSG_RESULT([no])
+    ])
+
+    LIBS="$saved_LIBS"
+    CPPFLAGS="$saved_CPPFLAGS"
+    LDFLAGS="$saved_LDFLAGS"
 ])
 
 ### Check for static PT server interface lib
@@ -108,7 +147,7 @@ AC_DEFUN([AX_LIB_ARB_PROBE],
 [
     AC_REQUIRE([AX_LIB_ARBDB])
     AH_TEMPLATE([HAVE_ARB_PROBE], [], [Defined to 1 if ARB PROBE_COM is present])
-    
+
     AC_MSG_CHECKING([for ARB PROBE_COM static lib])
     if test -f "$ARBHOME/PROBE_COM/client.a" \
     && test -r "$ARBHOME"; then
@@ -132,12 +171,12 @@ AC_DEFUN([AX_LIB_ARB_PROBE],
             aisc_open("", main, AISC_MAGIC_NUMBER, &err);
         ]])])
 
-	saved_CPPFLAGS="$CPPFLAGS"
-	saved_LDFLAGS="$LDFLAGS"
+        saved_CPPFLAGS="$CPPFLAGS"
+        saved_LDFLAGS="$LDFLAGS"
         saved_LIBS="$LIBS"
-	
+
         CPPFLAGS="$CPPFLAGS $ARB_CPPFLAGS"
-	LDFLAGS="$LDFLAGS $ARB_LDFLAGS"
+        LDFLAGS="$LDFLAGS $ARB_LDFLAGS"
 
         ax_arb_probe_libs=""
         for common in '' "$ARBHOME/PROBE_COM/common.a"; do
@@ -150,9 +189,9 @@ AC_DEFUN([AX_LIB_ARB_PROBE],
         done
 
         LIBS="$saved_LIBS"
-	CPPFLAGS="$saved_CPPFLAGS"
+        CPPFLAGS="$saved_CPPFLAGS"
         LDFLAGS="$saved_LDFLAGS"
-	
+
         AC_LANG_POP(C++)
 
         success="yes"
@@ -203,7 +242,7 @@ AC_DEFUN([AX_LIB_ARB_HELIX],
     ],[
         AC_MSG_RESULT([no])
     ])
-    
+
     LIBS="$saved_LIBS"
     CPPFLAGS="$saved_CPPFLAGS"
     LDFLAGS="$saved_LDFLAGS"
