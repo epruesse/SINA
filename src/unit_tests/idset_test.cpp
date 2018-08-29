@@ -36,10 +36,8 @@ namespace bdata = boost::unit_test::data;
 #include <random>
 #include <set>
 
-namespace std {
-ostream& operator<<(ostream& out, const idset* set) {
-    out << set->name();
-}
+std::ostream& operator<<(std::ostream& out, const idset& set) {
+    out << set.name();
 }
 
 
