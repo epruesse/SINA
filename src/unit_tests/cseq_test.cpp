@@ -58,30 +58,31 @@ const float score = 15.f;
 
 */
 
-#define test_empty(cs) \
-    EQUAL(cs.size(),0); \
-    EQUAL(cs.getWidth(),0); \
-    EQUAL(cs.getBases(), string()); \
+#define test_empty(cs)                      \
+    EQUAL(cs.size(),0);                     \
+    EQUAL(cs.getWidth(),0);                 \
+    EQUAL(cs.getBases(), string());         \
     EQUAL(cs.getAlignedNoDots(), string()); \
-    EQUAL(cs.end() - c.begin(), 0); \
-    EQUAL(cs.rend() - c.rbegin(), 0); \
-    EQUAL(cs.getName(), string()); \
+    EQUAL(cs.end() - c.begin(), 0);         \
+    EQUAL(cs.rend() - c.rbegin(), 0);       \
+    EQUAL(cs.getName(), string());          \
     EQUAL(cs.getScore(), 0.f); 
 
 
-#define test_data(cs, name, score, _aligned) { \
-    string aligned = (_aligned); \
-    string unaligned = aligned; \
-    boost::erase_all(unaligned, "-"); \
-    EQUAL(cs.size(), unaligned.size()); \
-    EQUAL(cs.getWidth(), aligned.size()); \
-    EQUAL(cs.getBases(), unaligned); \
-    EQUAL(cs.getAlignedNoDots(), aligned); \
-    EQUAL(cs.end() - c.begin(), unaligned.size()); \
-    EQUAL(cs.rend() - c.rbegin(), unaligned.size()); \
-    EQUAL(cs.getName(), name); \
-    EQUAL(cs.getScore(), score); \
-}
+#define test_data(cs, name, score, _aligned)                    \
+    {                                                           \
+        string aligned = (_aligned);                            \
+        string unaligned = aligned;                             \
+        boost::erase_all(unaligned, "-");                       \
+        EQUAL(cs.size(), unaligned.size());                     \
+        EQUAL(cs.getWidth(), aligned.size());                   \
+        EQUAL(cs.getBases(), unaligned);                        \
+        EQUAL(cs.getAlignedNoDots(), aligned);                  \
+        EQUAL(cs.end() - cs.begin(), unaligned.size());         \
+        EQUAL(cs.rend() - cs.rbegin(), unaligned.size());       \
+        EQUAL(cs.getName(), name);                              \
+        EQUAL(cs.getScore(), score);                            \
+    }
 
 CASE(test_constructor_empty) {
     cseq c;
@@ -97,9 +98,8 @@ CASE(test_constructur_normal) {
     test_data(c, name, score, rna);
 }
 
-BOOST_AUTO_TEST_CASE_EXPECTED_FAILURES( test_append, 1 )
-
-CASE(test_append) {
+CASE(test_append,
+     *boost::unit_test::expected_failures(1)) {
     cseq c;
 
     c.append(rna);
@@ -120,11 +120,13 @@ CASE(test_append) {
 
     aligned_base b(0,'A');
     std::cerr << "==================" << std::endl
-              << "Expecting 1 message: "
+              << "Triggering 1 message: "
               << "\"$ cseq::append(): wrong order! A(0<75)\""
               << std::endl;
     c.append(b);
-    std::cerr << "Expecting 1 error:" << std::endl;
+    std::cerr << "Triggering 1 error: "
+              << "c.getWidth() == 75 and aligned.size() == 76"
+              << std::endl;
     test_data(c, "", 0, rna_aligned+rna+rna_aligned + "A");
     std::cerr << "==================" << std::endl << std::endl;
 
