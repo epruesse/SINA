@@ -69,17 +69,6 @@ boost::mutex arb_pt_start;
 
 namespace sina {
 
-typedef struct {
-    const char *dli_fname;  /* Pathname of shared object that
-                               contains address */
-    void       *dli_fbase;  /* Address at which shared object
-                               is loaded */
-    const char *dli_sname;  /* Name of nearest symbol with address
-                               lower than addr */
-    void       *dli_saddr;  /* Exact address of symbol named
-                               in dli_sname */
-} DL_info;
-
 /* Locate ARBHOME based on the libARBDB loaded for us
  *
  * GB_open must point to memory part of the libARBDB DLL. Using
@@ -94,7 +83,7 @@ const char* get_arbhome() {
         if (pos != string::npos) {
             return strdup(libarbdb_path.substr(0, pos).c_str());
         }
-    }
+    } 
     return NULL;
 }
 
