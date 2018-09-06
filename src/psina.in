@@ -5,11 +5,24 @@
 
 set -e
 
+# Locate self
+pushd . >/dev/null # save cwd
+me="${BASH_SOURCE[0]}"
+while [ -h "$me" ]; do 
+  cd "$(dirname "$me")"
+  me="$(readlink "$(basename "$me")")"
+done
+cd "$(dirname "$me")"
+MYDIR="$PWD"
+popd >/dev/null
+
+SINA=$MYDIR/SINA
+
 help() {
-    sina --help || true
+    $SINA --help || true
     cat >&2 <<EOF
 Parallelization options:
-   -P n     run n instance of SINA
+   -P n                    run n instances of SINA in parallel
 EOF
     exit
 }
@@ -95,7 +108,7 @@ trap "rm -rf $tmp" EXIT
 
 seq 0 $NBLOCKS |\
     xargs -t -P $NCPU -L 1 -I %SINA_NBLOCK% \
-	  sina "$@" -i "$INFILE" -o "$tmp"/out.%SINA_NBLOCK%.fasta --fasta-block=$BLOCK --fasta-idx=%SINA_NBLOCK%
+	  $SINA "$@" -i "$INFILE" -o "$tmp"/out.%SINA_NBLOCK%.fasta --fasta-block=$BLOCK --fasta-idx=%SINA_NBLOCK%
 
 cat "$tmp"/out.*.fasta > "$OUTFILE"
 

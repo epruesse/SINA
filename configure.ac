@@ -201,7 +201,11 @@ AX_BOOST_UNIT_TEST_FRAMEWORK
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
   Makefile
-])
+  src/psina
+], [
+  chmod +x src/psina
+]
+)
 AM_COND_IF([ENABLE_FAT_TAR], [AC_CONFIG_FILES([
   src/sina
 ],[

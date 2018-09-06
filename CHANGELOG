@@ -1,3 +1,7 @@
+Version 1.3.3:
+ - fix PT server fails to build if ARBHOME not set
+ - fix psina not installed to $bindir
+
 Version 1.3.2:
  - split --help into "common" and advanced options (--help-all)
  - add psina wrapper script (runs parallel instances of SINA to align a

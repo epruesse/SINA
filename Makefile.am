@@ -58,7 +58,7 @@ if ENABLE_FAT_TAR
 arbbindir = $(libdir)/arb/bin
 arblibdir = $(libdir)/arb/lib
 
-bin_SCRIPTS = src/sina
+bin_SCRIPTS = src/sina src/psina
 bin_PROGRAMS = src/sina.real arb_pt_server arb_message
 arblib_DATA = \
     arb_tcp.dat \
@@ -73,6 +73,7 @@ src_sina_real_LDADD = $(sina_libs)
 
 else
 bin_PROGRAMS = src/sina
+bin_SCRIPTS = src/psina
 src_sina_SOURCES = src/sina.cpp
 src_sina_LDADD = $(sina_libs)
 endif
