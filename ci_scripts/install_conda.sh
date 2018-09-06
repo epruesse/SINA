@@ -78,5 +78,8 @@ else
     (conda info; conda list) >> conda_state.txt
 fi
 
+## Fix for as yet incomplete removal of .la files by conda-forge
+find $MINICONDA/lib -name \*.la -delete
+
 
 
