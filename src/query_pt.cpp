@@ -2,7 +2,6 @@
 Copyright (c) 2006-2017 Elmar Pruesse <elmar.pruesse@ucdenver.edu>
 
 This file is part of SINA.
-123456789012345678901234567890123456789012345678901234567890123456789012
 SINA is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
 Software Foundation, either version 3 of the License, or (at your
@@ -52,6 +51,9 @@ using std::vector;
 
 #include "query_arb.h"
 
+#include <dlfcn.h>
+#include <stdlib.h>
+
 #include <arbdb.h>
 #include <PT_com.h>
 #include <client.h>
@@ -66,6 +68,35 @@ namespace po = boost::program_options;
 boost::mutex arb_pt_start;
 
 namespace sina {
+
+typedef struct {
+    const char *dli_fname;  /* Pathname of shared object that
+                               contains address */
+    void       *dli_fbase;  /* Address at which shared object
+                               is loaded */
+    const char *dli_sname;  /* Name of nearest symbol with address
+                               lower than addr */
+    void       *dli_saddr;  /* Exact address of symbol named
+                               in dli_sname */
+} DL_info;
+
+/* Locate ARBHOME based on the libARBDB loaded for us
+ *
+ * GB_open must point to memory part of the libARBDB DLL. Using
+ * dladdr() we can determine the name of the file, which we assume
+ * sits in the lib folder inside of ARBHOME.
+ */
+const char* get_arbhome() {
+    Dl_info info;
+    if (dladdr((const void*)GB_open, &info)) {
+        string libarbdb_path(info.dli_fname);
+        int pos = libarbdb_path.find("/lib/libARBDB");
+        if (pos != string::npos) {
+            return strdup(libarbdb_path.substr(0, pos).c_str());
+        }
+    }
+    return NULL;
+}
 
 struct query_pt::options {
 };
@@ -153,6 +184,19 @@ query_pt::init() {
     if (data.dbname.empty()) {
         // no chance to go on without one
         throw exception("Missing reference database");
+    }
+
+    // Try to make sure ARBHOME is set
+    const char* ARBHOME = getenv("ARBHOME");
+    if (ARBHOME == NULL || strlen(ARBHOME) == 0) {
+        ARBHOME = get_arbhome();
+        if (ARBHOME != NULL && strlen(ARBHOME) != 0) {
+            cerr << "Setting ARBHOME=" << ARBHOME << endl;
+            setenv("ARBHOME", ARBHOME, 1);
+        } else {
+            cerr << "Warning: Unable to determine ARBHOME. "
+                 << "Expect PT server to fail below" << endl;
+        }
     }
 
     struct stat ptindex_stat, arbdb_stat;
