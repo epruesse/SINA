@@ -1,10 +1,25 @@
+Version 1.3.2:
+ - split --help into "common" and advanced options (--help-all)
+ - add psina wrapper script (runs parallel instances of SINA to align a
+   single FASTA file)
+ - fix memory access failure in cseq
+ - fix memory access failure in mseq
+ - fix crash on all references removed by filters
+
+Version 1.3.1:
+ - add OSX support
+ - change license to GPL
+ - remove limitation on ARB integration mode
+ - move revisioning to git
+ - fix compilation with CLANG
+
 Version 1.3.0:
  - dropped support for ARB 5.x
 
 Version 1.2.13:
  - uppercase aligned bases if lowercase=unaligned
  - fix manual typos (thx to Mohamed El-hadidi)
- - search-db defaults to pt-db 
+ - search-db defaults to pt-db
  - search-port defaults to pt-port if search/align DBs are identical
    fixes unnecessary start of two PT servers (thx to Christian Wurzbacher)
  - change default for lca-quorum to 0.7
@@ -19,7 +34,7 @@ Version 1.2.13:
 Version 1.2.12:
  - use same ARB field type for align_ident_slv as SILVA uses
  - skip sequences with non-IUPAC characters when building reference
-   and when loading sequences to be aligned from ARB file 
+   and when loading sequences to be aligned from ARB file
    (complaint is issued on stderr)
 
 Version 1.2.11:
@@ -33,36 +48,36 @@ Version 1.2.11:
    Implies --calc-idty.
 
 Version 1.2.10:
- - added option --fs-no-graph 
+ - added option --fs-no-graph
    Uses a column profile with PSP score as template (instead of the POA method)
    This feature is merely for completeness sake and evaluation. With SILVA
-   SSU the POA based method is much more accurate. 
+   SSU the POA based method is much more accurate.
  - changed default for --fs-cover-gene to 0 (faster)
    The cover-gene feature only makes sense if --gene-start and --gene-end are
-   set such that the reference actually contains sequences touching these 
-   boundaries. If this is not the case, the reference selection algorithm 
-   wastes time with a futile search. 
+   set such that the reference actually contains sequences touching these
+   boundaries. If this is not the case, the reference selection algorithm
+   wastes time with a futile search.
  - use unix socket as default for --pt-port and --search-port
-   Using "/tmp/sina_<PID>.socket" is a more suitable default than 
+   Using "/tmp/sina_<PID>.socket" is a more suitable default than
    "localhost:4040", as it runs less risk of accessing a different PT server
-   than intended. 
+   than intended.
  - fix inconsistencies in generated meta data fields and log output
  - updated ARB components to SVN revision 8225
  - added option --write-used-rels
-   The field used_rels is interpreted by ARB as the field containing the 
+   The field used_rels is interpreted by ARB as the field containing the
    reference sequences that were used during alignment.
- - no longer write full_name content when exporting meta data encoded in 
+ - no longer write full_name content when exporting meta data encoded in
    the FASTA header
  - re-add clamped align_quality_slv
- - fix score normalization (scores > 1 were possible when fs-weight > 0) 
+ - fix score normalization (scores > 1 were possible when fs-weight > 0)
  - fix calculation of bp score when orig-db no set (default ptdb)
  - added option --fs-req-gaps n
-   Ignores reference sequences having less than n gaps before the last base. 
+   Ignores reference sequences having less than n gaps before the last base.
    I.e.: Ignores "unaligned" sequences. This is useful when running SINA
    out of ARB to prevent accidental alignment against unaligned sequences.
  - added options --search-iupac, --search-correction and --search-cover
    These options configure how the "distance" (identity, similarity, ...)
-   is calculated. 
+   is calculated.
  - skip FASTA input sequences that contain invalid characters
    (i.e. not IUPAC encoded bases, '.', '-' or white space)
 
