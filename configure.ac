@@ -54,6 +54,11 @@ AC_CHECK_LIB(z, compress, [Z_LIB=-lz], [AC_MSG_ERROR([libz.so not found!])])
 AC_SUBST(Z_LIB)
 AC_CHECK_LIB(rt, clock_gettime)
 
+# Need dladdr to locate libARBDB and thereby ARBHOME
+AC_SEARCH_LIBS([dladdr], [dl dld], [], [
+  AC_MSG_ERROR([unable to find the dladdr() function])
+])
+
 # Define something for PSTREAMS (to get rid of warnings)
 AH_TEMPLATE(REDI_EVISCERATE_PSTREAMS, 
             [Define interpreted by PSTREAMS header lib, only
