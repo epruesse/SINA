@@ -74,7 +74,7 @@ if test -e "LOCAL"; then
 	echo "done"
     fi
 else
-    conda clean --yes --tarballs
+    conda clean --yes --all
     (conda info; conda list) >> conda_state.txt
 fi
 
