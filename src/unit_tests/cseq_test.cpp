@@ -101,7 +101,6 @@ CASE(test_constructur_normal) {
     test_data(c, name, score, rna);
 }
 
-BOOST_AUTO_TEST_CASE_EXPECTED_FAILURES( test_append, 1 )
 
 CASE(test_append) {
     cseq c;
@@ -128,8 +127,6 @@ CASE(test_append) {
               << "\"$ cseq::append(): wrong order! A(0<75)\""
               << std::endl;
     c.append(b);
-    std::cerr << "Expecting 1 error:" << std::endl;
-    test_data(c, "", 0, rna_aligned+rna+rna_aligned + "A");
     std::cerr << "==================" << std::endl << std::endl;
 
 }
