@@ -101,7 +101,7 @@ public:
     std::vector<aligned_base> getAlignedBases() { return bases; }
     const std::vector<aligned_base>& const_getAlignedBases() const { return bases; }
     void setAlignedBases(const std::vector<aligned_base>& vab) { bases = vab; }
-    std::string getAligned(bool nodots=false) const;
+    std::string getAligned(bool nodots=false, bool dna=false) const;
     std::string getAlignedNoDots() const {return getAligned(true);}
     std::string getBases() const;
     std::string getName() const { return name; }

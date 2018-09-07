@@ -187,7 +187,7 @@ cseq::getNameScore() const {
 }
 
 string
-cseq::getAligned(bool nodots) const {
+cseq::getAligned(bool nodots, bool dna) const {
     string aligned;
     aligned.reserve(alignment_width);
 
@@ -221,7 +221,11 @@ cseq::getAligned(bool nodots) const {
             cursor = pos;
         }
         dot = '-'; // (only the first "gap" is dots)
-        aligned.append(1,it->getBase());
+        if (dna) {
+            aligned.append(1, it->getBase().iupac_dna());
+        } else {
+            aligned.append(1, it->getBase().iupac_rna());
+        }
         cursor++;
         if (cursor != aligned.size()) {
             cerr << "c=" << cursor << "a=" << aligned.size()<<endl;

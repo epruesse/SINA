@@ -108,6 +108,8 @@ struct rw_fasta::options {
     float min_idty;
     long fasta_block;
     long fasta_idx;
+    bool out_dots;
+    bool out_dna;
 };
 struct rw_fasta::options *rw_fasta::opts;
 
@@ -137,7 +139,12 @@ rw_fasta::get_options_description(po::options_description& main,
         ("fasta-block",
          po::value<long>(&opts->fasta_block)->default_value(0, ""),
          "length of blocks")
-
+        ("fasta-write-dna",
+         po::bool_switch(&opts->out_dna),
+         "Write DNA sequences (default: RNA)")
+        ("fasta-write-dots",
+         po::bool_switch(&opts->out_dots),
+         "Use dots instead of dashes to distinguish unknown sequence data from indels")
         ;
     adv.add(od);
 }
@@ -419,7 +426,7 @@ rw_fasta::writer::operator()(tray t) {
         throw std::runtime_error("Unknown meta-fmt output option");
     }
 
-    string seq  = c.getAlignedNoDots();
+    string seq  = c.getAligned(!opts->out_dots, opts->out_dna);
     int len = seq.size();
     if (opts->line_length > 0) {
         for (int i=0; i<len; i+=opts->line_length) {

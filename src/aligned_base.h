@@ -40,7 +40,8 @@ class base_iupac {
 public:
     typedef unsigned char value_type;
     static const value_type iupac_char_to_bmask[256];
-    static const unsigned char bmask_to_iupac_char[32];
+    static const unsigned char bmask_to_iupac_rna_char[32];
+    static const unsigned char bmask_to_iupac_dna_char[32];
     static const float base_pairings[256];
 
     class bad_character_exception : public std::exception {
@@ -83,7 +84,15 @@ public:
     }
 
     operator unsigned char() const { 
-        return bmask_to_iupac_char[_data]; 
+        return iupac_rna();
+    }
+
+    unsigned char iupac_dna() const {
+        return bmask_to_iupac_dna_char[_data];
+    }
+
+    unsigned char iupac_rna() const {
+        return bmask_to_iupac_rna_char[_data];
     }
 
     base_iupac& operator=(unsigned char c) {

@@ -108,10 +108,17 @@ base_iupac::iupac_char_to_bmask[] = {
 };
 
 const unsigned char
-base_iupac::bmask_to_iupac_char[] = {
+base_iupac::bmask_to_iupac_rna_char[] = {
  //0   1   10   11  100  101  110  111  1000 1001 1010 1011 1100 1101 1110 1111
  '.', 'A', 'G', 'R', 'C', 'M', 'S', 'V', 'U', 'W', 'K', 'D', 'Y', 'H', 'B', 'N',
  '.', 'a', 'g', 'r', 'c', 'm', 's', 'v', 'u', 'w', 'k', 'd', 'y', 'h', 'b', 'n'
+};
+
+const unsigned char
+base_iupac::bmask_to_iupac_dna_char[] = {
+ //0   1   10   11  100  101  110  111  1000 1001 1010 1011 1100 1101 1110 1111
+ '.', 'A', 'G', 'R', 'C', 'M', 'S', 'V', 'T', 'W', 'K', 'D', 'Y', 'H', 'B', 'N',
+ '.', 'a', 'g', 'r', 'c', 'm', 's', 'v', 't', 'w', 'k', 'd', 'y', 'h', 'b', 'n'
 };
 
 const float
