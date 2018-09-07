@@ -201,12 +201,18 @@ query_pt::init() {
         } else {
             cerr << "PT server index out of date. Rebuilding..." << endl;
         }
-        
-        string cmd = string("cp ") + data.dbname + " " + data.dbname + ".index.arb &&"
-            + "arb_pt_server -build_clean -D" + data.dbname + ".index.arb &&"
-            + "arb_pt_server -build -D" + data.dbname + ".index.arb";
 
-        system(cmd.c_str());
+        vector<string> cmds;
+        cmds.push_back(string("cp ") + data.dbname + " " + data.dbname + ".index.arb");
+        cmds.push_back(string("arb_pt_server -build_clean -D") + data.dbname + ".index.arb");
+        cmds.push_back(string("arb_pt_server -build -D") + data.dbname + ".index.arb");
+        for (auto& cmd :  cmds) {
+            cerr << "Executing \"" << cmd << "\"" << endl
+                 << "============================================================" << endl;
+            system(cmd.c_str());
+            cerr << "============================================================" << endl
+                 << "Command \"" << cmd << "\" finished." << endl;
+        }
 
         if (stat(ptindex.c_str(), &ptindex_stat) 
             || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
@@ -224,8 +230,8 @@ query_pt::init() {
     }
 
     string cmd = string("arb_pt_server -D") + data.dbname + " -T" + data.portname;
-    cerr << "Launching PT server..."
-         << cmd << endl;
+    cerr << "Launching background PT server process..." << endl
+         << " command: " << cmd << endl;
     data.arb_pt_server = new redi::ipstream(cmd,
                                             redi::pstreams::pstdout|
                                             redi::pstreams::pstderr);
@@ -237,7 +243,7 @@ query_pt::init() {
     // FIXME: the lockup should be fixed in ARB
     string line;
     while (std::getline(*data.arb_pt_server, line)) {
-        cerr << line << endl;
+        cerr << "ARB_PT_SERVER: " << line << endl;
         if (line == "ok, server is running.") break;
     }
 
