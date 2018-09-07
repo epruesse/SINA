@@ -95,7 +95,7 @@ cseq&
 cseq::append(const char *str) {
     //FIXME: keep internal '.'s
     while(*str) {
-        if (*str != ' ' && *str != '\n' &&  *str != '\r') {
+        if (*str != ' ' && *str != '\t' && *str != '\n' &&  *str != '\r') {
             if (*str != '-' && *str != '.') {
                 bases.push_back(aligned_base(alignment_width,*str));
             }
