@@ -305,8 +305,7 @@ parse_options(int argc, char** argv) {
         // Autodetect / validate outtype selection
         if (vm["outtype"].defaulted() && vm.count("out")) {
             const string in = vm["out"].as<string>();
-            if (iends_with(in, ".arb")
-                || iequals(in, ":")) {
+            if (iends_with(in, ".arb") || iequals(in, ":")) {
                 std::vector<string> cmd(2);
                 cmd[0]="--outtype";
                 cmd[1]="ARB";
@@ -316,6 +315,16 @@ parse_options(int argc, char** argv) {
                 std::vector<string> cmd(2);
                 cmd[0]="--outtype";
                 cmd[1]="FASTA";
+                po::store(po::command_line_parser(cmd).options(all_opts).run(),
+                          vm);
+            }
+        }
+
+        if (vm["no-align"].as<bool>() || vm["prealigned"].as<bool>()) {
+            if (vm["db"].empty() && vm["ptdb"].empty()) {
+                std::vector<string> cmd(2);
+                cmd[0]="--db";
+                cmd[1]="NONE";
                 po::store(po::command_line_parser(cmd).options(all_opts).run(),
                           vm);
             }
