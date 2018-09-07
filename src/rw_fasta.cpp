@@ -264,7 +264,8 @@ rw_fasta::reader::operator()() {
 
     try {
         // all lines until eof or next /^>/ are data
-        while (in.peek() != '>' && getline(in,line).good()) {
+        while (in.peek() != '>' && in.good()) {
+            getline(in, line);
             lineno++;
             c.append(line);
         }
