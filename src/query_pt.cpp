@@ -119,7 +119,7 @@ struct query_pt::priv_data {
     boost::mutex arb_pt_access;
     string portname;
     string dbname;
-    redi::pstream *arb_pt_server;
+    redi::ipstream *arb_pt_server;
     int range_begin;
     int range_end;
     bool find_type_fast;
@@ -226,7 +226,9 @@ query_pt::init() {
     string cmd = string("arb_pt_server -D") + data.dbname + " -T" + data.portname;
     cerr << "Launching PT server..."
          << cmd << endl;
-    data.arb_pt_server = new redi::pstream(cmd);
+    data.arb_pt_server = new redi::ipstream(cmd,
+                                            redi::pstreams::pstdout|
+                                            redi::pstreams::pstderr);
 
     // read the pt server output. once it says "ok"
     // we can be sure that it's ready for connections
@@ -263,11 +265,25 @@ void
 query_pt::exit() {
     if (data.arb_pt_server) { // we started our own pt server.
         cerr << "Terminating PT server..." << endl;
-        aisc_nput(data.link, PT_MAIN, data.com, MAIN_SHUTDOWN, "47@#34543df43%&3667gh", NULL);
-        // probably should wait here. delete below /should/ cause SIGHUP to child...
-        delete data.arb_pt_server; 
-    } 
-    aisc_close(data.link, data.com);
+        bool kill = false;
+        if (aisc_nput(data.link, PT_MAIN, data.com, MAIN_SHUTDOWN,
+                      "47@#34543df43%&3667gh", NULL)) {
+            cerr << "... PT server not responding" << endl;
+            kill = true;
+        }
+        aisc_close(data.link, data.com);
+        if (kill) {
+            cerr << "... attempting to kill PT server" << endl;
+            data.arb_pt_server->rdbuf()->kill();
+        }
+        string line;
+        while (std::getline(data.arb_pt_server->err(), line)) {
+            cerr << "ARB_PT_SERVER: " << line << endl;
+        }
+        delete data.arb_pt_server;
+    } else { // externally started server => just close connection
+        aisc_close(data.link, data.com);
+    }
     delete &data;
 }
 

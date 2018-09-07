@@ -4,6 +4,7 @@ Version 1.3.3:
  - fix tab character in sequence causes sequence to be skipped (#21)
  - fix last line of input FASTA ignored if missing newline (#16)
  - fix --db parameter demanded even if not required due to use of --prealigned
+ - fix SIGPIPE race on PT server shutdown (#11)
 
 Version 1.3.2:
  - split --help into "common" and advanced options (--help-all)
