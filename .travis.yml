@@ -48,8 +48,9 @@ script:
   - mkdir install
   - cd install
   - tar -xvzf ../sina-*-$OSNAME.tar.gz
-  - rm -rf $MINICONDA
+  - rm -rf $MINICONDA; hash -r
   - ./sina-*/sina --help
+  - cd ..
 
 deploy:
   provider: releases

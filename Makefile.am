@@ -215,11 +215,13 @@ bindistdir: all
 	cd $(bindistdir); for f in bin/sina share/doc/sina*; do \
 	  test -f $$f && $(LN_S) $$f; done || true
 	for f in $(EXTRA_BINDIST); do \
-          cp -fpR $(top_srcdir)/$$f $(bindistdir)$$f; done
+          cp -fpR $(top_srcdir)/$$f $(bindistdir)/$$f; done
 	find $(bindistdir) -depth -type d -empty -exec rmdir {} \;
-	binaries=$$(find $(bindistdir) -type f -exec file {} \; | \
-                grep application/x-mach | cut -d: -f1); \
-        for binary in $$binaries; do $(top_srcdir)/tools/fix_libpaths.sh "$$binary"; done
+	binaries=$$(find $(bindistdir) -type f -exec file --mime {} \; | \
+                grep -E "application/x-(mach|executable)" | cut -d: -f1); \
+	export LDPATHS="$(subst -L,,$(filter -L%, $(BOOST_LDFLAGS)))"; \
+        for binary in $$binaries; do $(top_srcdir)/tools/fix_libpaths.sh "$$binary"; done; \
+	find $(bindistdir) -name \*.la -delete -o -name \*.a -delete
 
 bindist-gzip: bindistdir
 	tardir=$(bindistdir) && $(am__tar) | GZIP=$(GZIP_ENV) gzip -c >$(bindistdir).tar.gz
