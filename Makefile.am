@@ -130,7 +130,8 @@ src_libsina_la_SOURCES = \
     src/kmer_search.h \
     include/pstream.h
 
-src_libsina_la_LDFLAGS = $(ARB_LDFLAGS)
+src_libsina_la_LDFLAGS = $(ARB_LDFLAGS) $(BOOST_LDFLAGS)
+
 src_libsina_la_LIBADD = \
     $(Z_LIB) \
     $(ARB_LIBS) \
@@ -215,7 +216,7 @@ bindistdir: all
 	for f in $(EXTRA_BINDIST); do \
           cp -fpR $(top_srcdir)/$$f $(bindistdir)$$f; done
 	find $(bindistdir) -depth -type d -empty -exec rmdir {} \;
-	binaries=$$(find $(bindistdir) -type f -exec file -I {} \; | \
+	binaries=$$(find $(bindistdir) -type f -exec file {} \; | \
                 grep application/x-mach | cut -d: -f1); \
         for binary in $$binaries; do $(top_srcdir)/tools/fix_libpaths.sh "$$binary"; done
 
