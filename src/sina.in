@@ -23,7 +23,7 @@ popd >/dev/null
 # remove trailing /bin if there is one
 PREFIX=${MYDIR%%/bin}
 
-for SUBD in "" /lib/arb /lib/sina ; do
+for SUBD in "" /lib/arb /lib/sina /lib/sina/arb ; do
   if [ -e "$PREFIX$SUBD/lib/arb_tcp.dat" ]; then
      export ARBHOME="$PREFIX$SUBD"
      break;

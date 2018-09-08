@@ -15,6 +15,7 @@ env:
 install:
   - ./ci_scripts/install_conda.sh
   - export PATH=$MINICONDA/bin:$PATH
+  - find $MINICONDA -name '*.la' -print0 | xargs -0 rm
 
 script:
   - ./autogen.sh
@@ -26,7 +27,7 @@ script:
        --disable-docs
        LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,$MINICONDA/lib"
        || (cat config.log; false)
-  - make
+  - make -j2
   - make check
   - make install
   - $HOME/install/bin/sina --help

@@ -59,11 +59,11 @@ EXTRA_DIST= \
 # internal libs and binaries to .../bin and .../lib subdirs
 
 if ENABLE_FAT_TAR 
-arbbindir = $(libdir)/arb/bin
-arblibdir = $(libdir)/arb/lib
+arbbindir = $(libdir)/sina/arb/bin
+arblibdir = $(libdir)/sina/arb/lib
 
 bin_SCRIPTS = src/sina src/psina
-bin_PROGRAMS = src/sina.real arb_pt_server arb_message
+arbbin_PROGRAMS = arb_pt_server arb_message
 arblib_DATA = \
     arb_tcp.dat \
     $(ARBHOME)/lib/libCORE$(LIBEXT) \

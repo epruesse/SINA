@@ -10,7 +10,7 @@
 
 
 CONDA_PACKAGES="autoconf automake libtool toolchain pkg-config boost arb-bio-devel"
-CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib"
+CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib libiconv"
 
 case "$(uname)" in
     Linux)
