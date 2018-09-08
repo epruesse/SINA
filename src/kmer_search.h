@@ -30,48 +30,70 @@ for the parts of ARB used as well as that of the covered work.
 #ifndef _KMER_SEARCH_H_
 #define _KMER_SEARCH_H_
 
-#include <utility> // std::pair
-#include <iterator>
-#include <vector>
-#include <string>
+#include <map>
+#include "search.h"
 
 namespace sina {
 
-class query_arb;
-class cseq;
-
-class kmer_search {
+class kmer_search : public search {
 public:
     class result_iterator;
 
-    kmer_search();
-    ~kmer_search();
+    static kmer_search* get_kmer_search(std::string filename, int k=10);
+
+    /**
+     * match runs a word search using the PT server
+     *
+     * arguments:
+     *  family:    will contain scored results
+     *  query:     query sequence
+     *  min_match: minimum number of results required
+     *  max_match: maximum number of results desired
+     *  min_score: minimum relative score
+     *  max_score: maximum relative score
+     *  arb:       pointer to matching arb database
+     *  noid:      skip matches containing query
+     *  min_len:   skip matches shorter
+     *  num_full:  minimum "full length", ignoring score
+     *  minlen_full: length to be considered "full"
+     *  range_cover: minimum sequences touching alignment edge
+     *  leave_query_out: drop sequence with matching id
+     */
+    virtual double match(std::vector<cseq> &family,
+                         const cseq& query,
+                         int min_match,
+                         int max_match,
+                         float min_score,
+                         float max_score,
+                         query_arb *arb,
+                         bool noid,
+                         int minlen,
+                         int num_full,
+                         int minlen_full,
+                         int range_cover,
+                         bool leave_query_out) override;
+
+    virtual double match(std::vector<cseq> &family,
+                         const cseq& sequence,
+                         int min_match,
+                         int max_match,
+                         float min_score) override {
+        return match(family, sequence, min_match, max_match, min_score, 2.0,
+                     NULL, false, 0, 0, 0, 0, false);
+    };
     
-    void 
-    build_index(query_arb& db);
-    
-    std::pair<result_iterator, result_iterator>
-    find(const cseq& query, unsigned int max);
+    void build_index();
+    void init();
+    void find(const cseq& query, std::vector<cseq>& family, int max);
 
 private:
-    std::vector<std::string> seqNames;
-    std::vector<std::vector<unsigned int> > map;
-};
+    kmer_search(query_arb* db, int k=8);
+    ~kmer_search();
 
-class kmer_search::result_iterator {
-public:
-    result_iterator();
-    ~result_iterator();
-
-    typedef cseq value_type;
-    typedef cseq* pointer;
-    typedef cseq& reference;
-    typedef std::forward_iterator_tag iterator_category;
-    typedef int difference_type;
-
-    cseq& operator*();
-    result_iterator& operator++();
-    bool operator==(const result_iterator& rhs) const;
+    class index;
+    index &data;
+    static std::map<std::string, kmer_search*> indices;
+    static void destroy_indices();
 };
 
 

@@ -17,10 +17,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-#ifndef _XXX_TEST_HPP_
-#define _XXX_TEST_HPP_
-
 #define BOOST_TEST_MODULE XXX_module
 #include <boost/test/unit_test.hpp>
 
@@ -34,8 +30,6 @@ BOOST_AUTO_TEST_SUITE(XXX_test);
 
 
 BOOST_AUTO_TEST_SUITE_END(); // XXX_test
-
-#endif /* _XXX_TEST_HPP_ */
 
 /*
   Local Variables:

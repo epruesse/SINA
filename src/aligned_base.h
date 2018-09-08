@@ -36,6 +36,23 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
+enum base_types {
+    BASE_A=0,
+    BASE_G=1,
+    BASE_C=2,
+    BASE_TU=3,
+    BASE_MAX=4,
+    BASE_LC=4
+};
+
+enum base_types_bitmask {
+    BASEM_A=1<<BASE_A,
+    BASEM_G=1<<BASE_G,
+    BASEM_C=1<<BASE_C,
+    BASEM_TU=1<<BASE_TU,
+    BASEM_LC=1<<BASE_LC
+};
+
 class base_iupac {
 public:
     typedef unsigned char value_type;
@@ -56,33 +73,25 @@ public:
         value_type character;
     };
 
+    /* empty default */
+    base_iupac() : _data(0) {}
 
-    enum base_types {
-        BASE_A=0,
-        BASE_G=1,
-        BASE_C=2,
-        BASE_TU=3,
-        BASE_MAX=4,
-        BASE_LC=4
-    };
-    enum base_types_bitmask {
-        BASEM_A=1<<BASE_A,
-        BASEM_G=1<<BASE_G,
-        BASEM_C=1<<BASE_C,
-        BASEM_TU=1<<BASE_TU,
-        BASEM_LC=1<<BASE_LC
-    };
-
-    base_iupac(unsigned char c) 
-      : _data(iupac_char_to_bmask[c]) 
-    {
-      if (_data == 0 && c != '-' && c != '.') 
-        throw bad_character_exception(c);
-    }
-    base_iupac() : _data(0) 
-    {
+    /* construct from char */
+    base_iupac(unsigned char c) : _data(iupac_char_to_bmask[c]) {
+        if (_data == 0 && c != '-' && c != '.') {
+            throw bad_character_exception(c);
+        }
     }
 
+    /* assign from char */
+    base_iupac& operator=(unsigned char c) {
+        _data = iupac_char_to_bmask[c];
+        if (_data == 0 && c != '-' && c != '.')
+            throw bad_character_exception(c);
+        return *this;
+    }
+
+    /* implicit cast to char */
     operator unsigned char() const { 
         return iupac_rna();
     }
@@ -95,11 +104,14 @@ public:
         return bmask_to_iupac_rna_char[_data];
     }
 
-    base_iupac& operator=(unsigned char c) {
-        _data = iupac_char_to_bmask[c];
-        if (_data == 0 && c != '-' && c != '.') 
-            throw bad_character_exception(c);
-        return *this;
+    /* construct from base_type */
+    base_iupac(base_types b) {
+        _data = 1 << b;
+    }
+
+    /* explicit cast to base_type */
+    base_types getBaseType() const {
+        return static_cast<base_types>(__builtin_ctz(_data & 0xf));
     }
 
     void complement() {
@@ -120,22 +132,14 @@ public:
         return _data & BASEM_LC;
     }
 
-
-
-
     int ambig_order() const {
-      return count_bits(_data & 0xf);
+        return count_bits(_data & 0xf);
     }
 
     bool is_ambig() const {
-      return count_bits(_data & 0xf) > 1;
+        return ambig_order() > 1;
     }
 
-    base_types getBaseType() {
-        // only valid if isAmbig==false
-        const unsigned int t = 0x3000201;
-        return static_cast<base_types>((t >> (_data & 0xF)) & 0xF);
-    }
 
     bool has_A()  const { return _data & BASEM_A;  }
     bool has_G()  const { return _data & BASEM_G;  }
@@ -210,12 +214,17 @@ public:
 
 protected:
     int count_bits(unsigned char c) const {
-      int rval = 0;
-      while (c) {
-        c &= c-1; // this will unset the least significant bit
-        rval++;
-      }
-      return rval;
+#define HAVE_BUILTIN_POPCOUNT
+#ifdef HAVE_BUILTIN_POPCOUNT
+        return __builtin_popcount(c);
+#else
+        int rval = 0;
+        while (c) {
+            c &= c-1; // this will unset the least significant bit
+            rval++;
+        }
+        return rval;
+#endif
     }
 
     float pair(const base_iupac& rhs, const float *bp) const {
@@ -266,10 +275,6 @@ typedef aligned<base_iupac> aligned_base;
 }// namespace sina
 
 namespace std {
-#if 0 //unused code
-template<>
-struct numeric_limits<sina::base> : numeric_limits<sina::base::value_type> {};
-#endif
 template<>
 struct numeric_limits<sina::base_iupac> : numeric_limits<sina::base_iupac::value_type> {};
 }
@@ -279,47 +284,6 @@ std::ostream& operator<<(std::ostream& out, sina::aligned_base ab);
 
 #endif // _ALIGNED_BASE_H_
 
-#if 0 //unused code
-class base {
-public:
-    typedef unsigned char value_type;
-
-    base(unsigned char c) : _data(c) {}
-    base() : _data(0) {}
-
-    operator unsigned char() const { return _data; }
-    base& operator=(unsigned char c) { _data = c; return *this;}
-    float comp(const base& rhs) { return (_data==rhs._data)?-1.0f:1.0f; }
-
-    void complement() {
-        switch (_data) {
-            case 'A':
-            case 'a':
-                _data = 'T';
-                break;
-            case 'G':
-            case 'g':
-                _data = 'C';
-                break;
-            case 'C':
-            case 'c':
-                _data = 'G';
-                break;
-            case 'T':
-            case 't':
-            case 'U':
-            case 'u':
-                _data = 'A';
-                break;
-            default:
-                _data = 'N';
-        }
-    }
-
-private:
-    value_type _data;
-};
-#endif
 
 /*
   Local Variables:

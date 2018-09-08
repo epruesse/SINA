@@ -27,6 +27,7 @@ jobs:
     working_directory: /root/sina
     steps:
       - checkout
+
       - restore_cache:
           keys:
             - conda
@@ -36,6 +37,10 @@ jobs:
       - save_cache:
           key: conda-{{ checksum "conda_state.txt" }}
           paths: /root/miniconda
+
+      - run:
+          name: Checking out submodules
+          command: git submodule update --init --recursive --remote
 
       - run:
           name: Preparing Directory Structure

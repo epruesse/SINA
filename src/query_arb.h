@@ -116,6 +116,11 @@ class query_arb{
      */
     void saveAs(const char* fname, const char* type="b");
 
+    /**
+     * Returns filename of underlying ARB database file
+     */
+    std::string getFileName() const;
+
     void setProtectionLevel(int);
 
     int getSeqCount() const;
@@ -138,6 +143,7 @@ class query_arb{
     std::vector<alignment_stats> getAlignmentStats();
 
 
+    void loadCache();
     void loadCache(std::vector<std::string>&);
     std::vector<cseq*> getCacheContents();
 
@@ -162,10 +168,6 @@ private:
     void setMark(const std::string&);
     void setMark(const cseq& cs);
 
-
-
-
-    void loadCache();
 
     void copySequence(query_arb& qa, const cseq& cs, bool m); //calls write
     void copySequence(query_arb& qa, const std::string s, bool m);

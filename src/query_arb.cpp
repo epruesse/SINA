@@ -65,7 +65,14 @@ using std::stringstream;
 using std::map;
 using std::pair;
 
+#include <unordered_map>
+using std::unordered_map;
+
 #include <stdio.h>
+
+#ifdef HAVE_TBB
+#  include "tbb/pipeline.h"
+#endif
 
 // ARB needs either DEBUG or NDEBUG defined
 #ifdef DEBUG
@@ -101,8 +108,6 @@ using boost::lambda::bind;
 #include <boost/serialization/map.hpp>
 #include <boost/progress.hpp>
 #include <boost/foreach.hpp>
-
-#include <unordered_map>
 
 using namespace sina;
 
@@ -156,7 +161,7 @@ struct query_arb::priv_data {
 
     static GB_shell* the_arb_shell;
 
-    typedef map<std::string, cseq> sequence_cache_type;
+    typedef unordered_map<std::string, cseq> sequence_cache_type;
     typedef list<std::string> error_list_type;
     typedef std::unordered_map<string, GBDATA*,
                                boost::hash<string>
@@ -322,6 +327,7 @@ query_arb::closeOpenARBDBs() {
 
 query_arb*
 query_arb::getARBDB(std::string file_name) {
+    boost::mutex::scoped_lock lock(arb_db_access);
     if (not query_arb::priv_data::the_arb_shell) {
         query_arb::priv_data::the_arb_shell = new GB_shell();
     }
@@ -338,6 +344,11 @@ query_arb::getARBDB(std::string file_name) {
 void
 query_arb::save() {
     saveAs(data.filename.c_str());
+}
+
+std::string
+query_arb::getFileName() const {
+    return data.filename;
 }
 
 void
@@ -488,18 +499,29 @@ query_arb::loadCache(vector<string>& keys) {
 
     data.loadCache();
     unsigned int scache_size = data.sequence_cache.size();
+
+    cerr << "Loading "<< data.count <<" sequences..." << endl;
     boost::progress_display p(data.count, cerr);
+
+    data.sequence_cache.reserve(data.count);
+
+#ifndef HAVE_TBB // serial implementation
+    timer t;
     for ( gbspec = GBT_first_species(data.gbmain);
           gbspec;
           gbspec = GBT_next_species(gbspec)) {
         const char* name_str = GBT_read_name(gbspec);
         string name(name_str);
-
+        t.stop("name");
         cseq sequence;
         if (not data.sequence_cache.count(name)) {
+            t.start();
             GBDATA *gb_data = GBT_find_sequence(gbspec,ali);
             if (not gb_data) continue;
-            sequence = cseq(name.c_str(), 0.f, GB_read_char_pntr(gb_data));
+            const char* ptr =  GB_read_char_pntr(gb_data);
+            t.stop("arb load");
+            sequence = cseq(name.c_str(), 0.f, ptr);
+            t.stop("cseq convert");
         } else {
             sequence = data.sequence_cache[name];
         }
@@ -514,7 +536,73 @@ query_arb::loadCache(vector<string>& keys) {
         data.sequence_cache[sequence.getName()] = sequence;
         ++p;
     }
+    cerr << "Timings for Cache Load: " << t << endl;
 
+#else // HAVE_TBB -- parallel implementation
+
+    gbspec = GBT_first_species(data.gbmain);
+    if (not gbspec) {
+        cerr << "Failed to load sequences -- database empty?" << endl;
+        return;
+    }
+
+    timer arb, tkeys, all;
+    all.start();
+    int n=0;
+    tbb::parallel_pipeline(
+        /*max_number_of_live_token=*/ 1024,
+        tbb::make_filter<void, std::pair<const char*, const char*>>(
+            tbb::filter::serial,
+            [&](tbb::flow_control& fc) -> std::pair<const char*, const char*>
+            {
+                arb.start();
+                const char* name_str;
+                GBDATA *gb_sequence = NULL;
+                while (gbspec && not gb_sequence) {
+                    name_str = GBT_read_name(gbspec);
+                    gb_sequence = GBT_find_sequence(gbspec, ali);
+                    gbspec = GBT_next_species(gbspec);
+                }
+                arb.stop("arb find");
+                if (not gbspec && not gb_sequence) {
+                    fc.stop();
+                    return std::make_pair("","");
+                }
+                const char* seq_str = GB_read_char_pntr(gb_sequence);
+                arb.stop("arb load");
+                n++;
+                return std::make_pair(name_str, seq_str);
+            }) &
+        tbb::make_filter<std::pair<const char*, const char*>, cseq>(
+            tbb::filter::parallel,
+            [&](std::pair<const char*, const char*> p) -> cseq
+            {
+                return cseq(p.first, 0.f, p.second);
+            }) &
+        tbb::make_filter<cseq, void>(
+            tbb::filter::serial,
+            [&](cseq sequence) -> void
+            {
+                tkeys.start();
+                for(vector<string>::iterator it = keys.begin();
+                    it != keys.end(); ++it) {
+                    if (not sequence.get_attrs().count(*it)) {
+                        ::loadKey(sequence, *it, gbspec);
+                    }
+                }
+                data.sequence_cache[sequence.getName()] = sequence;
+                ++p;
+                tkeys.stop("keys");
+            })
+        );
+    all.stop("all");
+    cerr << "Timings for cache load: "
+         << all << " "
+         << tkeys << " "
+         << arb << endl;
+#endif // have TBB
+
+    cerr << "Loaded " << data.sequence_cache.size() << " sequences" << endl;
     if (data.sequence_cache.size() > scache_size)
         data.storeCache();
 

@@ -38,6 +38,10 @@ using std::ifstream;
 #include <string>
 using std::string;
 
+#include <tuple>
+using std::tuple;
+using std::get;
+
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -51,6 +55,11 @@ using boost::thread_group;
 
 using std::exception;
 using std::logic_error;
+
+#ifdef HAVE_TBB
+#include "tbb/flow_graph.h"
+namespace tf = tbb::flow;
+#endif
 
 #include "famfinder.h"
 #include "align.h"
@@ -371,6 +380,8 @@ int main(int argc, char** argv) {
          show_conf(vm);
     }
 
+    typedef PipeElement<tray,tray>* kernel;
+
     try {
         PipeElement<void,tray> *source;
         switch (vm["intype"].as<SEQUENCE_DB_TYPE>()) {
@@ -417,6 +428,84 @@ int main(int argc, char** argv) {
         PipeElement<tray, tray> *printer;
         printer = Log::make_printer();
 
+#ifdef HAVE_TBB
+        int max_trays = 10;
+        tf::graph g;
+
+        // source node
+        tf::source_node<tray> node_src(g, [&](tray &t) -> bool {
+                try {
+                    t = source->operator()();
+//                    cerr << "R";
+                    return true;
+                } catch (PipeEOF &peof) {
+                    return false;
+                }
+            }, /*is_active=*/false);
+        tf::limiter_node<tray> node_limit(g, max_trays);
+        tf::make_edge(node_src, node_limit);
+
+        // famfinder with pt server
+        tf::buffer_node<kernel> node_famfinder_buffer(g);
+        tf::join_node< tuple<tray, kernel>, tf::reserving > node_famfinder_join(g);
+        typedef tf::multifunction_node< tuple<tray,kernel>, tuple<tray, kernel> > ff_node_t;
+        typedef ff_node_t::output_ports_type ff_output_t;
+        ff_node_t node_famfinder(g, tf::unlimited, [&](const tuple<tray, kernel> &in, ff_output_t &out) -> void {
+//                cerr << "P";
+                const tray &t = get<0>(in);
+                kernel famfinder = get<1>(in);
+                get<0>(out).try_put((*famfinder)(t));
+                get<1>(out).try_put(famfinder);
+            });
+
+        tf::make_edge(node_famfinder_buffer, tf::input_port<1>(node_famfinder_join));
+        tf::make_edge(node_famfinder_join, node_famfinder);
+        tf::make_edge(tf::output_port<1>(node_famfinder), node_famfinder_buffer);
+
+        tf::function_node<tray,tray> node_aligner(g, 3, [&](tray t) -> tray {
+                //              cerr << "A";
+                return (*aligner)(t);
+            });
+        if (famfinder != 0) {
+            tf::make_edge(node_src, tf::input_port<0>(node_famfinder_join));
+            tf::make_edge(tf::output_port<0>(node_famfinder), node_aligner);
+            node_famfinder_buffer.try_put(famfinder);
+            node_famfinder_buffer.try_put(famfinder::make_famfinder(1));
+            node_famfinder_buffer.try_put(famfinder::make_famfinder(2));
+            node_famfinder_buffer.try_put(famfinder::make_famfinder(3));
+            node_famfinder_buffer.try_put(famfinder::make_famfinder(4));
+            node_famfinder_buffer.try_put(famfinder::make_famfinder(5));
+            node_famfinder_buffer.try_put(famfinder::make_famfinder(6));
+
+        } else {
+            tf::make_edge(node_limit, node_aligner);
+        }
+
+        tf::function_node<tray,tray> node_search(g, 1, [&](tray t) -> tray {
+//                cerr << "S";
+                return (*search)(t);
+            });
+        tf::make_edge(node_aligner, node_search);
+        tf::function_node<tray,tray> node_printer(g, 1, [&](tray t) -> tray {
+                //              cerr << "p";
+                return (*printer)(t);
+            });
+        tf::make_edge(node_search, node_printer);
+        tf::function_node<tray, tf::continue_msg>
+            node_sink(g, 1, [&](const tray t) -> tf::continue_msg {
+//                    cerr << "W";
+                    (*sink)(t);
+                return tf::continue_msg();
+                });
+        tf::make_edge(node_printer, node_sink);
+        tf::make_edge(node_sink, node_limit.decrement);
+
+        timestamp before;
+        node_src.activate();
+        g.wait_for_all();
+        timestamp after;
+        cerr << "Time for alignment phase: " << after-before << "s" << endl;
+#else
         if (famfinder) {
             aligner = new PipeSerialSegment<tray, tray>(*famfinder | *aligner);
         }
@@ -434,6 +523,7 @@ int main(int argc, char** argv) {
         cerr << "Time for alignment phase: " << after-before << "s" << endl;
 
         p.destroy();
+#endif
   
         cerr << "SINA finished." << endl;
     } catch (std::exception &e) {

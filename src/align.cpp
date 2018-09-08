@@ -61,6 +61,10 @@ using std::logic_error;
 #include <algorithm>
 using std::find_if;
 
+#ifdef HAVE_TBB
+#  include "tbb/tbb_allocator.h"
+#endif
+
 #include <boost/bind.hpp>
 using boost::bind;
 
@@ -541,7 +545,11 @@ aligner::galigner::do_align(cseq& c, cseq& orig, MASTER &m,
     cnsts_type cns(tr);
 
     // create the alignment "mesh" (not quite a matrix)
+#ifdef HAVE_TBB
+    mesh<MASTER, cseq, data_type, tbb::tbb_allocator<data_type> > A(m, c);
+#else
     mesh<MASTER, cseq, data_type> A(m, c);
+#endif
 
     int oh_head, oh_tail;
 #ifdef DEBUG

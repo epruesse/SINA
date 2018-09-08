@@ -12,11 +12,15 @@ AM_CPPFLAGS = \
     -DBOOST_TEST_DYN_LINK -DBOOST_TEST_MAIN \
     $(BOOST_CPPFLAGS) \
     $(ARB_CPPFLAGS) \
-    $(CODE_COVERAGE_CPPFLAGS)
+    $(CODE_COVERAGE_CPPFLAGS) \
+    $(TBB_CPPFLAGS) \
+    $(TBB_MALLOC_CPPFLAGS)
 
 AM_LDFLAGS = \
     $(BOOST_LDFLAGS) \
-    $(ARB_LDFLAGS)
+    $(ARB_LDFLAGS) \
+    $(TBB_LDFLAGS) \
+    $(TBB_MALLOC_LDFLAGS)
 
 AM_CXXFLAGS = \
     $(CODE_COVERAGE_CXXFLAGS)
@@ -79,15 +83,19 @@ src_sina_LDADD = $(sina_libs)
 endif
 
 lib_LTLIBRARIES = src/libsina.la
-noinst_PROGRAMS = src/sina_probematch src/kmer_test
+bin_PROGRAMS += src/sina_probematch src/kmer_test
 
 CLEANFILES    = $(bin_SCRIPTS)
 
 ### TARGET CONFIGS ###
 
 src_libsina_la_SOURCES = \
+    src/align.cpp \
+    src/align.h \
     src/aligned_base.cpp \
     src/aligned_base.h \
+    src/alignment_stats.cpp \
+    src/alignment_stats.h \
     src/copy_alignment.h \
     src/cseq.cpp \
     src/cseq.h \
@@ -116,16 +124,13 @@ src_libsina_la_SOURCES = \
     src/rw_arb.h \
     src/log.cpp \
     src/log.h \
-    src/align.cpp \
-    src/align.h \
     src/scoring_schemes.h \
     src/search_filter.cpp \
     src/search_filter.h \
     src/timer.h \
     src/tray.cpp \
     src/tray.h \
-    src/alignment_stats.cpp \
-    src/alignment_stats.h \
+    src/kmer.h \
     src/kmer_search.cpp \
     src/kmer_search.h \
     include/pstream.h
@@ -138,7 +143,9 @@ src_libsina_la_LIBADD = \
     $(BOOST_PROGRAM_OPTIONS_LIB) \
     $(BOOST_THREAD_LIB) \
     $(BOOST_SERIALIZATION_LIB) \
-    $(BOOST_SYSTEM_LIB)
+    $(BOOST_SYSTEM_LIB) \
+    $(TBB_LIB) \
+    $(TBB_MALLOC_LIB)
 
 
 sina_libs = \
@@ -244,9 +251,26 @@ LOG_COMPILER = $(top_srcdir)/tools/test_driver.sh
 
 check_PROGRAMS = \
     src/unit_tests/cseq_test \
-    src/unit_tests/cseq_comparator_test
+    src/unit_tests/cseq_comparator_test \
+    src/unit_tests/idset_test \
+    src/unit_tests/kmer_test \
+    src/unit_tests/kmer_search_test
+
+check_DATA = \
+    test_data/ltp_reduced.arb
+
+
+test_data/%: test_data/%.xz
+	mkdir -p $$(dirname $@)
+	unxz -c $< > $@
 
 src_unit_tests_cseq_test_LDADD = $(test_libs)
 src_unit_tests_cseq_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_cseq_comparator_test_LDADD = $(test_libs)
 src_unit_tests_cseq_comparator_test_LDFLAGS = $(ARB_LDFLAGS)
+src_unit_tests_idset_test_LDADD = $(test_libs)
+src_unit_tests_idset_test_LDFLAGS = $(ARB_LDFLAGS)
+src_unit_tests_kmer_test_LDADD = $(test_libs)
+src_unit_tests_kmer_test_LDFLAGS = $(ARB_LDFLAGS)
+src_unit_tests_kmer_search_test_LDADD = $(test_libs)
+src_unit_tests_kmer_search_test_LDFLAGS = $(ARB_LDFLAGS)
