@@ -251,3 +251,8 @@ src_unit_tests_cseq_test_LDADD = $(test_libs)
 src_unit_tests_cseq_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_cseq_comparator_test_LDADD = $(test_libs)
 src_unit_tests_cseq_comparator_test_LDFLAGS = $(ARB_LDFLAGS)
+
+clean-local: clean-local-check
+.PHONY: clean-local-check
+clean-local-check:
+	rm -f test.*.xml
