@@ -505,6 +505,7 @@ int main(int argc, char** argv) {
         g.wait_for_all();
         timestamp after;
         cerr << "Time for alignment phase: " << after-before << "s" << endl;
+        delete sink;
 #else
         if (famfinder) {
             aligner = new PipeSerialSegment<tray, tray>(*famfinder | *aligner);
