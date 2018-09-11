@@ -30,14 +30,14 @@ AM_CFLAGS = \
 
 
 # Files to copy into distribution packages
-EXTRA_BINDIST= \
+EXTRA_BINDIST = \
     LICENSE \
     CHANGELOG \
     README.md \
     arb_LICENSE.txt \
     arb_PUBLIB_LICENSE.txt
 
-EXTRA_DIST= \
+EXTRA_DIST = \
     $(EXTRA_BINDIST) \
     LICENSE \
     CHANGELOG \
@@ -52,17 +52,24 @@ EXTRA_DIST= \
     tools/latex2man.cfg \
     tools/test_driver.sh
 
+CLEANFILES =
+
 
 ### TARGETS ###
 
 # calling pkglibdir our ARBHOME (.../lib/sina), we install 
 # internal libs and binaries to .../bin and .../lib subdirs
 
+bin_PROGRAMS = \
+	src/sina \
+	src/sina_probematch \
+	src/kmer_test
+lib_LTLIBRARIES = src/libsina.la
+
 if ENABLE_FAT_TAR 
 arbbindir = $(libdir)/sina/arb/bin
 arblibdir = $(libdir)/sina/arb/lib
 
-bin_SCRIPTS = src/sina src/psina
 arbbin_PROGRAMS = arb_pt_server arb_message
 arblib_DATA = \
     arb_tcp.dat \
@@ -71,21 +78,7 @@ arblib_DATA = \
 
 arb_message_SOURCES=
 arb_pt_server_SOURCES=
-
-src_sina_real_SOURCES = src/sina.cpp 
-src_sina_real_LDADD = $(sina_libs)
-
-else
-bin_PROGRAMS = src/sina
-bin_SCRIPTS = src/psina
-src_sina_SOURCES = src/sina.cpp
-src_sina_LDADD = $(sina_libs)
 endif
-
-lib_LTLIBRARIES = src/libsina.la
-bin_PROGRAMS += src/sina_probematch src/kmer_test
-
-CLEANFILES    = $(bin_SCRIPTS)
 
 ### TARGET CONFIGS ###
 
@@ -135,7 +128,9 @@ src_libsina_la_SOURCES = \
     src/kmer_search.h \
     include/pstream.h
 
-src_libsina_la_LDFLAGS = $(ARB_LDFLAGS) $(BOOST_LDFLAGS)
+src_libsina_la_LDFLAGS = \
+    $(ARB_LDFLAGS) \
+    $(BOOST_LDFLAGS)
 
 src_libsina_la_LIBADD = \
     $(Z_LIB) \
@@ -147,14 +142,17 @@ src_libsina_la_LIBADD = \
     $(TBB_LIB) \
     $(TBB_MALLOC_LIB)
 
+src_sina_probematch_LDADD = \
+    src/libsina.la \
+    $(ARB_PROBE_LIBS)
 
-sina_libs = \
+src_kmer_test_LDADD = \
+    src/libsina.la
+
+src_sina_LDADD = \
     src/libsina.la \
     $(ARB_PROBE_LIBS) \
     $(ARB_HELIX_LIBS)
-
-src_sina_probematch_LDADD = $(sina_libs)
-src_kmer_test_LDADD = $(sina_libs)
 
 arb_pt_server$(EXEEXT): $(ARBHOME)/bin/arb_pt_server$(EXEEXT)
 	cp $< $@
@@ -240,7 +238,7 @@ bindist-bzip2: bindistdir
 
 ### Unit Tests ###
 
-test_libs = $(sina_libs) \
+test_libs = src/libsina.la \
     $(BOOST_UNIT_TEST_FRAMEWORK_LIB) \
     $(BOOST_SYSTEM_LIB)
 
