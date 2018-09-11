@@ -142,17 +142,14 @@ src_libsina_la_LIBADD = \
     $(TBB_LIB) \
     $(TBB_MALLOC_LIB)
 
-src_sina_probematch_LDADD = \
-    src/libsina.la \
-    $(ARB_PROBE_LIBS)
-
-src_kmer_test_LDADD = \
-    src/libsina.la
-
-src_sina_LDADD = \
+sina_libs = \
     src/libsina.la \
     $(ARB_PROBE_LIBS) \
     $(ARB_HELIX_LIBS)
+
+src_sina_probematch_LDADD = $(sina_libs)
+src_kmer_test_LDADD = $(sina_libs)
+src_sina_LDADD = $(sina_libs)
 
 arb_pt_server$(EXEEXT): $(ARBHOME)/bin/arb_pt_server$(EXEEXT)
 	cp $< $@
@@ -238,7 +235,8 @@ bindist-bzip2: bindistdir
 
 ### Unit Tests ###
 
-test_libs = src/libsina.la \
+test_libs = \
+    $(sina_libs) \
     $(BOOST_UNIT_TEST_FRAMEWORK_LIB) \
     $(BOOST_SYSTEM_LIB)
 
