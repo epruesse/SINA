@@ -272,8 +272,10 @@ rw_arb::writer::writer(string outfile)
 }
 
 rw_arb::writer::~writer() {
+    std::cerr << "Saving..." << endl;
     if (arb_fname != ":") // cannot save remote db
         arb->save();
+    std::cerr << "done" << endl;
 }
 
 void
