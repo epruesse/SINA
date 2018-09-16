@@ -1,3 +1,7 @@
+Version 1.3.4:
+ - build binary releases for macOS and Linux (#26)
+ - fix "search.h" missing in source tar ball (#27)
+
 Version 1.3.3:
  - add option --fasta-write-dots; writes dots on edges
  - add option --fasta-write-dna; writes T/t instead of U/u (#24)
@@ -15,6 +19,8 @@ Version 1.3.2:
  - fix memory access failure in cseq
  - fix memory access failure in mseq
  - fix crash on all references removed by filters
+ - don't exit(1) on --help (#9)
+ - added README.md (#5)
 
 Version 1.3.1:
  - add OSX support

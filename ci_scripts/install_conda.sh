@@ -15,7 +15,7 @@ CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib libiconv"
 case "$(uname)" in
     Linux)
 	CONDA_OSNAME=Linux
-	CONDA_PACKAGES="$CONDA_PACKAGES gcc patchelf"
+	CONDA_PACKAGES="$CONDA_PACKAGES gcc patchelf coreutils"
 	;;
     Darwin)
 	CONDA_OSNAME=MacOSX

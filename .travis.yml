@@ -16,6 +16,11 @@ install:
   - ./ci_scripts/install_conda.sh
   - export PATH=$MINICONDA/bin:$PATH
   - find $MINICONDA -name '*.la' -print0 | xargs -0 rm
+  - export LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,$MINICONDA/lib"
+  - case "$(uname)" in
+      Linux) OSNAME=linux;;
+      Darwin) OSNAME=macos;;
+      esac
 
 script:
   - ./autogen.sh
@@ -25,20 +30,28 @@ script:
        --with-boost-libdir=$MINICONDA/lib
        --prefix=$HOME/install
        --disable-docs
-       LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,$MINICONDA/lib"
        || (cat config.log; false)
   - make -j2
   - make check
   - make install
   - $HOME/install/bin/sina --help
-  - if test "$(uname)" = "Linux"; then make dist-bzip2; fi
-  
-#  - make bindist-gzip
-#  - if test `uname` = Linux; then make dist-gzip && make distcheck; fi
-#  - mkdir install
-#  - cd install
-#  - tar -xvzf ../sina-*-$OSNAME.tar.gz
-#  - ./sina --help
+  - DISTCHECK_CONFIGURE_FLAGS="--with-arbhome=$MINICONDA/lib/arb --with-boost=$CONDA_PREFIX --with-boost-libdir=$MINICONDA/lib --disable-docs" make distcheck
+  - if test "$(uname)" = "Linux"; then rm sina-*.tar.gz; fi
+  - ./configure
+       --with-arbhome=$MINICONDA/lib/arb
+       --with-boost=$MINICONDA
+       --with-boost-libdir=$MINICONDA/lib
+       --prefix=$HOME/install
+       --disable-docs
+       --enable-fat-tar
+       || (cat config.log; false)
+  - make bindist-gzip
+  - mkdir install
+  - cd install
+  - tar -xvzf ../sina-*-$OSNAME.tar.gz
+  - rm -rf $MINICONDA; hash -r
+  - ./sina-*/sina --help
+  - cd ..
 
 deploy:
   provider: releases

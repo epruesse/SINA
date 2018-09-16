@@ -12,14 +12,14 @@ get_rpaths_Darwin() {
     otool -l "$1" | grep LC_RPATH -A2 |grep path | awk '{print $2}'
 }
 get_rpaths_Linux() {
-    patchelf --print-rpath "$1" | tr : '\n'
+    patchelf --print-rpath "$1" | tr : '\n' | sed 's|$ORIGIN|'$ORIGIN'|'
 }
 get_rpaths() {
     get_rpaths_$UNAME "$@"
 }
 
 get_needed_Darwin() {
-    otool -L "$1" | tail -n +2 | awk '{print $1}'
+    otool -L "$1" |grep -v CoreFoundation | tail -n +2 | awk '{print $1}'
 }
 get_needed_Linux() {
     patchelf --print-needed "$1"
@@ -41,7 +41,7 @@ remove_rpaths() {
 }
 
 set_rpath_Darwin() {
-    remove_rpath_Darwin "$1"
+    remove_rpaths_Darwin "$1"
     logrun install_name_tool -add_rpath "$2" "$1"
 }
 set_rpath_Linux() {
@@ -52,16 +52,21 @@ set_rpath() {
 }
 
 copy_libs_needed() {
+    echo "Checking libs for $1"
+    ORIGIN=`dirname $1`
     rpaths=$(get_rpaths $1)
-    dtneed=$(get_needed $1 | grep -v /usr/lib)
-    dest=$(dirname $1)/../lib
+    self=`echo ${1##*/} | sed 's/\+/\\\\+/g'`
+    dtneed=$(get_needed $1 | grep -vE "^(/usr/lib|/System)|$self" || true)
+    dest=`realpath $(dirname $1)/../lib`
+    recurse=
     for lib in $dtneed; do
+	#echo "  checking for $lib"
 	name="${lib#@rpath/}"
 	if test -e "$dest/$name"; then
 	    continue;
 	fi
 	source=
-	for path in "" $rpaths /usr/local/lib; do
+	for path in "" $rpaths $LDPATHS; do
 	    if test -e "$path/$name"; then
 		source="$path/$name"
 		break;
@@ -71,19 +76,24 @@ copy_libs_needed() {
 	    echo Missing $name
 	else
 	    echo "$source -> $dest/$name"
-	    cat $source > $dest/$name
+	    cp $source $dest/$name
+	    recurse="$recurse $dest/$name"
 	fi
+    done
+    for lib in $recurse; do
+	copy_libs_needed $lib
     done
 }
 		    
 
-set_rpath_Darwin() {
-    remove_rpaths_Darwin "$1"
-    add_rpath_Darwin "$1" "$2"
-}
-
 make_rpath_relative_Darwin() {
     set_rpath_Darwin "$1" @loader_path/../lib
+}
+make_rpath_relative_Linux() {
+    set_rpath_Linux "$1" '$ORIGIN/../lib/arb/lib:$ORIGIN/../lib'
+}
+make_rpath_relative() {
+    make_rpath_relative_$UNAME "$@"
 }
 
 make_absolute_path_relative_Darwin() {
@@ -97,11 +107,18 @@ make_absolute_path_relative_Darwin() {
 	fi
     done
 }
+make_absolute_path_relative_Linux() {
+    :
+}
+make_absolute_path_relative() {
+    make_absolute_path_relative_$UNAME "$@"
+}
 
 if test "$0" != "-bash"; then
     if test -n "$1"; then
-	make_absolute_path_relative_Darwin "$1"
+	echo Fixing libs for "$1"
+	make_absolute_path_relative "$1"
 	copy_libs_needed "$1"
-	make_rpath_relative_Darwin "$1"
+	make_rpath_relative "$1"
     fi
 fi
