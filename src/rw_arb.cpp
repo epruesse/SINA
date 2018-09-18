@@ -136,7 +136,6 @@ rw_arb::get_options_description(po::options_description& /*main*/,
 void
 rw_arb::validate_vm(po::variables_map& /*vm*/,
                     po::options_description& /*desc*/) {
-//    opts->pt_database = vm["ptdb"].as<string>();
 }
 
 

@@ -109,8 +109,8 @@ void
 Log::validate_vm(po::variables_map& vm,
                  po::options_description& /*desc*/) {
     if (vm["orig-db"].empty()) {
-        if (!vm["ptdb"].empty()) {
-            opts->origdb = vm["ptdb"].as<string>();
+        if (!vm["db"].empty()) {
+            opts->origdb = vm["db"].as<string>();
         }
     }
 }
