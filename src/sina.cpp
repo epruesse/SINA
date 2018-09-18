@@ -337,13 +337,12 @@ parse_options(int argc, char** argv) {
             po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
         }
 
-        Log::validate_vm(vm, opts);
-        rw_arb::validate_vm(vm, opts);
-        rw_fasta::validate_vm(vm, opts);
-        aligner::validate_vm(vm, opts);
-        famfinder::validate_vm(vm, opts);
-        search_filter::validate_vm(vm, opts);
-
+        Log::validate_vm(vm, all_opts);
+        rw_arb::validate_vm(vm, all_opts);
+        rw_fasta::validate_vm(vm, all_opts);
+        aligner::validate_vm(vm, all_opts);
+        famfinder::validate_vm(vm, all_opts);
+        search_filter::validate_vm(vm, all_opts);
 
         if (vm.count("in") == 0) {
             throw logic_error("need input file");
