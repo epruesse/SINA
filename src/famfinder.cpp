@@ -523,8 +523,8 @@ famfinder::_famfinder::operator()(tray t) {
     // no reference => no alignment
     if (vc.size() < opts->fs_req) {
         t.log() << "unable to align: too few relatives (" << vc.size() << ");";
-        //delete t.alignment_reference;
-        //t.alignment_reference = 0;
+        delete t.alignment_reference;
+        t.alignment_reference = 0;
         return t;
     } 
 
