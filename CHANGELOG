@@ -1,3 +1,9 @@
+Version 1.3.5:
+ - report number of references discarded due to configured constraints
+ - fix crash if no acceptable references found for a query
+ - fix --search causes a program option error (#28)
+ - fix race condition in terminating PT server
+
 Version 1.3.4:
  - build binary releases for macOS and Linux (#26)
  - fix "search.h" missing in source tar ball (#27)
