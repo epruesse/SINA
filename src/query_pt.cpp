@@ -65,7 +65,6 @@ using std::vector;
 namespace po = boost::program_options;
 
 
-boost::mutex arb_pt_start;
 
 namespace sina {
 
@@ -99,41 +98,54 @@ query_pt::get_options_description(po::options_description& /*main*/,
 
 void
 query_pt::validate_vm(po::variables_map& /* vm */,
-                           po::options_description& /*desc*/) {
+                      po::options_description& /*desc*/) {
 }
+
+class managed_pt_server {
+    redi::ipstream* process;
+public:
+    managed_pt_server(string portname, string dbname);
+    ~managed_pt_server();
+};
 
 
 struct query_pt::priv_data {
-    priv_data(const char* port, const char* db)
-        : portname(port),
-          dbname(db),
-          arb_pt_server(NULL),
-          range_begin(-1),
+    priv_data()
+        : range_begin(-1),
           range_end(-1),
           find_type_fast(false)
     {}
-    aisc_com *link;
-    T_PT_MAIN com;
-    T_PT_LOCS locs;
+    aisc_com         *link;
+    T_PT_MAIN         com;
+    T_PT_LOCS         locs;
     T_PT_FAMILYFINDER ffinder;
+
     boost::mutex arb_pt_access;
-    string portname;
-    string dbname;
-    redi::ipstream *arb_pt_server;
-    int range_begin;
-    int range_end;
+
+    int  range_begin;
+    int  range_end;
     bool find_type_fast;
 
-    void create_context();
+    static std::map<string, std::weak_ptr<managed_pt_server>> servers;
+    std::shared_ptr<managed_pt_server> server;
+
+    bool            connect_server(string portname);
+    void            disconnect_server();
 };
 
-void
-query_pt::priv_data::create_context() {
+
+bool
+query_pt::priv_data::connect_server(string portname) {
+    boost::mutex::scoped_lock lock(arb_pt_access);
+    GB_ERROR error = NULL;
+    link = aisc_open(portname.c_str(), com, AISC_MAGIC_NUMBER, &error);
+    if (error) {
+        throw query_pt_exception(error);
+    }
     if (!link) {
-        throw query_pt_exception("Could not register connection context with PT server");
+        return false;
     }
 
-    boost::mutex::scoped_lock lock(arb_pt_start);
     if (aisc_create(link,
                     PT_MAIN, com,
                     MAIN_LOCS, PT_LOCS, locs,
@@ -147,35 +159,30 @@ query_pt::priv_data::create_context() {
                     NULL)) {
         throw query_pt_exception("Unable to connect to PT server! (code 03)");
     }
+
+    return true;
+}
+
+void
+query_pt::priv_data::disconnect_server() {
+    boost::mutex::scoped_lock lock(arb_pt_access);
+    aisc_close(link, com);
 }
 
 
-void
-query_pt::init() {
-    // Try to connect to a PT server on the given port. Maybe it's already
-    // running
-    {  
-        boost::mutex::scoped_lock lock(arb_pt_start);
-        GB_ERROR error = NULL;
-        data->link = aisc_open(data->portname.c_str(), data->com, AISC_MAGIC_NUMBER, &error);
-        if (error) {
-           throw query_pt_exception(error);
-        }
-    }
-
-    // If that worked, create context and return.
-    if (data->link) {
-        data->create_context();
-        return;
-    }
-
-    // Check if we have a database file.
-    if (data->dbname.empty()) {
-        // no chance to go on without one
+managed_pt_server::managed_pt_server(string dbname, string portname) {
+    // Check that database specified and file accessible
+    if (dbname.empty()) {
         throw query_pt_exception("Missing reference database");
     }
 
-    // Try to make sure ARBHOME is set
+    struct stat arbdb_stat;
+    if (stat(dbname.c_str(), &arbdb_stat)) {
+        perror("Error accessing ARB database file");
+        throw query_pt_exception("Failed to launch PT server.");
+    }
+
+    // Make sure ARBHOME is set; guess if possible
     const char* ARBHOME = getenv("ARBHOME");
     if (ARBHOME == NULL || strlen(ARBHOME) == 0) {
         ARBHOME = get_arbhome();
@@ -188,12 +195,9 @@ query_pt::init() {
         }
     }
 
-    struct stat ptindex_stat, arbdb_stat;
-    string ptindex = data->dbname + ".index.arb.pt";
-    if (stat(data->dbname.c_str(), &arbdb_stat)) {
-        perror("Error accessing ARB database file");
-        throw query_pt_exception("Failed to launch PT server.");
-    }
+    // (Re)build index if missing or older than database
+    struct stat ptindex_stat;
+    string ptindex = dbname + ".index.arb.pt";
     if (stat(ptindex.c_str(), &ptindex_stat) 
         || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
         if (arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
@@ -203,9 +207,9 @@ query_pt::init() {
         }
 
         vector<string> cmds;
-        cmds.push_back(string("cp ") + data->dbname + " " + data->dbname + ".index.arb");
-        cmds.push_back(string("arb_pt_server -build_clean -D") + data->dbname + ".index.arb");
-        cmds.push_back(string("arb_pt_server -build -D") + data->dbname + ".index.arb");
+        cmds.push_back(string("cp ") + dbname + " " + dbname + ".index.arb");
+        cmds.push_back(string("arb_pt_server -build_clean -D") + dbname + ".index.arb");
+        cmds.push_back(string("arb_pt_server -build -D") + dbname + ".index.arb");
         for (auto& cmd :  cmds) {
             cerr << "Executing \"" << cmd << "\"" << endl
                  << "============================================================" << endl;
@@ -220,79 +224,74 @@ query_pt::init() {
         }
     }
 
-    data->dbname = data->dbname + ".index.arb";
+    // Reset database name to the index version created during build
+    dbname = dbname + ".index.arb";
 
-    int split = data->portname.find(":");
-    string host = data->portname.substr(0, split);
-    string port = data->portname.substr(split+1);
+    // Check portname: allowed are localhost:PORT, :PORT and :SOCKETFILE
+    int split = portname.find(":");
+    string host = portname.substr(0, split);
+    string port = portname.substr(split+1);
     if (!host.empty() && host != "localhost") {
         throw query_pt_exception("Starting a PT server on hosts other than localhost not supported");
     }
 
-    string cmd = string("arb_pt_server -D") + data->dbname + " -T" + data->portname;
+    // Actually launch the server now:
+    string cmd = string("arb_pt_server -D") + dbname + " -T" + portname;
     cerr << "Launching background PT server process..." << endl
          << " command: " << cmd << endl;
-    data->arb_pt_server = new redi::ipstream(cmd,
-                                            redi::pstreams::pstdout|
-                                            redi::pstreams::pstderr);
+    process = new redi::ipstream(cmd, redi::pstreams::pstdout|redi::pstreams::pstderr);
 
     // read the pt server output. once it says "ok"
     // we can be sure that it's ready for connections
     // (connecting at wrong time causes lockup)
     // FIXME: abort if waiting for too long
-    // FIXME: the lockup should be fixed in ARB
     string line;
-    while (std::getline(*data->arb_pt_server, line)) {
+    while (std::getline(*process, line)) {
         cerr << "ARB_PT_SERVER: " << line << endl;
-        if (line == "ok, server is running.") break;
-    }
-
-    cerr << "Launched PT server. Connecting... ";
-    {
-        boost::mutex::scoped_lock lock(arb_pt_start);
-        GB_ERROR error = NULL;
-        data->link = aisc_open(data->portname.c_str(),
-                              data->com, AISC_MAGIC_NUMBER, &error);
-        if (error) {
-           throw query_pt_exception(error);
+        if (line == "ok, server is running.") {
+            break;
         }
     }
 
-    if (!data->link) {
-        cerr << "[FAIL]" << endl;
-        throw("Failed to start PT server. Do you have enough memory?");
-    }
-    cerr << "[OK]" << endl;
-
-    data->create_context();
+    cerr << "Launched PT server." << endl;
 }
 
-void
-query_pt::exit() {
-    if (data->arb_pt_server) { // we started our own pt server.
-        cerr << "Terminating PT server..." << endl;
-        bool kill = false;
-        if (aisc_nput(data->link, PT_MAIN, data->com, MAIN_SHUTDOWN,
-                      "47@#34543df43%&3667gh", NULL)) {
-            cerr << "... PT server not responding" << endl;
-            kill = true;
-        }
-        aisc_close(data->link, data->com);
-        if (kill) {
-            cerr << "... attempting to kill PT server" << endl;
-            data->arb_pt_server->rdbuf()->kill();
-        }
-        string line;
-        while (std::getline(data->arb_pt_server->err(), line)) {
-            cerr << "ARB_PT_SERVER: " << line << endl;
-        }
-        delete data->arb_pt_server;
-    } else { // externally started server => just close connection
-        aisc_close(data->link, data->com);
-    }
-    delete &data;
+managed_pt_server::~managed_pt_server() {
+    cerr << "Terminating PT server..." << endl;
+    process->rdbuf()->kill();
 }
 
+
+std::map<string, std::weak_ptr<managed_pt_server>> query_pt::priv_data::servers;
+
+
+query_pt::query_pt(const char* portname, const char* dbname,
+                   bool fast, int k, int mk, bool norel)
+    : data(new priv_data())
+{
+    if (data->servers.count(portname)) {
+        data->server = data->servers[portname].lock();
+    }
+
+    if (!data->connect_server(portname)) {
+        data->server = std::make_shared<managed_pt_server>(dbname, portname);
+        if (!data->connect_server(portname)) {
+            throw("Failed to start PT server. Do you have enough memory?");
+        }
+        data->servers[portname] = data->server;
+    }
+
+    set_find_type_fast(fast);
+    set_probe_len(k);
+    set_mismatches(mk);
+    set_sort_type(norel);
+}
+
+query_pt::~query_pt() {
+    delete data;
+}
+
+#if 0
 void
 query_pt::restart() {
     cerr << "Trying to restart pt server connection..." << endl;
@@ -303,21 +302,7 @@ query_pt::restart() {
     cerr << "Done. Hopefully." << endl;
     // FIXME: settings need to be restored!
 }
-
-query_pt::query_pt(const char* portname, const char* dbname,
-                   bool fast, int k, int mk, bool norel)
-    : data(new priv_data(portname, dbname))
-{
-    init();
-    set_find_type_fast(fast);
-    set_probe_len(k);
-    set_mismatches(mk);
-    set_sort_type(norel);
-}
-
-query_pt::~query_pt() {
-    exit();
-}
+#endif
 
 void
 query_pt::set_find_type_fast(bool fast) {
@@ -443,7 +428,7 @@ match_retry:
             cerr << "Retried too often. Aborting." << endl;
             return 0;
         }
-        restart();
+        //FIXME restart();
         goto match_retry;
     }
 

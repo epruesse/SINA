@@ -48,10 +48,6 @@ public:
 
 
 class query_pt : public search {
-private:
-    void init();
-    void exit();
-    void restart();
 public:
     query_pt(const char* portname,
              const char* dbname,
