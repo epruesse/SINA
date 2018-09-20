@@ -393,6 +393,11 @@ query_pt::match(std::vector<cseq> &family, const cseq& queryc,
     int maxfail = 5;
     int range_cover_left = range_cover;
     int range_cover_right = range_cover;
+    int matches = 0;
+    int skipped_max_score = 0;
+    int skipped_broken = 0;
+    int skipped_min_len = 0;
+    int skipped_noid = 0;
 
     if (!query || strlen(query) < 20) {
         cerr << "Sequence too short (" << strlen(query)
@@ -450,10 +455,9 @@ match_retry:
         return 0;
     }
 
-    double f_relscore = 0.f;
-    int matches = 0, skipped = 0;
-    char *f_name;
 
+    char   *f_name;
+    double  f_relscore = 0.f;
     do {
         err = aisc_get(data.link, PT_FAMILYLIST, f_list,
                        FAMILYLIST_NAME, &f_name,
@@ -491,23 +495,28 @@ match_retry:
                     sequence_broken=true;
                 }
                 seq.setScore(f_relscore);
-                if (max_score >= 2 /*|| queryc.identity_with(seq) <= max_scoreFIXME*/) {
-                    if (!sequence_broken && (long)seq.size() > min_len &&
-                        (!noid || !boost::algorithm::icontains(seq.getBases(),query)) ) {
-                        family.push_back(seq);
+                /*if (max_score <= 2 && queryc.identity_with(seq) <= max_score) {
+                    skipped_max_score ++;
+                    } else*/
+                if (sequence_broken) {
+                    skipped_broken ++;
+                } else if ((long)seq.size() < min_len) {
+                    skipped_min_len ++;
+                } else if (noid && boost::algorithm::icontains(seq.getBases(), query)) {
+                    skipped_noid ++;
+                } else {
+                    matches ++;
 
-                        ++matches;
-                        if (num_full && (long)seq.size() > full_min_len)
-                            num_full--;
-                        if (range_cover_right && 
-                            seq.getById(seq.size()-1).getPosition() >= data.range_end)
-                            range_cover_right--;
-                        if (range_cover_left &&
-                            seq.begin()->getPosition() <= data.range_begin)
-                            range_cover_left--;
-                    } else {
-                        skipped++;
-                    }
+                    family.push_back(seq);
+
+                    if (num_full && (long)seq.size() > full_min_len)
+                        num_full--;
+                    if (range_cover_right &&
+                        seq.getById(seq.size()-1).getPosition() >= data.range_end)
+                        range_cover_right--;
+                    if (range_cover_left &&
+                        seq.begin()->getPosition() <= data.range_begin)
+                        range_cover_left--;
                 }
             } else {
                 if (f_relscore <= max_score) {
@@ -567,8 +576,21 @@ match_retry:
         }
     }
 
-    if (skipped>0) {
-        std::cerr << "ptmatch skipped " << skipped << " sequences" << endl;
+    if (skipped_max_score || skipped_broken || skipped_min_len || skipped_noid) {
+        cerr << "ptmatch skipped ";
+        if (skipped_max_score) {
+            cerr << skipped_max_score << " (msc_max)";
+        }
+        if (skipped_broken) {
+            cerr << skipped_broken << " (broken)";
+        }
+        if (skipped_min_len) {
+            cerr << skipped_min_len << " (min_len)";
+        }
+        if (skipped_noid) {
+            cerr << skipped_noid << " (noid)";
+        }
+        cerr << " sequences" << endl;
     }
 
     return f_relscore;
