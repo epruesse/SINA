@@ -322,7 +322,6 @@ class aligner::galigner
     void choose_transition(cseq&, cseq&, MASTER&, SCORING_SCHEME&, ostream&);
     template<typename TRANSITION, typename MASTER>
     void do_align(cseq&, cseq&, MASTER&, TRANSITION&, ostream&);
-    void write_attrs(cseq &c);
 public:
     tray operator()(tray);
     std::string getName() const {return "galigner";}
@@ -440,7 +439,7 @@ aligner::galigner::operator()(tray t) {
                 BOOST_ASSERT(bases == c.getBases());
            }
             c.setWidth(it->getWidth());
-            write_attrs(c);
+            c.set_attr(query_arb::fn_date, make_datetime());
             c.set_attr(query_arb::fn_qual, 100);
             c.set_attr(query_arb::fn_idty, 100.f);
             c.set_attr(query_arb::fn_head, 0);
@@ -506,18 +505,11 @@ aligner::galigner::operator()(tray t) {
         c.set_attr(query_arb::fn_idty, 100.f*idty);
     }
 
-    write_attrs(c);
+    c.set_attr(query_arb::fn_date, make_datetime());
     c.set_attr("align_filter_slv", t.astats->getName());
     t.aligned_sequence = &c;
 
     return t;
-}
-
-void
-aligner::galigner::write_attrs(cseq &c) {
-    c.set_attr(query_arb::fn_date, make_datetime());
-    // FIXME: calculate nuc term somewhere sensible
-    // c.set_attr(query_arb::fn_nuc_gene, (int)(calc_nuc_term(opts->gene_start, opts->gene_end, c)));
 }
 
 template<typename SCORING_SCHEME, typename MASTER>
