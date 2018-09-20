@@ -316,7 +316,6 @@ class aligner::galigner
     : public PipeElement<tray, tray> {
     friend class aligner;
     galigner();
-    cseq_comparator comparator;
 
     template<typename SCORING_SCHEME, typename MASTER>
     void choose_transition(cseq&, cseq&, MASTER&, SCORING_SCHEME&, ostream&);
@@ -336,10 +335,6 @@ aligner::make_aligner() {
 
 aligner::galigner::galigner()
 {
-    comparator = cseq_comparator(CMP_IUPAC_OPTIMISTIC,
-                                 CMP_DIST_NONE,
-                                 CMP_COVER_OVERLAP,
-                                 false);
 }
 
 
@@ -498,9 +493,13 @@ aligner::galigner::operator()(tray t) {
     }
 
     if (opts->calc_idty) {
+        cseq_comparator calc_id(CMP_IUPAC_OPTIMISTIC,
+                                CMP_DIST_NONE,
+                                CMP_COVER_OVERLAP,
+                                false);
         float idty = 0;
         for (const cseq &s: vc) {
-            idty = std::max(idty, comparator(c, s));
+            idty = std::max(idty, calc_id(c, s));
         }
         c.set_attr(query_arb::fn_idty, 100.f*idty);
     }
