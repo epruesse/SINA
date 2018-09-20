@@ -230,7 +230,7 @@ retry:
         goto retry;
     }
     if (!opts->extra_fields.empty()) {
-        BOOST_FOREACH(string f, opts->v_extra_fields) {
+        for (string& f: opts->v_extra_fields) {
             arb->loadKey(*t.input_sequence, f);
         }
     }

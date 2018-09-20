@@ -234,8 +234,7 @@ Log::printer::operator()(tray t) {
     tmp << "sequence_score: " << c.getScore() << endl;
 
     const std::map<string,cseq::variant>& attrs = c.get_attrs();
-    pair<string,cseq::variant> ap;
-    BOOST_FOREACH(ap, attrs) {
+    for (auto& ap: attrs) {
         tmp << ap.first << ": "
             << boost::apply_visitor(lexical_cast_visitor<string>(), 
                                     ap.second) << endl;

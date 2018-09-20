@@ -370,7 +370,7 @@ rw_fasta::writer::operator()(tray t) {
         out << endl;
         break;
     case FASTA_META_HEADER:
-        BOOST_FOREACH(ap, attrs) {
+        for (auto& ap: attrs) {
             if (ap.first != query_arb::fn_family
                 && ap.first != query_arb::fn_fullname) {
                 out << " [" << ap.first << "="
@@ -384,7 +384,7 @@ rw_fasta::writer::operator()(tray t) {
     case FASTA_META_COMMENT:
         out << endl;
 
-        BOOST_FOREACH(ap, attrs) {
+        for (auto& ap: attrs) {
             if (ap.first != query_arb::fn_family) {
                 out << "; " << ap.first << "="
                     << boost::apply_visitor(lexical_cast_visitor<string>(),
@@ -399,7 +399,7 @@ rw_fasta::writer::operator()(tray t) {
         // print header
         if (seqnum == 0) {
             out_csv << "name";
-            BOOST_FOREACH(ap, attrs) {
+            for (auto& ap: attrs) {
               if (ap.first != query_arb::fn_family) {
                   out_csv << "," << escape_string(ap.first);
               }
@@ -408,7 +408,7 @@ rw_fasta::writer::operator()(tray t) {
         }
 
         out_csv << c.getName();
-        BOOST_FOREACH(ap, attrs) {
+        for (auto& ap: attrs) {
             if (ap.first != query_arb::fn_family) {
                 out_csv << ","
                         << escape_string(

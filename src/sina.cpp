@@ -147,7 +147,7 @@ std::ostream& operator<<(std::ostream& out,
 void show_conf(po::variables_map& vm) {
     std::cerr << "Effective parameters:" << endl;
     std::pair<std::string,po::variable_value> pv;
-    BOOST_FOREACH(pv, vm) {
+    for (auto& pv: vm) {
         std::cerr << pv.first << " = ";
         try {
             std::cerr << pv.second.value() << endl;
