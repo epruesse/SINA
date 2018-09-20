@@ -304,8 +304,6 @@ void famfinder::validate_vm(po::variables_map& vm,
 
 #if 0
 void fixme() {
-    query_arb *arb = query_arb::getARBDB(vm["ptdb"].as<string>());
-
     int termini_begin = -1, termini_end = -1;
     string termini = arb->getFilter("termini");
     if (!termini.empty()) {
@@ -316,7 +314,7 @@ void fixme() {
                   << endl;
     }
 
-    /* FIXME: find a good way to do this with program_options
+    // FIXME: find a good way to do this with program_options
     if (opts->gene_start < 1) {
         if (termini_begin == -1) {
             opts->gene_start = 0;
@@ -575,8 +573,8 @@ famfinder::_famfinder::operator()(tray t) {
     // no reference => no alignment
     if (vc.size() < opts->fs_req) {
         t.log() << "unable to align: too few relatives (" << vc.size() << ");";
-        //delete t.alignment_reference;
-        //t.alignment_reference = 0;
+        delete t.alignment_reference;
+        t.alignment_reference = 0;
         return t;
     } 
 

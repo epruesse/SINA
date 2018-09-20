@@ -165,20 +165,20 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
  
     // we need a DB to search
     if (vm.count("search-db") == 0) {  
-        // default to alignment db (ptdb) if no search db configured
-        if (vm.count("ptdb") && !vm["ptdb"].as<string>().empty()) {
+        // default to alignment db if no search db configured
+        if (vm.count("db") && !vm["db"].as<string>().empty()) {
            std::vector<string> cmd(2);
            cmd[0]="--search-db";
-           cmd[1]=vm["ptdb"].as<string>();
+           cmd[1]=vm["db"].as<string>();
            po::store(po::command_line_parser(cmd).options(desc).run(), vm);
         } else {
           throw std::logic_error("need search-db to search");
         }
     }
 
-    // search-port defaults to ptport if search-db==ptdb
+    // search-port defaults to ptport if search-db==db
     if (vm["search-port"].defaulted() && 
-        vm["ptdb"].as<string>() == vm["search-db"].as<string>()) {
+        vm["db"].as<string>() == vm["search-db"].as<string>()) {
         std::vector<string> cmd(2);
         cmd[0]="--search-port";
         cmd[1]=vm["ptport"].as<string>();

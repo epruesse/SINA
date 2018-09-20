@@ -53,7 +53,7 @@ else
 
     conda config --system --set always_yes yes --set changeps1 no
     conda update -q conda
-    for channel in r defaults bioconda conda-forge; do
+    for channel in defaults bioconda conda-forge; do
 	conda config --system --add channels $channel
     done
     conda update -q conda
