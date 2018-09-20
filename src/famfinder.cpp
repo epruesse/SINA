@@ -468,7 +468,7 @@ famfinder::_famfinder::select_astats(tray& t) {
 
     // load default as per --filter
     if (opts->posvar_filter != "") {
-        BOOST_FOREACH(alignment_stats &as, vastats) {
+        for (alignment_stats &as: vastats) {
             if (as.getName() == opts->posvar_filter
                 || as.getName() == opts->posvar_filter + ":ALL"
                 || as.getName() == opts->posvar_filter + ":all"
@@ -489,10 +489,10 @@ famfinder::_famfinder::select_astats(tray& t) {
         int best_count = 0;
         typedef pair<string, alignment_stats> vastats_t;
         alignment_stats *best=0;
-        BOOST_FOREACH(alignment_stats& p, vastats) {
+        for (alignment_stats& p: vastats) {
             string filter_name = p.getName();
             int n = 0;
-            BOOST_FOREACH(cseq &r, vc) {
+            for (cseq &r: vc) {
                 string f = opts->posvar_filter + ":" + r.get_attr<string>(opts->posvar_autofilter_field);
                 if (boost::algorithm::istarts_with(f, filter_name)) {
                     ++n;
@@ -547,7 +547,7 @@ famfinder::_famfinder::operator()(tray t) {
                  opts->fs_full_len, opts->fs_cover_gene, opts->fs_leave_query_out);
     
     stringstream tmp;
-    BOOST_FOREACH(cseq &r, vc) {
+    for (cseq &r: vc) {
         if (opts->posvar_autofilter_field.length() > 0) {
             arb->loadKey(r,opts->posvar_autofilter_field);
         }

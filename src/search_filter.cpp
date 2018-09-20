@@ -232,7 +232,7 @@ search_filter::search::search()
     if (opts->search_all) {
         vector<string> names = arb->getSequenceNames();
         boost::progress_display p(arb->getSeqCount(), std::cerr);
-        BOOST_FOREACH(string& name, names) {
+        for (string& name: names) {
             sequences.push_back(&arb->getCseq(name));
             ++p;
         }
@@ -315,7 +315,7 @@ search_filter::search::operator()(tray t) {
 
     string bases = c->getBases();
     if (opts->search_all) {
-        BOOST_FOREACH(cseq *r, sequences) {
+        for (cseq *r: sequences) {
             r->setScore(opts->comparator(*c, *r));
         }
         vector<cseq*>::iterator it = sequences.begin();
@@ -346,7 +346,7 @@ search_filter::search::operator()(tray t) {
             vc.erase(it, vc.end());
         }
 
-        BOOST_FOREACH(cseq &r, vc) {
+        for (cseq &r: vc) {
             r.setScore(opts->comparator(*c,r));
         }
 
@@ -365,13 +365,13 @@ search_filter::search::operator()(tray t) {
 
     stringstream result;
     map<string, vector<vector<string> > > group_names_map;
-    BOOST_FOREACH(cseq &r, vc) {
+    for (cseq &r: vc) {
         arb->loadKey(r, "acc");
         arb->loadKey(r, "version");
         arb->loadKey(r, "start");
         arb->loadKey(r, "stop");
 
-        BOOST_FOREACH(string s, opts->v_lca_fields) {
+        for (string& s: opts->v_lca_fields) {
             arb->loadKey(r, s.c_str());
             string tax_path = r.get_attr<string>(s.c_str());
             if (tax_path == "Unclassified;") continue;
@@ -390,7 +390,7 @@ search_filter::search::operator()(tray t) {
                << " ";
 
         string acc = r.get_attr<string>("acc");
-        BOOST_FOREACH(string s, opts->v_copy_fields) {
+        for (string& s: opts->v_copy_fields) {
             arb->loadKey(r,s);
             string v = r.get_attr<string>(s);
             c->set_attr<string>(string("copy_")+acc+string("_")+s, v);
@@ -398,10 +398,10 @@ search_filter::search::operator()(tray t) {
     }
     c->set_attr<string>("nearest_slv", result.str());
 
-    BOOST_FOREACH(string s, opts->v_lca_fields) {
+    for (string& s: opts->v_lca_fields) {
         stringstream result;
         vector<vector<string> > group_names = group_names_map[s];
-        BOOST_FOREACH(vector<string>& vs, group_names) {
+        for (vector<string>& vs: group_names) {
             reverse(vs.begin(), vs.end());
         }
         int outliers = vc.size() * (1 - opts->lca_quorum);
@@ -422,7 +422,7 @@ search_filter::search::operator()(tray t) {
                 outliers--;
                 continue;
             }
-            BOOST_FOREACH(vector<string>& vs, group_names) {
+            for (vector<string>& vs: group_names) {
                 vs.pop_back();
             }
             result << name << ";";

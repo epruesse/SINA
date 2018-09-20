@@ -492,7 +492,7 @@ aligner::galigner::operator()(tray t) {
 
     if (opts->write_used_rels) {
         stringstream tmp;
-        BOOST_FOREACH(cseq &s, vc) {
+        for (const cseq &s: vc) {
             tmp << s.getName() << " ";
         }
         c.set_attr(query_arb::fn_used_rels, tmp.str());
@@ -500,7 +500,7 @@ aligner::galigner::operator()(tray t) {
 
     if (opts->calc_idty) {
         float idty = 0;
-        BOOST_FOREACH(cseq &s, vc) {
+        for (const cseq &s: vc) {
             idty = std::max(idty, comparator(c, s));
         }
         c.set_attr(query_arb::fn_idty, 100.f*idty);
