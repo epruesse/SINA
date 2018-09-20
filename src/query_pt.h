@@ -38,6 +38,15 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
+class query_pt_exception : public std::exception {
+    std::string message;
+public:
+    query_pt_exception(std::string _message) throw();
+    ~query_pt_exception() throw();
+    virtual const char* what() const throw();
+};
+
+
 class query_pt : public search {
 private:
     void init();
@@ -102,13 +111,6 @@ public:
     void set_range(int startpos, int stoppos);
     void unset_range();
 
-    class exception : public std::exception {
-        std::string message;
-    public:
-        exception(std::string _message) throw();
-        ~exception() throw();
-        virtual const char* what() const throw();
-    };
     static void get_options_description(boost::program_options::options_description& all,
                                         boost::program_options::options_description& adv);
     static void validate_vm(boost::program_options::variables_map&,

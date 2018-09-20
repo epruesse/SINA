@@ -130,7 +130,7 @@ struct query_pt::priv_data {
 void
 query_pt::priv_data::create_context() {
     if (!link) {
-        throw exception("Could not register connection context with PT server");
+        throw query_pt_exception("Could not register connection context with PT server");
     }
 
     boost::mutex::scoped_lock lock(arb_pt_start);
@@ -138,14 +138,14 @@ query_pt::priv_data::create_context() {
                     PT_MAIN, com,
                     MAIN_LOCS, PT_LOCS, locs,
                     NULL)) {
-        throw exception("Unable to connect to PT server! (code 02)");
+        throw query_pt_exception("Unable to connect to PT server! (code 02)");
     }
 
     if (aisc_create(link,
                     PT_LOCS, locs,
                     LOCS_FFINDER, PT_FAMILYFINDER, ffinder,
                     NULL)) {
-        throw exception("Unable to connect to PT server! (code 03)");
+        throw query_pt_exception("Unable to connect to PT server! (code 03)");
     }
 }
 
@@ -159,7 +159,7 @@ query_pt::init() {
         GB_ERROR error = NULL;
         data.link = aisc_open(data.portname.c_str(), data.com, AISC_MAGIC_NUMBER, &error);
         if (error) {
-           throw exception(error);
+           throw query_pt_exception(error);
         }
     }
 
@@ -172,7 +172,7 @@ query_pt::init() {
     // Check if we have a database file.
     if (data.dbname.empty()) {
         // no chance to go on without one
-        throw exception("Missing reference database");
+        throw query_pt_exception("Missing reference database");
     }
 
     // Try to make sure ARBHOME is set
@@ -192,7 +192,7 @@ query_pt::init() {
     string ptindex = data.dbname + ".index.arb.pt";
     if (stat(data.dbname.c_str(), &arbdb_stat)) {
         perror("Error accessing ARB database file");
-        throw exception("Failed to launch PT server.");
+        throw query_pt_exception("Failed to launch PT server.");
     }
     if (stat(ptindex.c_str(), &ptindex_stat) 
         || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
@@ -216,7 +216,7 @@ query_pt::init() {
 
         if (stat(ptindex.c_str(), &ptindex_stat) 
             || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-            throw exception("Failed to (re)build PT server index! (out of memory?)");
+            throw query_pt_exception("Failed to (re)build PT server index! (out of memory?)");
         }
     }
 
@@ -226,7 +226,7 @@ query_pt::init() {
     string host = data.portname.substr(0, split);
     string port = data.portname.substr(split+1);
     if (!host.empty() && host != "localhost") {
-        throw exception("Starting a PT server on hosts other than localhost not supported");
+        throw query_pt_exception("Starting a PT server on hosts other than localhost not supported");
     }
 
     string cmd = string("arb_pt_server -D") + data.dbname + " -T" + data.portname;
@@ -254,7 +254,7 @@ query_pt::init() {
         data.link = aisc_open(data.portname.c_str(), 
                               data.com, AISC_MAGIC_NUMBER, &error);
         if (error) {
-           throw exception(error);
+           throw query_pt_exception(error);
         }
     }
 
@@ -596,16 +596,16 @@ match_retry:
     return f_relscore;
 }
 
-query_pt::exception::exception(std::string msg) throw()
+query_pt_exception::query_pt_exception(std::string msg) throw()
     : message(msg)
 {
 }
 
-query_pt::exception::~exception() throw() {
+query_pt_exception::~query_pt_exception() throw() {
 }
 
 const char*
-query_pt::exception::what() const throw() {
+query_pt_exception::what() const throw() {
     return message.c_str();
 }
 
