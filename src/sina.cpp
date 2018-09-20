@@ -220,7 +220,7 @@ parse_options(int argc, char** argv) {
     aligner::get_options_description(opts, adv_opts);
     famfinder::get_options_description(opts, adv_opts);
     search_filter::get_options_description(opts, adv_opts);
-
+    query_pt::get_options_description(opts, adv_opts);
 
     po::options_description all_opts(opts);
     all_opts.add(adv_opts);
@@ -343,6 +343,7 @@ parse_options(int argc, char** argv) {
         aligner::validate_vm(vm, all_opts);
         famfinder::validate_vm(vm, all_opts);
         search_filter::validate_vm(vm, all_opts);
+        query_pt::validate_vm(vm, all_opts);
 
         if (vm.count("in") == 0) {
             throw logic_error("need input file");

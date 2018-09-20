@@ -109,9 +109,11 @@ public:
         ~exception() throw();
         virtual const char* what() const throw();
     };
+    static void get_options_description(boost::program_options::options_description& all,
+                                        boost::program_options::options_description& adv);
+    static void validate_vm(boost::program_options::variables_map&,
+                            boost::program_options::options_description&);
 
-    static boost::program_options::options_description get_options_description();
-    static void validate_vm(boost::program_options::variables_map&);
 private:
     struct priv_data;
     priv_data &data;

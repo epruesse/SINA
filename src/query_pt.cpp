@@ -87,19 +87,19 @@ const char* get_arbhome() {
     return NULL;
 }
 
+
 struct query_pt::options {
 };
 struct query_pt::options *query_pt::opts;
 
-po::options_description
-query_pt::get_options_description() {
-    po::options_description od("ARB PT-server search");
-    opts =  new struct query_pt::options();
-    od.add_options()
-        ;
+void
+query_pt::get_options_description(po::options_description& /*main*/,
+                                  po::options_description& /*adv*/) {
 }
 
-void query_pt::validate_vm(po::variables_map& vm) {
+void
+query_pt::validate_vm(po::variables_map& /* vm */,
+                           po::options_description& /*desc*/) {
 }
 
 
