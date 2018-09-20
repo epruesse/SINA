@@ -118,7 +118,7 @@ public:
 
 private:
     struct priv_data;
-    priv_data &data;
+    priv_data *data;
     struct options;
     static struct options *opts;
 };

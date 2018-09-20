@@ -157,20 +157,20 @@ query_pt::init() {
     {  
         boost::mutex::scoped_lock lock(arb_pt_start);
         GB_ERROR error = NULL;
-        data.link = aisc_open(data.portname.c_str(), data.com, AISC_MAGIC_NUMBER, &error);
+        data->link = aisc_open(data->portname.c_str(), data->com, AISC_MAGIC_NUMBER, &error);
         if (error) {
            throw query_pt_exception(error);
         }
     }
 
     // If that worked, create context and return.
-    if (data.link) { 
-        data.create_context();
+    if (data->link) {
+        data->create_context();
         return;
     }
 
     // Check if we have a database file.
-    if (data.dbname.empty()) {
+    if (data->dbname.empty()) {
         // no chance to go on without one
         throw query_pt_exception("Missing reference database");
     }
@@ -189,8 +189,8 @@ query_pt::init() {
     }
 
     struct stat ptindex_stat, arbdb_stat;
-    string ptindex = data.dbname + ".index.arb.pt";
-    if (stat(data.dbname.c_str(), &arbdb_stat)) {
+    string ptindex = data->dbname + ".index.arb.pt";
+    if (stat(data->dbname.c_str(), &arbdb_stat)) {
         perror("Error accessing ARB database file");
         throw query_pt_exception("Failed to launch PT server.");
     }
@@ -203,9 +203,9 @@ query_pt::init() {
         }
 
         vector<string> cmds;
-        cmds.push_back(string("cp ") + data.dbname + " " + data.dbname + ".index.arb");
-        cmds.push_back(string("arb_pt_server -build_clean -D") + data.dbname + ".index.arb");
-        cmds.push_back(string("arb_pt_server -build -D") + data.dbname + ".index.arb");
+        cmds.push_back(string("cp ") + data->dbname + " " + data->dbname + ".index.arb");
+        cmds.push_back(string("arb_pt_server -build_clean -D") + data->dbname + ".index.arb");
+        cmds.push_back(string("arb_pt_server -build -D") + data->dbname + ".index.arb");
         for (auto& cmd :  cmds) {
             cerr << "Executing \"" << cmd << "\"" << endl
                  << "============================================================" << endl;
@@ -220,19 +220,19 @@ query_pt::init() {
         }
     }
 
-    data.dbname = data.dbname + ".index.arb";
+    data->dbname = data->dbname + ".index.arb";
 
-    int split = data.portname.find(":");
-    string host = data.portname.substr(0, split);
-    string port = data.portname.substr(split+1);
+    int split = data->portname.find(":");
+    string host = data->portname.substr(0, split);
+    string port = data->portname.substr(split+1);
     if (!host.empty() && host != "localhost") {
         throw query_pt_exception("Starting a PT server on hosts other than localhost not supported");
     }
 
-    string cmd = string("arb_pt_server -D") + data.dbname + " -T" + data.portname;
+    string cmd = string("arb_pt_server -D") + data->dbname + " -T" + data->portname;
     cerr << "Launching background PT server process..." << endl
          << " command: " << cmd << endl;
-    data.arb_pt_server = new redi::ipstream(cmd,
+    data->arb_pt_server = new redi::ipstream(cmd,
                                             redi::pstreams::pstdout|
                                             redi::pstreams::pstderr);
 
@@ -242,7 +242,7 @@ query_pt::init() {
     // FIXME: abort if waiting for too long
     // FIXME: the lockup should be fixed in ARB
     string line;
-    while (std::getline(*data.arb_pt_server, line)) {
+    while (std::getline(*data->arb_pt_server, line)) {
         cerr << "ARB_PT_SERVER: " << line << endl;
         if (line == "ok, server is running.") break;
     }
@@ -251,44 +251,44 @@ query_pt::init() {
     {
         boost::mutex::scoped_lock lock(arb_pt_start);
         GB_ERROR error = NULL;
-        data.link = aisc_open(data.portname.c_str(), 
-                              data.com, AISC_MAGIC_NUMBER, &error);
+        data->link = aisc_open(data->portname.c_str(),
+                              data->com, AISC_MAGIC_NUMBER, &error);
         if (error) {
            throw query_pt_exception(error);
         }
     }
 
-    if (!data.link) {
+    if (!data->link) {
         cerr << "[FAIL]" << endl;
         throw("Failed to start PT server. Do you have enough memory?");
     }
     cerr << "[OK]" << endl;
 
-    data.create_context();
+    data->create_context();
 }
 
 void
 query_pt::exit() {
-    if (data.arb_pt_server) { // we started our own pt server.
+    if (data->arb_pt_server) { // we started our own pt server.
         cerr << "Terminating PT server..." << endl;
         bool kill = false;
-        if (aisc_nput(data.link, PT_MAIN, data.com, MAIN_SHUTDOWN,
+        if (aisc_nput(data->link, PT_MAIN, data->com, MAIN_SHUTDOWN,
                       "47@#34543df43%&3667gh", NULL)) {
             cerr << "... PT server not responding" << endl;
             kill = true;
         }
-        aisc_close(data.link, data.com);
+        aisc_close(data->link, data->com);
         if (kill) {
             cerr << "... attempting to kill PT server" << endl;
-            data.arb_pt_server->rdbuf()->kill();
+            data->arb_pt_server->rdbuf()->kill();
         }
         string line;
-        while (std::getline(data.arb_pt_server->err(), line)) {
+        while (std::getline(data->arb_pt_server->err(), line)) {
             cerr << "ARB_PT_SERVER: " << line << endl;
         }
-        delete data.arb_pt_server;
+        delete data->arb_pt_server;
     } else { // externally started server => just close connection
-        aisc_close(data.link, data.com);
+        aisc_close(data->link, data->com);
     }
     delete &data;
 }
@@ -306,7 +306,7 @@ query_pt::restart() {
 
 query_pt::query_pt(const char* portname, const char* dbname,
                    bool fast, int k, int mk, bool norel)
-    : data(*(new priv_data(portname,dbname)))
+    : data(new priv_data(portname, dbname))
 {
     init();
     set_find_type_fast(fast);
@@ -321,20 +321,20 @@ query_pt::~query_pt() {
 
 void
 query_pt::set_find_type_fast(bool fast) {
-    boost::mutex::scoped_lock lock(data.arb_pt_access);
-    int err = aisc_put(data.link, 
-                       PT_FAMILYFINDER, data.ffinder,
+    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    int err = aisc_put(data->link,
+                       PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_FIND_TYPE, fast?1:0,
                        NULL);
     if (err) cerr << "Unable to set find_type" << endl;
-    else data.find_type_fast = fast;
+    else data->find_type_fast = fast;
 }
 
 void
 query_pt::set_probe_len(int len) {
-    boost::mutex::scoped_lock lock(data.arb_pt_access);
-    int err = aisc_put(data.link,
-                       PT_FAMILYFINDER, data.ffinder,
+    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    int err = aisc_put(data->link,
+                       PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_PROBE_LEN, len,
                        NULL);
     if (err) cerr << "Unable to set probe len" << endl;
@@ -342,9 +342,9 @@ query_pt::set_probe_len(int len) {
 
 void
 query_pt::set_mismatches(int len) {
-    boost::mutex::scoped_lock lock(data.arb_pt_access);
-    int err = aisc_put(data.link,
-                       PT_FAMILYFINDER, data.ffinder,
+    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    int err = aisc_put(data->link,
+                       PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_MISMATCH_NUMBER, len,
                        NULL);
 
@@ -353,9 +353,9 @@ query_pt::set_mismatches(int len) {
 
 void
 query_pt::set_sort_type(bool absolute) {
-    boost::mutex::scoped_lock lock(data.arb_pt_access);
-    int err = aisc_put(data.link,
-                       PT_FAMILYFINDER, data.ffinder,
+    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    int err = aisc_put(data->link,
+                       PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_SORT_TYPE, absolute?0:1,
                        NULL);
     if (err) cerr << "Unable to set sort type" << endl;
@@ -363,18 +363,18 @@ query_pt::set_sort_type(bool absolute) {
 
 void
 query_pt::set_range(int startpos, int stoppos) {
-    boost::mutex::scoped_lock lock(data.arb_pt_access);
+    boost::mutex::scoped_lock lock(data->arb_pt_access);
 /*
-    int err = aisc_put(data.link,
-                       PT_FAMILYFINDER, data.ffinder,
+    int err = aisc_put(data->link,
+                       PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_RANGE_STARTPOS, startpos,
                        FAMILYFINDER_RANGE_ENDPOS, stoppos,
                        NULL);
     if (err) cerr << "Unable to set matching range" << endl;
 */
 
-    data.range_begin = startpos;
-    data.range_end = stoppos;
+    data->range_begin = startpos;
+    data->range_end = stoppos;
 }
 
 void
@@ -413,27 +413,27 @@ query_pt::match(std::vector<cseq> &family, const cseq& queryc,
 
 match_retry:
     family.reserve(max_match);
-    boost::mutex::scoped_lock lock(data.arb_pt_access);
+    boost::mutex::scoped_lock lock(data->arb_pt_access);
     
 /*
     if (max_score > 1 && !noid) {
         // if we really only want the top max_match, 
         // limit sorting to that amount. if we have a max_score,
         // we might as well have the pt server sort it all.
-        aisc_put(data.link, 
-                       PT_FAMILYFINDER, data.ffinder,
+        aisc_put(data->link,
+                       PT_FAMILYFINDER, data->ffinder,
                  FAMILYFINDER_SORT_MAX, max_match,
                  NULL);
     } else {
-        aisc_put(data.link,
-                       PT_FAMILYFINDER, data.ffinder,
+        aisc_put(data->link,
+                       PT_FAMILYFINDER, data->ffinder,
                  FAMILYFINDER_SORT_MAX, 0,
                  NULL);
     }
 */
 
-    int err = aisc_put(data.link,
-                       PT_FAMILYFINDER, data.ffinder,
+    int err = aisc_put(data->link,
+                       PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_FIND_FAMILY, &bs,
                        NULL);
     if (err) {
@@ -447,8 +447,8 @@ match_retry:
         goto match_retry;
     }
 
-    err = aisc_get(data.link,
-                   PT_FAMILYFINDER, data.ffinder,
+    err = aisc_get(data->link,
+                   PT_FAMILYFINDER, data->ffinder,
                    FAMILYFINDER_FAMILY_LIST, f_list.as_result_param(),
                    NULL);
     if (err || !f_list.exists() ) {
@@ -459,7 +459,7 @@ match_retry:
     char   *f_name;
     double  f_relscore = 0.f;
     do {
-        err = aisc_get(data.link, PT_FAMILYLIST, f_list,
+        err = aisc_get(data->link, PT_FAMILYLIST, f_list,
                        FAMILYLIST_NAME, &f_name,
                        FAMILYLIST_REL_MATCHES, &f_relscore,
                        FAMILYLIST_NEXT, f_list.as_result_param(),
@@ -475,7 +475,7 @@ match_retry:
             continue;
         }
 
-        if (data.find_type_fast) {
+        if (data->find_type_fast) {
             f_relscore *= 4;
         }
 
@@ -512,10 +512,10 @@ match_retry:
                     if (num_full && (long)seq.size() > full_min_len)
                         num_full--;
                     if (range_cover_right &&
-                        seq.getById(seq.size()-1).getPosition() >= data.range_end)
+                        seq.getById(seq.size()-1).getPosition() >= data->range_end)
                         range_cover_right--;
                     if (range_cover_left &&
-                        seq.begin()->getPosition() <= data.range_begin)
+                        seq.begin()->getPosition() <= data->range_begin)
                         range_cover_left--;
                 }
             } else {
@@ -534,7 +534,7 @@ match_retry:
     // get full length sequence
     if (arb) {
         while (f_list.exists() && num_full + range_cover_right + range_cover_left) {
-            err = aisc_get(data.link, PT_FAMILYLIST, f_list,
+            err = aisc_get(data->link, PT_FAMILYLIST, f_list,
                            FAMILYLIST_NAME, &f_name,
                            FAMILYLIST_MATCHES, &f_relscore,
                            FAMILYLIST_NEXT, f_list.as_result_param(),
@@ -544,7 +544,7 @@ match_retry:
                 cerr << "Unable to get next item in family list" << endl;
                 break;
             }
-            if (data.find_type_fast) {
+            if (data->find_type_fast) {
                 f_relscore *= 4;
             }
 
@@ -558,13 +558,13 @@ match_retry:
                 }
 
                 if (range_cover_right && (long)seq.size() > min_len &&
-                    seq.getById(seq.size()-1).getPosition() >= data.range_end) {
+                    seq.getById(seq.size()-1).getPosition() >= data->range_end) {
                     range_cover_right--;
                     keep = true;
                 }
 
                 if (range_cover_left && (long)seq.size() > min_len &&
-                    seq.begin()->getPosition() <= data.range_begin) {
+                    seq.begin()->getPosition() <= data->range_begin) {
                     range_cover_left--;
                     keep = true;
                 } 
