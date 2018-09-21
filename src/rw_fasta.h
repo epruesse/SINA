@@ -1,8 +1,7 @@
 /*
-Copyright (c) 2006-2017 Elmar Pruesse <elmar.pruesse@ucdenver.edu>
+Copyright (c) 2006-2018 Elmar Pruesse <elmar.pruesse@ucdenver.edu>
 
 This file is part of SINA.
-123456789012345678901234567890123456789012345678901234567890123456789012
 SINA is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
 Software Foundation, either version 3 of the License, or (at your
