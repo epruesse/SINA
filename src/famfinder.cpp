@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2006-2017 Elmar Pruesse <elmar.pruesse@ucdenver.edu>
+Copyright (c) 2006-2018 Elmar Pruesse <elmar.pruesse@ucdenver.edu>
 
 This file is part of SINA.
 SINA is free software: you can redistribute it and/or modify it under
