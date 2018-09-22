@@ -41,6 +41,7 @@ script:
        --with-arbhome=$MINICONDA/lib/arb
        --with-boost=$MINICONDA
        --with-boost-libdir=$MINICONDA/lib
+       --woth-tbb=$MINICONDA
        --prefix=$HOME/install
        --disable-docs
        --enable-fat-tar
