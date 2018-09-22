@@ -89,7 +89,6 @@ src_libsina_la_SOURCES = \
     src/aligned_base.h \
     src/alignment_stats.cpp \
     src/alignment_stats.h \
-    src/copy_alignment.h \
     src/cseq.cpp \
     src/cseq.h \
     src/cseq_impl.h \
@@ -102,9 +101,6 @@ src_libsina_la_SOURCES = \
     src/mesh_debug.h \
     src/mseq.cpp \
     src/mseq.h \
-    src/null_filter.h \
-    src/object_pipe.h \
-    src/pipe.h \
     src/pseq.cpp \
     src/pseq.h \
     src/query_arb.cpp \
