@@ -185,37 +185,7 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
     }
 
     opts->comparator = cseq_comparator::make_from_variables_map(vm, "search-");
-}
 
-} // namespace sina;
-
-using namespace sina;
-
-class search_filter::search
-    : public PipeElement<tray, tray>
-{
-private:
-    friend class search_filter;
-    search();
-    ~search();
-public:
-    tray operator()(tray c);
-    std::string getName() const {return "search_filter";};
-private:
-    query_pt *pt;
-    query_arb *arb;
-    vector<cseq*> sequences;
-};
-
-PipeElement<tray, tray>*
-search_filter::make_search_filter() {
-    return new search();
-}
-
-search_filter::search::search()
-    : pt(0),
-      arb(query_arb::getARBDB(opts->pt_database.c_str()))
-{
     boost::split(opts->v_lca_fields, opts->lca_fields,
                  boost::is_any_of(":"));
     if (opts->v_lca_fields.back().empty()) {
@@ -227,26 +197,52 @@ search_filter::search::search()
         opts->v_copy_fields.pop_back();
     }
 
-    std::cerr << "Search Module: Caching Sequences..." << std::endl;
+}
+
+} // namespace sina;
+
+using namespace sina;
+
+struct search_filter::priv_data {
+    search *index;
+    query_arb *arb;
+    vector<cseq*> sequences;
+};
+
+search_filter::search_filter()
+    :  data(new priv_data)
+{
+    data->arb = query_arb::getARBDB(opts->pt_database.c_str());
+
     if (opts->search_all) {
-        vector<string> names = arb->getSequenceNames();
-        boost::progress_display p(arb->getSeqCount(), std::cerr);
+        std::cerr << "Search Module: Caching Sequences..." << std::endl;
+        vector<string> names = data->arb->getSequenceNames();
+        boost::progress_display p(data->arb->getSeqCount(), std::cerr);
         for (string& name: names) {
-            sequences.push_back(&arb->getCseq(name));
+            data->sequences.push_back(&data->arb->getCseq(name));
             ++p;
         }
     } else {
-        pt = new query_pt(opts->pt_port.c_str(), opts->pt_database.c_str());
-
-        pt->set_find_type_fast(!opts->fs_no_fast);
-        pt->set_probe_len(opts->fs_kmer_len);
-        pt->set_mismatches(opts->fs_kmer_mm);
-        pt->set_sort_type(opts->fs_kmer_norel);
+        data->index = new query_pt(opts->pt_port.c_str(), opts->pt_database.c_str(),
+                                   not opts->fs_no_fast,
+                                   opts->fs_kmer_len,
+                                   opts->fs_kmer_mm,
+                                   opts->fs_kmer_norel);
     }
-
 }
-search_filter::search::~search() {
-    if (pt) delete pt;
+
+search_filter::search_filter(const search_filter& o)
+    : data(o.data)
+{
+}
+
+search_filter& search_filter::operator=(const search_filter& o) {
+    data = o.data;
+    return *this;
+}
+
+search_filter::~search_filter()
+{
 }
 
 template<typename F>
@@ -293,12 +289,10 @@ struct iupac_contains {
 };
 
 tray
-search_filter::search::operator()(tray t) {
+search_filter::search_filter::operator()(tray t) {
     cseq *c;
     if (t.aligned_sequence) {
         c = t.aligned_sequence;
-    } else if (t.input_sequence) {
-        c = t.input_sequence;
     } else {
         t.log() << "search: no sequence?!;";
         return t;
@@ -314,12 +308,12 @@ search_filter::search::operator()(tray t) {
 
     string bases = c->getBases();
     if (opts->search_all) {
-        for (cseq *r: sequences) {
+        for (cseq *r: data->sequences) {
             r->setScore(opts->comparator(*c, *r));
         }
-        vector<cseq*>::iterator it = sequences.begin();
+        vector<cseq*>::iterator it = data->sequences.begin();
         vector<cseq*>::iterator middle = it + opts->max_result;
-        const vector<cseq*>::iterator end = sequences.end();
+        const vector<cseq*>::iterator end = data->sequences.end();
 
         
         do {
@@ -338,7 +332,8 @@ search_filter::search::operator()(tray t) {
             ++it;
         }
     } else {
-        pt->match(vc, *c, 1, opts->kmer_candidates, 0.3, 2.0, arb, false, 50, 0, 0, 0,false);
+        data->index->match(vc, *c, 1, opts->kmer_candidates, 0.3, 2.0, data->arb,
+                           false, 50, 0, 0, 0,false);
         if (opts->ignore_super) {
             vector<cseq>::iterator it;
             it = partition(vc.begin(), vc.end(), iupac_contains(*c));
@@ -365,13 +360,13 @@ search_filter::search::operator()(tray t) {
     stringstream result;
     map<string, vector<vector<string> > > group_names_map;
     for (cseq &r: vc) {
-        arb->loadKey(r, "acc");
-        arb->loadKey(r, "version");
-        arb->loadKey(r, "start");
-        arb->loadKey(r, "stop");
+        data->arb->loadKey(r, "acc");
+        data->arb->loadKey(r, "version");
+        data->arb->loadKey(r, "start");
+        data->arb->loadKey(r, "stop");
 
         for (string& s: opts->v_lca_fields) {
-            arb->loadKey(r, s.c_str());
+            data->arb->loadKey(r, s.c_str());
             string tax_path = r.get_attr<string>(s.c_str());
             if (tax_path == "Unclassified;") continue;
             vector<string> group_names;
@@ -390,7 +385,7 @@ search_filter::search::operator()(tray t) {
 
         string acc = r.get_attr<string>("acc");
         for (string& s: opts->v_copy_fields) {
-            arb->loadKey(r,s);
+            data->arb->loadKey(r,s);
             string v = r.get_attr<string>(s);
             c->set_attr<string>(string("copy_")+acc+string("_")+s, v);
         }

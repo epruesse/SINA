@@ -30,11 +30,22 @@ for the parts of ARB used as well as that of the covered work.
 #define _FAMFINDER_H_
 
 #include "tray.h"
-#include "pipe.h"
 
+#include <memory>
 #include <boost/program_options.hpp>
 
+
 namespace sina {
+
+enum TURN_TYPE {
+    TURN_NONE=0,
+    TURN_REVCOMP=1,
+    TURN_ALL=2
+};
+std::ostream& operator<<(std::ostream&, const sina::TURN_TYPE&);
+void validate(boost::any&, const std::vector<std::string>&,
+              sina::TURN_TYPE*,int);
+
 
 class famfinder {
 private:
@@ -43,7 +54,17 @@ private:
     std::vector<float> weights;
 public:
     class _famfinder;
-    static PipeElement<tray,tray>* make_famfinder(int n=0);
+
+    class finder {
+        std::shared_ptr<_famfinder> data;
+    public:
+        finder() {}
+        explicit finder(int);
+        finder(const finder&);
+        finder& operator=(const finder&);
+        ~finder();
+        tray operator()(tray);
+    };
 
     static void get_options_description(boost::program_options::options_description& all,
                                         boost::program_options::options_description& adv);
@@ -51,15 +72,6 @@ public:
                             boost::program_options::options_description&);
 };
 
-enum TURN_TYPE {
-    TURN_NONE=0,
-    TURN_REVCOMP=1,
-    TURN_ALL=2
-};
-
-std::ostream& operator<<(std::ostream&, const sina::TURN_TYPE&);
-void validate(boost::any&, const std::vector<std::string>&,
-              sina::TURN_TYPE*,int);
 
 } // namespace sina
 

@@ -91,6 +91,12 @@ tray::destroy() {
     DBG("Destroy");
 }
 
+void
+sink::operator()(tray t) {
+    t.destroy();
+}
+
+
 };
 
 

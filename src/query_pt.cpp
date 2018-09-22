@@ -276,7 +276,7 @@ query_pt::query_pt(const char* portname, const char* dbname,
     if (!data->connect_server(portname)) {
         data->server = std::make_shared<managed_pt_server>(dbname, portname);
         if (!data->connect_server(portname)) {
-            throw("Failed to start PT server. Do you have enough memory?");
+            throw query_pt_exception("Failed to start PT server. Do you have enough memory?");
         }
         data->servers[portname] = data->server;
     }

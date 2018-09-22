@@ -90,7 +90,6 @@ namespace po = boost::program_options;
 #include <sys/types.h>
 #include <unistd.h> //for getpid()
 
-
 #include "query_pt.h"
 #include "mesh.h"
 #include "mesh_debug.h"
@@ -101,8 +100,11 @@ namespace po = boost::program_options;
 
 namespace sina {
 
+template<typename SCORING_SCHEME, typename MASTER>
+void choose_transition(cseq&, cseq&, MASTER&, SCORING_SCHEME&, ostream&);
 
-/// option stuff ///
+template<typename transition, typename MASTER>
+void do_align(cseq&, cseq&, MASTER&, transition&, ostream&);
 
 struct aligner::options {
     bool realign;
@@ -123,9 +125,17 @@ struct aligner::options {
     bool write_used_rels;
 
     bool use_subst_matrix;
+
+    template<typename SCORING_SCHEME, typename MASTER>
+    friend
+    void choose_transition(cseq&, cseq&, MASTER&, SCORING_SCHEME&, ostream&);
+
+    template<typename transition, typename MASTER>
+    friend
+    void do_align(cseq&, cseq&, MASTER&, transition&, ostream&);
+
 };
 struct aligner::options *aligner::opts;
-
 
 
 void validate(boost::any& v,
@@ -293,7 +303,6 @@ void aligner::validate_vm(boost::program_options::variables_map& vm,
     }
 }
 
-
 } // namespace sina;
 
 using namespace sina;
@@ -311,34 +320,8 @@ make_datetime() {
         return string(buf);
 }
 
-
-class aligner::galigner
-    : public PipeElement<tray, tray> {
-    friend class aligner;
-    galigner();
-
-    template<typename SCORING_SCHEME, typename MASTER>
-    void choose_transition(cseq&, cseq&, MASTER&, SCORING_SCHEME&, ostream&);
-    template<typename TRANSITION, typename MASTER>
-    void do_align(cseq&, cseq&, MASTER&, TRANSITION&, ostream&);
-public:
-    tray operator()(tray);
-    std::string getName() const {return "galigner";}
-};
-
-
-PipeElement<tray, tray>*
-aligner::make_aligner() {
-    return new galigner();
-}
-
-
-aligner::galigner::galigner()
-{
-}
-
-
-static int calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c) {
+static int
+calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c) {
     int n = 0;
     cseq::iterator it = c.begin();
     cseq::iterator end = c.end();
@@ -348,7 +331,6 @@ static int calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c
 
     return n;
 }
-
 
 struct not_icontains {
     typedef bool result_type;
@@ -368,9 +350,14 @@ struct iequals_cmp {
     }
 };
 
+aligner::aligner() {}
+aligner::~aligner() {}
+aligner::aligner(const aligner&) {}
+aligner& aligner::operator=(const aligner& a) { return *this;}
+
 
 tray
-aligner::galigner::operator()(tray t) {
+aligner::operator()(tray t) {
     // skip if requirements missing
     // FIXME: add logging here
     if (not t.input_sequence ||
@@ -445,7 +432,6 @@ aligner::galigner::operator()(tray t) {
         }
     }
 
-
     if (!opts->fs_no_graph) {
         // prepare reference
         mseq m(vc.begin(), vc.end(), opts->fs_weight);
@@ -513,34 +499,28 @@ aligner::galigner::operator()(tray t) {
 
 template<typename SCORING_SCHEME, typename MASTER>
 void
-aligner::galigner::choose_transition(cseq& c, cseq& orig, MASTER& m,
-                                     SCORING_SCHEME& s, ostream& log) {
-    if (opts->insertion == INSERTION_FORBID) {
-        typedef transition_aspace_aware<SCORING_SCHEME, MASTER, cseq> transition;
-        transition tr(s);
+sina::choose_transition(cseq& c, cseq& orig, MASTER& m,
+                  SCORING_SCHEME& s, ostream& log) {
+    if (aligner::opts->insertion == INSERTION_FORBID) {
+        transition_aspace_aware<SCORING_SCHEME, MASTER, cseq> tr(s);
         do_align(c, orig, m, tr, log);
     } else {
-        typedef transition_simple<SCORING_SCHEME, MASTER, cseq> transition;
-        transition tr(s);
+        transition_simple<SCORING_SCHEME, MASTER, cseq> tr(s);
         do_align(c, orig, m, tr, log);
     }
 }
 
 template<typename transition, typename MASTER>
 void
-aligner::galigner::do_align(cseq& c, cseq& orig, MASTER &m,
-                            transition &tr, ostream& log) {
+sina::do_align(cseq& c, cseq& orig, MASTER &m,
+               transition &tr, ostream& log) {
 
     typedef compute_node_simple<transition> cnsts_type;
     typedef typename cnsts_type::data_type data_type;
     cnsts_type cns(tr);
 
     // create the alignment "mesh" (not quite a matrix)
-#ifdef HAVE_TBB
     mesh<MASTER, cseq, data_type, tbb::tbb_allocator<data_type> > A(m, c);
-#else
-    mesh<MASTER, cseq, data_type> A(m, c);
-#endif
 
     int oh_head, oh_tail;
 #ifdef DEBUG
@@ -554,14 +534,17 @@ aligner::galigner::do_align(cseq& c, cseq& orig, MASTER &m,
     c.clearSequence();
 
     // run backtracking on the mesh
-    backtrack(A, c, tr, opts->overhang, opts->lowercase, opts->insertion,
+    backtrack(A, c, tr,
+              aligner::opts->overhang,
+              aligner::opts->lowercase,
+              aligner::opts->insertion,
               oh_head, oh_tail, log);
     // alignment done :-)
     c.set_attr(query_arb::fn_head, oh_head);
     c.set_attr(query_arb::fn_tail, oh_tail);
     c.set_attr(query_arb::fn_qual, (int)std::min(100.f, std::max(0.f, 100.f * c.getScore())));
 
-    if (opts->debug_graph) {
+    if (aligner::opts->debug_graph) {
         stringstream tmp;
         tmp <<"mseq_" << c.getName() << ".dot";
         ofstream out(tmp.str().c_str());

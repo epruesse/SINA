@@ -157,19 +157,18 @@ make_datetime() {
 /** Section: Reader
  */
 
-class rw_arb::reader : public PipeElement<void, tray> {
+class rw_arb::reader : source {
     friend class rw_arb;
     reader(string infile);
     ~reader();
     query_arb* arb;
     istream *in;
 public:
-    tray operator()(void);
-    std::string getName() const {return "arb::reader";}
+    bool operator()(tray&);
 };
 
 
-PipeElement<void,tray>*
+source*
 rw_arb::make_reader(po::variables_map& vm) {
     return new reader(vm["in"].as<string>());
 }
@@ -205,22 +204,23 @@ rw_arb::reader::reader(string infile)
 rw_arb::reader::~reader() {
 }
 
-tray
-rw_arb::reader::operator()(void) {
-    tray t;
+bool
+rw_arb::reader::operator()(tray& t) {
     string name;
-    t.logstream=new stringstream();
+    t.logstream=new stringstream(); // FIXME: move to tray.cpp
     
 retry:
-    if (in->bad())
-        throw PipeEOF();
+    if (in->bad()) {
+        return false;
+    }
+
     for (int i = 2; i <= opts->select_step; i++) {
         (*in) >> name;
-        //cerr << "skipping " << name << endl;
     }
     (*in) >> name;
-    if (name.empty())
-        throw PipeEOF();
+    if (name.empty()) {
+        return false;
+    }
     try {
         t.input_sequence = new cseq(arb->getCseq(name));
     } catch (base_iupac::bad_character_exception& e) {
@@ -233,27 +233,27 @@ retry:
             arb->loadKey(*t.input_sequence, f);
         }
     }
-    return t;
+    return true;
 }
 
 
 /** Section: Writer
  */
-class rw_arb::writer :  public PipeElement<tray, void> {
+class rw_arb::writer :  public filter {
     friend class rw_arb;
     writer(string outfile);
     ~writer();
     query_arb *arb, *ptarb;
 public:
     string arb_fname;
-    void operator()(tray);
+    tray operator()(tray);
     std::string getName() const {return "arb::writer";}
 private:
     int copyref;
 };
 
 
-PipeElement<tray,void>*
+filter*
 rw_arb::make_writer(po::variables_map& vm) {
     return new writer(vm["out"].as<string>());
 }
@@ -276,13 +276,12 @@ rw_arb::writer::~writer() {
     std::cerr << "done" << endl;
 }
 
-void
+tray
 rw_arb::writer::operator()(tray t) {
-    if (t.aligned_sequence == 0) {
-    } else {
+    if (t.aligned_sequence) {
         arb->putCseq(*t.aligned_sequence);
     }
-    t.destroy();
+    return t;
 }
 
 /*

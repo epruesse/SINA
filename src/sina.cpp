@@ -49,26 +49,19 @@ using boost::algorithm::iends_with;
 using boost::algorithm::iequals;
 using boost::algorithm::equals;
 
-#include <boost/thread.hpp>
-using boost::thread_group;
-
 using std::exception;
 using std::logic_error;
 
-#ifdef HAVE_TBB
+#include "tbb/task_scheduler_init.h"
 #include "tbb/flow_graph.h"
 namespace tf = tbb::flow;
-#endif
 
 #include "famfinder.h"
 #include "align.h"
 #include "rw_arb.h"
 #include "rw_fasta.h"
-#include "pipe.h"
 #include "log.h"
 #include "search_filter.h"
-#include "null_filter.h"
-#include "copy_alignment.h"
 #include "timer.h"
 #include "cseq_comparator.h"
 
@@ -171,16 +164,12 @@ global_get_hidden_options_description() {
          po::value<SEQUENCE_DB_TYPE>()->default_value(SEQUENCE_DB_NONE,""),
          "override output file type")
 
-        ("prealigned",
-         po::bool_switch(),
-         "skip alignment stage")
-
         ("has-cli-vers",
          po::value<string>(),
          "verify support of cli version")
         ("no-align",
          po::bool_switch(),
-         "disable alignment stage (deprecated)")
+         "disable alignment stage (same as prealigned)")
 
         ;
     return hidden;
@@ -193,7 +182,7 @@ global_get_options_description() {
     glob.add_options()
         ("help,h",
          "show short help")
-        ("help-all",
+        ("help-all,H",
          "show full help (long)")
         ("in,i",
          po::value<string>(),
@@ -201,12 +190,19 @@ global_get_options_description() {
         ("out,o",
          po::value<string>(),
          "output file (arb or fasta)")
-
-        ("version",
-         "show version")
-        ("search",
+        ("search,S",
          po::bool_switch(),
          "enable search stage")
+        ("prealigned,P",
+         po::bool_switch(),
+         "skip alignment stage")
+        ("threads,p",
+         po::value<unsigned int>()->default_value(
+             tbb::task_scheduler_init::automatic, ""),
+         "limit number of threads (automatic)")
+        ("version,V",
+         "show version")
+
         ;
     return glob;
 }
@@ -217,7 +213,6 @@ parse_options(int argc, char** argv) {
     po::variables_map vm;
 
     string infile, outfile;
-    thread_group threads;
     po::options_description
         opts = global_get_options_description(),
         adv_opts = global_get_hidden_options_description();
@@ -372,166 +367,166 @@ parse_options(int argc, char** argv) {
     return vm;
 }
 
-int main(int argc, char** argv) {
+
+int real_main(int argc, char** argv) {
+    // Parse options
     po::variables_map vm = parse_options(argc, argv);
     cerr << "This is " << PACKAGE_STRING << "." << endl;
     if (vm.count("show-conf")) {
          show_conf(vm);
     }
 
-    typedef PipeElement<tray,tray>* kernel;
+    tbb::task_scheduler_init init(vm["threads"].as<unsigned int>());
 
-    try {
-        PipeElement<void,tray> *source;
-        switch (vm["intype"].as<SEQUENCE_DB_TYPE>()) {
-        case SEQUENCE_DB_ARB:
-            source = rw_arb::make_reader(vm);
-            break;
-        case SEQUENCE_DB_FASTA:
-            source = rw_fasta::make_reader(vm);
-            break;
-        default:
-            throw logic_error("input type undefined");
-        }
+    SEQUENCE_DB_TYPE intype = vm["intype"].as<SEQUENCE_DB_TYPE>();
+    SEQUENCE_DB_TYPE outtype = vm["outtype"].as<SEQUENCE_DB_TYPE>();
+    string input_file = vm["in"].as<string>();
+    string output_file = vm["out"].as<string>();
+    bool do_align = not (vm["no-align"].as<bool>() || vm["prealigned"].as<bool>());
+    bool do_search = vm["search"].as<bool>();
+    int max_trays = 10;
 
-        PipeElement<tray,void> *sink;
-        switch(vm["outtype"].as<SEQUENCE_DB_TYPE>()) {
-        case SEQUENCE_DB_ARB:
-            sink = rw_arb::make_writer(vm);
-            break;
-        case SEQUENCE_DB_FASTA:
-            sink = rw_fasta::make_writer(vm);
-            break;
-        default:
-            throw logic_error("output type outdefined");
-        }
+    tf::graph g;  // Main data flow graph (pipeline)
+    std::vector<std::unique_ptr<tf::graph_node>> nodes; // Nodes (for cleanup)
+    tf::sender<tray> *last_node; // Last tray producing node
 
-        PipeElement<tray, tray> *famfinder = 0;
-        PipeElement<tray, tray> *aligner;
-        if (vm["no-align"].as<bool>()
-            ||
-            vm["prealigned"].as<bool>()) {
-            aligner = copy_alignment::make_copy_alignment();
-        } else {
-            aligner = aligner::make_aligner();
-            famfinder = famfinder::make_famfinder();
-        }
+    typedef tf::source_node<tray> source_node;
+    typedef tf::function_node<tray, tray> filter_node;
+    typedef tf::limiter_node<tray> limiter_node;
+    filter_node *node;
 
-        PipeElement<tray, tray> *search;
-        if (vm["search"].as<bool>()) {
-            search = search_filter::make_search_filter();
-        } else {
-            search = null_filter::make_null_filter();
-        }
-
-        PipeElement<tray, tray> *printer;
-        printer = Log::make_printer();
-
-#ifdef HAVE_TBB
-        int max_trays = 10;
-        tf::graph g;
-
-        // source node
-        tf::source_node<tray> node_src(g, [&](tray &t) -> bool {
-                try {
-                    t = source->operator()();
-//                    cerr << "R";
-                    return true;
-                } catch (PipeEOF &peof) {
-                    return false;
-                }
-            }, /*is_active=*/false);
-        tf::limiter_node<tray> node_limit(g, max_trays);
-        tf::make_edge(node_src, node_limit);
-
-        // famfinder with pt server
-        tf::buffer_node<kernel> node_famfinder_buffer(g);
-        tf::join_node< tuple<tray, kernel>, tf::reserving > node_famfinder_join(g);
-        typedef tf::multifunction_node< tuple<tray,kernel>, tuple<tray, kernel> > ff_node_t;
-        typedef ff_node_t::output_ports_type ff_output_t;
-        ff_node_t node_famfinder(g, tf::unlimited, [&](const tuple<tray, kernel> &in, ff_output_t &out) -> void {
-//                cerr << "P";
-                const tray &t = get<0>(in);
-                kernel famfinder = get<1>(in);
-                get<0>(out).try_put((*famfinder)(t));
-                get<1>(out).try_put(famfinder);
-            });
-
-        tf::make_edge(node_famfinder_buffer, tf::input_port<1>(node_famfinder_join));
-        tf::make_edge(node_famfinder_join, node_famfinder);
-        tf::make_edge(tf::output_port<1>(node_famfinder), node_famfinder_buffer);
-
-        tf::function_node<tray,tray> node_aligner(g, 3, [&](tray t) -> tray {
-                //              cerr << "A";
-                return (*aligner)(t);
-            });
-        if (famfinder != 0) {
-            tf::make_edge(node_src, tf::input_port<0>(node_famfinder_join));
-            tf::make_edge(tf::output_port<0>(node_famfinder), node_aligner);
-            node_famfinder_buffer.try_put(famfinder);
-            node_famfinder_buffer.try_put(famfinder::make_famfinder(1));
-            node_famfinder_buffer.try_put(famfinder::make_famfinder(2));
-            node_famfinder_buffer.try_put(famfinder::make_famfinder(3));
-            node_famfinder_buffer.try_put(famfinder::make_famfinder(4));
-            node_famfinder_buffer.try_put(famfinder::make_famfinder(5));
-            node_famfinder_buffer.try_put(famfinder::make_famfinder(6));
-
-        } else {
-            tf::make_edge(node_limit, node_aligner);
-        }
-
-        tf::function_node<tray,tray> node_search(g, 1, [&](tray t) -> tray {
-//                cerr << "S";
-                return (*search)(t);
-            });
-        tf::make_edge(node_aligner, node_search);
-        tf::function_node<tray,tray> node_printer(g, 1, [&](tray t) -> tray {
-                //              cerr << "p";
-                return (*printer)(t);
-            });
-        tf::make_edge(node_search, node_printer);
-        tf::function_node<tray, tf::continue_msg>
-            node_sink(g, 1, [&](const tray t) -> tf::continue_msg {
-//                    cerr << "W";
-                    (*sink)(t);
-                return tf::continue_msg();
-                });
-        tf::make_edge(node_printer, node_sink);
-        tf::make_edge(node_sink, node_limit.decrement);
-
-        timestamp before;
-        node_src.activate();
-        g.wait_for_all();
-        timestamp after;
-        cerr << "Time for alignment phase: " << after-before << "s" << endl;
-        delete sink;
-#else
-        if (famfinder) {
-            aligner = new PipeSerialSegment<tray, tray>(*famfinder | *aligner);
-        }
-        Pipe p = *source | *aligner | *search | *printer | *sink;
-
-        // workaround for double reference because aligner is pss itself
-        if (famfinder) {
-            delete aligner;
-        }
-
-
-        timestamp before;
-        p.run();
-        timestamp after;
-        cerr << "Time for alignment phase: " << after-before << "s" << endl;
-
-        p.destroy();
-#endif
-  
-        cerr << "SINA finished." << endl;
-    } catch (std::exception &e) {
-        cerr << "Fatal error: " << e.what() << endl;
-        exit(EXIT_FAILURE);
+    // Make source node reading sequences
+    source_node *source; // will be activated once graph complete
+    switch (intype) {
+    case SEQUENCE_DB_ARB:
+        source = new source_node(g, *rw_arb::make_reader(vm), false);
+        break;
+    case SEQUENCE_DB_FASTA:
+        source = new source_node(g, rw_fasta::reader(input_file), false);
+        break;
+    default:
+        throw logic_error("input type undefined");
     }
+    nodes.emplace_back(source);
+    last_node = source;
+
+    // Make node limiting in-flight sequence trays
+    limiter_node *limiter = new limiter_node(g, max_trays);
+    tf::make_edge(*last_node, *limiter);
+    nodes.emplace_back(limiter);
+    last_node = limiter;
+
+    if (!do_align) {
+        // Just copy alignment over
+        node = new filter_node(g, tf::unlimited, [](tray t) -> tray {
+                t.aligned_sequence = new cseq(*t.input_sequence);
+                return t;
+            });
+        tf::make_edge(*last_node, *node);
+        nodes.emplace_back(node);
+        last_node = node;
+    } else {
+        // Make node(s) finding reference set
+        typedef tuple<tray, famfinder::finder> tray_and_finder;
+        typedef tf::multifunction_node<tray_and_finder, tray_and_finder> finder_node;
+        typedef finder_node::output_ports_type finder_node_out;
+        typedef tf::buffer_node<famfinder::finder> finder_buffer_node;
+        typedef tf::join_node<tray_and_finder> tray_and_finder_join_node;
+
+        finder_buffer_node *buffer = new finder_buffer_node(g);
+        tray_and_finder_join_node *join = new tray_and_finder_join_node(g);
+
+        finder_node *family_find = new finder_node(
+            g, 1,
+            [&](const tray_and_finder &in, finder_node_out &out) -> void {
+                const tray& t = get<0>(in);
+                famfinder::finder finder(get<1>(in));
+                tray t_out = finder(t);
+                get<0>(out).try_put(t_out);
+                get<1>(out).try_put(finder);
+            });
+
+
+        // ---tray--> join ---------> family_find --> tray
+        //            ^                         |
+        //            |                         |
+        //            +-finder- buffer <-finder-+
+        tf::make_edge(*buffer, tf::input_port<1>(*join));
+        tf::make_edge(tf::output_port<1>(*family_find), *buffer);
+        nodes.emplace_back(join);
+        nodes.emplace_back(buffer);
+
+        tf::make_edge(*last_node, tf::input_port<0>(*join));
+        tf::make_edge(*join, *family_find);
+        nodes.emplace_back(family_find);
+
+        for (int i=0; i<3; i++) {
+            buffer->try_put(famfinder::finder(i));
+        }
+
+        node = new filter_node(g, tf::unlimited, aligner());
+        tf::make_edge(tf::output_port<0>(*family_find), *node);
+        nodes.emplace_back(node);
+        last_node = node;
+    }
+
+    if (do_search) {
+        node = new filter_node(g, 1, search_filter());
+        tf::make_edge(*last_node, *node);
+        nodes.emplace_back(node);
+        last_node = node;
+    }
+
+    // Make node writing sequences
+    switch(outtype) {
+    case SEQUENCE_DB_ARB:
+        node = new filter_node(g, 1, *rw_arb::make_writer(vm));
+        break;
+    case SEQUENCE_DB_FASTA:
+        node = new filter_node(g, 1, rw_fasta::writer(output_file));
+        break;
+    default:
+        throw logic_error("input type undefined");
+    }
+    tf::make_edge(*last_node, *node);
+    nodes.emplace_back(node);
+    last_node = node;
+
+    node = new filter_node(g, 1, Log::printer());
+    tf::make_edge(*last_node, *node);
+    nodes.emplace_back(node);
+    last_node = node;
+
+    tf::function_node<tray, tf::continue_msg>
+        sink(g, 1, [&](tray t) -> tf::continue_msg {
+                t.destroy();
+                return tf::continue_msg();
+            });
+    tf::make_edge(sink, limiter->decrement);
+    tf::make_edge(*last_node, sink);
+
+    timestamp before;
+    source->activate();
+    g.wait_for_all();
+    timestamp after;
+    cerr << "Time for alignment phase: " << after-before << "s" << endl;
+    nodes.clear();
+    cerr << "SINA finished." << endl;
     return 0;
 }
+
+int main(int argc, char** argv) {
+    try {
+        return real_main(argc, argv);
+    } catch (std::exception &e) {
+        // FIXME: catch misconfig separately and present less bad message
+        cerr << "Fatal: uncaught exception" << endl
+             << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+
 
 /*
   Local Variables:
