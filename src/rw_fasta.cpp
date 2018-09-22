@@ -47,9 +47,6 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "query_arb.h"
 
-using std::ifstream;
-using std::istream;
-using std::ofstream;
 using std::stringstream;
 using std::vector;
 using std::cerr;
@@ -184,7 +181,7 @@ struct rw_fasta::reader::priv_data {
 rw_fasta::reader::reader(const string& infile)
     : data(new priv_data)
 {
-    data->file.open(infile.c_str(), std::ios_base::in | std::ios_base::binary);
+    data->file.open(infile.c_str(), std::ios_base::binary);
     if (!data->file.is_open()) {
         stringstream msg; 
         msg << "Unable to open file \"" << infile << "\" for reading.";
@@ -300,7 +297,8 @@ rw_fasta::reader::operator()(tray& t) {
 /////////////// writer
 
 struct rw_fasta::writer::priv_data {
-    std::ofstream out;
+    bi::file_descriptor_sink file;
+    bi::filtering_ostream out;
     std::ofstream out_csv;
     int seqnum;
     int excluded;
@@ -316,12 +314,17 @@ struct rw_fasta::writer::priv_data {
 rw_fasta::writer::writer(const string& outfile)
     : data(new priv_data)
 {
-    data->out.open(outfile.c_str());
-    if (data->out.fail()) {
+    data->file.open(outfile.c_str(), std::ios_base::binary);
+    if (!data->file.is_open()) {
         stringstream msg; 
         msg << "Unable to open file \"" << outfile << "\" for writing.";
         throw std::runtime_error(msg.str());
     }
+    if (ends_with(outfile, ".gz")) {
+        data->out.push(bi::gzip_compressor());
+    }
+    data->out.push(data->file);
+
     if (opts->fastameta == FASTA_META_CSV) {
         data->out_csv.open((outfile+".csv").c_str());
         if (data->out_csv.fail()) {
