@@ -679,7 +679,7 @@ cseq::find_differing_parts(const cseq& right) const {
             rpos = r_it->getPosition();
         if (score > 0) {
             if (!bad) {
-                int rpos = (r_it-2)->getPosition();
+                int rpos = std::max(right.bases.begin(), r_it - 2)->getPosition();
                 start_stops.push_back(std::min(lpos,rpos));
                 bad=true;
             } else {
