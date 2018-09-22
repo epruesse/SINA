@@ -181,7 +181,11 @@ struct rw_fasta::reader::priv_data {
 rw_fasta::reader::reader(const string& infile)
     : data(new priv_data)
 {
-    data->file.open(infile.c_str(), std::ios_base::binary);
+    if (infile == "-") {
+        data->file.open(STDIN_FILENO, bi::never_close_handle);
+    } else {
+        data->file.open(infile.c_str(), std::ios_base::binary);
+    }
     if (!data->file.is_open()) {
         stringstream msg; 
         msg << "Unable to open file \"" << infile << "\" for reading.";
@@ -314,7 +318,11 @@ struct rw_fasta::writer::priv_data {
 rw_fasta::writer::writer(const string& outfile)
     : data(new priv_data)
 {
-    data->file.open(outfile.c_str(), std::ios_base::binary);
+    if (outfile == "-") {
+        data->file.open(STDOUT_FILENO, bi::never_close_handle);
+    } else {
+        data->file.open(outfile.c_str(), std::ios_base::binary);
+    }
     if (!data->file.is_open()) {
         stringstream msg; 
         msg << "Unable to open file \"" << outfile << "\" for writing.";
