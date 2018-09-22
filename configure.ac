@@ -192,6 +192,12 @@ if test x"$BOOST_PROGRAM_OPTIONS_LIB" = x""; then
   missing_libs="$missing_libs
   BOOST Program Options (libboost_program_options)"
 fi
+AX_BOOST_IOSTREAMS
+if test x"$BOOST_IOSTREAMS_LIB" = x""; then
+  missing_libs="$missing_libs
+  BOOST Program Options (libboost_iostreams)"
+fi
+
 AX_BOOST_SERIALIZATION
 if test x"$BOOST_SERIALIZATION_LIB" = x""; then
   missing_libs="$missing_libs
@@ -252,6 +258,7 @@ AC_MSG_NOTICE([    LDFLAGS:         ${BOOST_LDFLAGS}])
 AC_MSG_NOTICE([    CPPFLAGS:        ${BOOST_CPPFLAGS}])
 AC_MSG_NOTICE([    PROGRAM_OPTIONS: ${BOOST_PROGRAM_OPTIONS_LIB}])
 AC_MSG_NOTICE([    THREAD:          ${BOOST_THREAD_LIB}])
+AC_MSG_NOTICE([    IOSTREAMS:       ${BOOST_IOSTREAMS_LIB}])
 AC_MSG_NOTICE([    SERIALIZATION:   ${BOOST_SERIALIZATION_LIB}])
 AC_MSG_NOTICE([    SYSTEM:          ${BOOST_SYSTEM_LIB}])
 AC_MSG_NOTICE([    UNIT_TEST:       ${BOOST_UNIT_TEST_FRAMEWORK_LIB}])

@@ -41,9 +41,14 @@ for the parts of ARB used as well as that of the covered work.
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/device/file_descriptor.hpp>
+
 #include "query_arb.h"
 
 using std::ifstream;
+using std::istream;
 using std::ofstream;
 using std::stringstream;
 using std::vector;
@@ -57,7 +62,9 @@ using boost::shared_ptr;
 using boost::bind;
 using boost::split;
 using boost::algorithm::iequals;
+using boost::algorithm::ends_with;
 
+namespace bi = boost::iostreams;
 namespace po = boost::program_options;
 
 namespace sina {
@@ -161,7 +168,8 @@ rw_fasta::validate_vm(po::variables_map& /* vm */,
 ////////// reader
 
 struct rw_fasta::reader::priv_data {
-    std::ifstream in;
+    bi::file_descriptor_source file;
+    bi::filtering_istream in;
     int lineno;
     int seqno;
     priv_data() : lineno(0), seqno(0) {}
@@ -176,12 +184,16 @@ struct rw_fasta::reader::priv_data {
 rw_fasta::reader::reader(const string& infile)
     : data(new priv_data)
 {
-    data->in.open(infile.c_str(), std::ios_base::in);
-    if (data->in.fail()) {
+    data->file.open(infile.c_str(), std::ios_base::in | std::ios_base::binary);
+    if (!data->file.is_open()) {
         stringstream msg; 
         msg << "Unable to open file \"" << infile << "\" for reading.";
         throw std::runtime_error(msg.str());
     }
+    if (ends_with(infile, ".gz")) {
+        data->in.push(bi::gzip_decompressor());
+    }
+    data->in.push(data->file);
     
     // if fasta blocking enabled, seek to selected block
     if (opts->fasta_block > 0) {

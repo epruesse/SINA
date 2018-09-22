@@ -138,6 +138,7 @@ src_libsina_la_LIBADD = \
     $(ARB_LIBS) \
     $(BOOST_PROGRAM_OPTIONS_LIB) \
     $(BOOST_THREAD_LIB) \
+    $(BOOST_IOSTREAMS_LIB) \
     $(BOOST_SERIALIZATION_LIB) \
     $(BOOST_SYSTEM_LIB) \
     $(TBB_LIB) \
