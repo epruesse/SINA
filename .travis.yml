@@ -28,6 +28,7 @@ script:
        --with-arbhome=$MINICONDA/lib/arb
        --with-boost=$MINICONDA
        --with-boost-libdir=$MINICONDA/lib
+       --with-tbb=$MINICONDA
        --prefix=$HOME/install
        --disable-docs
        || (cat config.log; false)
@@ -35,13 +36,13 @@ script:
   - make check
   - make install
   - $HOME/install/bin/sina --help
-  - DISTCHECK_CONFIGURE_FLAGS="--with-arbhome=$MINICONDA/lib/arb --with-boost=$CONDA_PREFIX --with-boost-libdir=$MINICONDA/lib --disable-docs" make distcheck
+  - DISTCHECK_CONFIGURE_FLAGS="--with-arbhome=$MINICONDA/lib/arb --with-boost=$CONDA_PREFIX --with-boost-libdir=$MINICONDA/lib --with-tbb=$MINICONDA --disable-docs" make distcheck
   - if test "$(uname)" = "Linux"; then rm sina-*.tar.gz; fi
   - ./configure
        --with-arbhome=$MINICONDA/lib/arb
        --with-boost=$MINICONDA
        --with-boost-libdir=$MINICONDA/lib
-       --woth-tbb=$MINICONDA
+       --with-tbb=$MINICONDA
        --prefix=$HOME/install
        --disable-docs
        --enable-fat-tar
