@@ -30,27 +30,31 @@ for the parts of ARB used as well as that of the covered work.
 #define _LOG_H_
 
 #include <boost/program_options.hpp>
-#include "pipe.h"
 #include "tray.h"
 
 namespace sina {
 
-class cseq;
-
-
 class Log {
+private:
+    struct options;
+    static struct options *opts;
 public:
-    static PipeElement<tray,tray>* make_printer();
+    class printer {
+        struct priv_data;
+        std::shared_ptr<priv_data> data;
+    public:
+        printer();
+        ~printer();
+        printer(const printer&);
+        printer& operator=(const printer&);
+        tray operator()(tray);
+    };
 
     static void get_options_description(boost::program_options::options_description& all,
                                         boost::program_options::options_description& adv);
     static void validate_vm(boost::program_options::variables_map&,
                             boost::program_options::options_description&);
 
-private:
-    class printer;
-    struct options;
-    static struct options *opts;
 };
 
 } // namespace sina

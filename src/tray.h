@@ -60,6 +60,21 @@ public:
     void destroy();
 };
 
+class source {
+public:
+    virtual bool operator()(tray&) {}
+};
+
+class filter {
+public:
+    virtual tray operator()(tray) {}
+};
+
+class sink {
+public:
+    void operator()(tray);
+};
+
 } // namespace sina
 
 #endif // _SINA_H_

@@ -29,15 +29,13 @@ for the parts of ARB used as well as that of the covered work.
 #ifndef _RW_FASTA_H_
 #define _RW_FASTA_H_
 
-#include "pipe.h"
 #include "tray.h"
 
 #include <fstream>
+#include <memory>
 #include <boost/program_options.hpp>
 
 namespace sina {
-
-class query_arb;
 
 enum FASTA_META_TYPE {
     FASTA_META_NONE=0,
@@ -45,14 +43,33 @@ enum FASTA_META_TYPE {
     FASTA_META_COMMENT=2,
     FASTA_META_CSV=3
 };
+std::ostream& operator<<(std::ostream&, const sina::FASTA_META_TYPE&);
+void validate(boost::any&, const std::vector<std::string>&,
+              sina::FASTA_META_TYPE*, int);
 
 class rw_fasta {
 public:
-    class reader;
-    class writer;
+    class reader {
+        struct priv_data;
+        std::shared_ptr<priv_data> data;
+    public:
+        explicit reader(const std::string&);
+        reader(const reader&);
+        reader& operator=(const reader&);
+        ~reader();
+        bool operator()(tray&);
+    };
 
-    static PipeElement<void,tray>* make_reader(boost::program_options::variables_map&);
-    static PipeElement<tray,void>* make_writer(boost::program_options::variables_map&);
+    class writer {
+        struct priv_data;
+        std::shared_ptr<priv_data> data;
+    public:
+        explicit writer(const std::string&);
+        writer(const writer&);
+        writer& operator=(const writer&);
+        ~writer();
+        tray operator()(tray);
+    };
 
     static void get_options_description(boost::program_options::options_description& all,
                                         boost::program_options::options_description& adv);
@@ -63,11 +80,6 @@ private:
     struct options;
     static struct options *opts;
 };
-
-std::ostream& operator<<(std::ostream&, const sina::FASTA_META_TYPE&);
-void validate(boost::any&, const std::vector<std::string>&,
-              sina::FASTA_META_TYPE*,int);
-
 
 } // namespace sina
 

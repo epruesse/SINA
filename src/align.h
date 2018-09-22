@@ -30,7 +30,6 @@ for the parts of ARB used as well as that of the covered work.
 #ifndef _ALIGN_H_
 #define _ALIGN_H_
 
-#include "pipe.h"
 #include "tray.h"
 
 #include <vector>
@@ -69,14 +68,14 @@ void validate(boost::any&, const std::vector<std::string>&,
 
 
 class aligner {
-private:
     struct options;
-    static struct options *opts;
-
 public:
-    class galigner;
-
-    static PipeElement<tray,tray>* make_aligner();
+    static struct options *opts;
+    aligner();
+    aligner(const aligner&);
+    ~aligner();
+    aligner& operator=(const aligner&);
+    tray operator()(tray);
 
     static void get_options_description(boost::program_options::options_description& all,
                                         boost::program_options::options_description& adv);

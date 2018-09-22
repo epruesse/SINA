@@ -174,6 +174,11 @@ done
 AC_SUBST(ARB_FILES)
 
 AX_LIB_TBB
+if test x"$TBB_LIB" = x""; then
+  missing_libs="$missing_libs
+  Intel Threading Building Blocks (libtbb)"
+fi
+
 AX_LIB_TBB_MALLOC
 
 AX_BOOST_BASE([1.48])
@@ -256,6 +261,10 @@ AC_MSG_NOTICE([  tbb:])
 AC_MSG_NOTICE([    CPPFLAGS:        ${TBB_CPPFLAGS}])
 AC_MSG_NOTICE([    LDFLAGS:         ${TBB_LDFLAGS}])
 AC_MSG_NOTICE([    LIBS:            ${TBB_LIB}])
+AC_MSG_NOTICE([  tbb malloc:])
+AC_MSG_NOTICE([    CPPFLAGS:        ${TBB_MALLOC_CPPFLAGS}])
+AC_MSG_NOTICE([    LDFLAGS:         ${TBB_MALLOC_LDFLAGS}])
+AC_MSG_NOTICE([    LIBS:            ${TBB_MALLOC_LIB}])
 
 
 ### check that all deps are satisfied

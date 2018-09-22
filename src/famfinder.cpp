@@ -338,10 +338,8 @@ void fixme() {
     */
 }
 #endif
-        
-class famfinder::_famfinder
-    : public PipeElement<tray, tray > {
-    friend class famfinder;
+
+class famfinder::_famfinder {
     search *index;
     query_arb *arb;
     vector<alignment_stats> vastats;
@@ -350,18 +348,37 @@ class famfinder::_famfinder
     int turn_check(const cseq&, bool);
     void select_astats(tray &t);
     
+public:
     _famfinder(int n);
     ~_famfinder();
-public:
     tray operator()(tray);
     std::string getName() const {return "famfinder";}
 };
 
-PipeElement<tray,tray>* famfinder::make_famfinder(int n) {
-    return new _famfinder(n);
+
+famfinder::finder::finder(int n)
+    : data(new _famfinder(n))
+{
 }
 
+famfinder::finder::finder(const finder& o)
+    : data(o.data)
+{
+}
 
+famfinder::finder&
+famfinder::finder::operator=(const finder& o) {
+    data = o.data;
+    return *this;
+}
+
+famfinder::finder::~finder() {
+}
+
+tray
+famfinder::finder::operator()(tray t) {
+    return (*data)(t);
+}
 
 famfinder::_famfinder::_famfinder(int n)
     : arb(query_arb::getARBDB(opts->database))
@@ -393,9 +410,11 @@ famfinder::_famfinder::_famfinder(int n)
     //readonly
 }
 
+
 famfinder::_famfinder::~_famfinder() {
     delete index;
 }
+
 
 void
 famfinder::_famfinder::do_turn_check(cseq &c) {
@@ -529,8 +548,6 @@ struct has_max_n_gaps {
             || c.rbegin()->getPosition() - c.size() +1 < n_gaps; 
     }
 };
-
-
 
 tray
 famfinder::_famfinder::operator()(tray t) {

@@ -29,7 +29,6 @@ for the parts of ARB used as well as that of the covered work.
 #ifndef _RW_ARB_H_
 #define _RW_ARB_H_
 
-#include "pipe.h"
 #include "tray.h"
 
 #include <string>
@@ -44,8 +43,8 @@ public:
     class reader;
     class writer;
 
-    static PipeElement<void,tray>* make_reader(boost::program_options::variables_map&);
-    static PipeElement<tray,void>* make_writer(boost::program_options::variables_map&);
+    static source* make_reader(boost::program_options::variables_map&);
+    static filter* make_writer(boost::program_options::variables_map&);
 
     static void get_options_description(boost::program_options::options_description& all,
                                         boost::program_options::options_description& adv);

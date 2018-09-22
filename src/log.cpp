@@ -117,15 +117,14 @@ Log::validate_vm(po::variables_map& vm,
 
 /// pipeline stuff ///
 
-class Log::printer : public PipeElement<tray, tray> {
-private:
-    friend class Log;
-    printer();
-    ~printer();
-public:
-    tray operator()(tray);
-    std::string getName() const {return "log::printer";}
-private:
+struct Log::printer::priv_data {
+    priv_data() : sequence_num(0),
+                  total_sps(0), total_error(0), total_cpm(0),
+                  total_idty(0), total_bps(0), total_score(0),
+                  arb(0)
+    {}
+    ~priv_data();
+
     int sequence_num;
 
     // stats
@@ -135,42 +134,50 @@ private:
     double total_idty;
     double total_bps;
     double total_score;
+
     std::ofstream out;
+
     query_arb *arb;
 
     std::vector<int> helix_pairs;
 };
 
 
-
-PipeElement<tray, tray>*
-Log::make_printer() {
-    return new printer();
-}
-
-
 Log::printer::printer()
-    : sequence_num(0),
-      total_sps(0), total_error(0), total_cpm(0), total_idty(0), total_bps(0),
-      total_score(0), arb(0)
+    : data(new priv_data())
 {
     if (!opts->origdb.empty()) {
-        arb = query_arb::getARBDB(opts->origdb);
+        data->arb = query_arb::getARBDB(opts->origdb);
     }
-    if (arb) {
-        helix_pairs = arb->getPairs();
+    if (data->arb) {
+        data->helix_pairs = data->arb->getPairs();
     } 
 
-    out.open(opts->logfile.c_str(),std::ios_base::app);
-    if (!out) {
+    data->out.open(opts->logfile.c_str(), std::ios_base::app);
+
+    if (!data->out) {
         stringstream tmp; 
         tmp << "Unable to open file \"" << opts->logfile << "\" for writing.";
         throw std::runtime_error(tmp.str());
     }
 }
 
+Log::printer::printer(const printer& o)
+    : data(o.data)
+{
+}
+
+Log::printer&
+Log::printer::operator=(const printer& o) {
+    data = o.data;
+    return *this;
+}
+
 Log::printer::~printer() {
-    if (opts->show_dist) {
+}
+
+Log::printer::priv_data::~priv_data() {
+    if (Log::opts->show_dist) {
         out << "avg_sps: " << total_sps / sequence_num << endl
             << "avg_cpm: " << total_cpm / sequence_num << endl
             << "avg_idty: " << total_idty / sequence_num << endl           
@@ -205,14 +212,15 @@ Log::printer::operator()(tray t) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
 
-    tmp << "sequence_number: " << ++sequence_num << endl
+    tmp << "sequence_number: " << ++data->sequence_num << endl
         << "sequence_identifier: " << t.input_sequence->getName() << endl;
 
     if (!t.aligned_sequence) {
-        out << tmp.str() 
-            << "align_log_slv:" << t.logstream->str() << endl
-            << query_arb::fn_fullname << ":" << t.input_sequence->get_attr<string>(query_arb::fn_fullname) << endl
-            << "alignment failed!" << endl << endl;
+        data->out << tmp.str()
+                  << "align_log_slv:" << t.logstream->str() << endl
+                  << query_arb::fn_fullname << ":"
+                  << t.input_sequence->get_attr<string>(query_arb::fn_fullname) << endl
+                  << "alignment failed!" << endl << endl;
         return t;
     }
     t.aligned_sequence->set_attr("align_log_slv", 
@@ -220,7 +228,7 @@ Log::printer::operator()(tray t) {
 
     cseq& c = *t.aligned_sequence;
 
-    float bps = c.calcPairScore(helix_pairs);
+    float bps = c.calcPairScore(data->helix_pairs);
 
     c.set_attr(query_arb::fn_nuc, (int)c.size());
     c.set_attr(query_arb::fn_bpscore, (int)(100 * bps));
@@ -229,7 +237,6 @@ Log::printer::operator()(tray t) {
         c.set_attr(query_arb::fn_astop, (int)((--c.end())->getPosition()));
     }
 
-    
     tmp << "sequence_score: " << c.getScore() << endl;
 
     const std::map<string,cseq::variant>& attrs = c.get_attrs();
@@ -242,10 +249,10 @@ Log::printer::operator()(tray t) {
     bool tmp_show_diff = false;
     if (opts->show_dist) {
         cseq o = *t.input_sequence;
-        if (arb) {
+        if (data->arb) {
             string name = o.getName();
             name = name.substr(0,name.find_first_of(' '));
-            o = arb->getCseq(name);
+            o = data->arb->getCseq(name);
             tmp << "len-orig: " << o.size() << endl 
                 << "len-alig: " << c.size() << endl;
         }
@@ -268,7 +275,7 @@ Log::printer::operator()(tray t) {
 
 //        if (bps > 0) {
         tmp << "bps: " << bps << endl;
-        total_bps += bps;
+        data->total_bps += bps;
 //        }
 
         /*
@@ -299,7 +306,7 @@ Log::printer::operator()(tray t) {
             }
         }
         */
-        total_score += c.getScore();
+        data->total_score += c.getScore();
     }
 
 
@@ -329,7 +336,7 @@ Log::printer::operator()(tray t) {
         tmp << endl << endl;
     }
     
-    out << tmp.str() << endl;
+    data->out << tmp.str() << endl;
 
     return t;
 }

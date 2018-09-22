@@ -125,6 +125,7 @@ rw_fasta::get_options_description(po::options_description& main,
 
     po::options_description od("Fasta I/O");
     od.add_options()
+        // write
         ("line-length",
          po::value<int>(&opts->line_length)->default_value(0, ""),
          "wrap output sequence (unlimited)")
@@ -132,72 +133,51 @@ rw_fasta::get_options_description(po::options_description& main,
         ("min-idty",
          po::value<float>(&opts->min_idty)->default_value(0.f, ""),
          "only write sequences with align_idty_slv > X, implies calc-idty")
-        ("fasta-idx",
-         po::value<long>(&opts->fasta_idx)->default_value(0, ""),
-         "process only sequences beginning in block <arg>")
-        ("fasta-block",
-         po::value<long>(&opts->fasta_block)->default_value(0, ""),
-         "length of blocks")
         ("fasta-write-dna",
          po::bool_switch(&opts->out_dna),
          "Write DNA sequences (default: RNA)")
         ("fasta-write-dots",
          po::bool_switch(&opts->out_dots),
          "Use dots instead of dashes to distinguish unknown sequence data from indels")
+
+        // read
+        ("fasta-idx",
+         po::value<long>(&opts->fasta_idx)->default_value(0, ""),
+         "process only sequences beginning in block <arg>")
+        ("fasta-block",
+         po::value<long>(&opts->fasta_block)->default_value(0, ""),
+         "length of blocks")
         ;
     adv.add(od);
 }
+
 
 void
 rw_fasta::validate_vm(po::variables_map& /* vm */,
                       po::options_description& /*desc*/) {
 }
 
-class rw_fasta::reader : public PipeElement<void, tray> {
-    friend class rw_fasta;
+
+////////// reader
+
+struct rw_fasta::reader::priv_data {
     std::ifstream in;
     int lineno;
     int seqno;
-
-
-public:
-    reader(std::string str);
-    tray operator()(void);
-    std::string getName() const {return "fasta::reader";}
-
+    priv_data() : lineno(0), seqno(0) {}
+    ~priv_data() {
+        std::cerr << "FASTA input: " << std::endl
+                  << "        sequences: " << seqno-1 << std::endl
+                  << "        lines:     " << lineno-1 << std::endl
+            ;
+    }
 };
 
-class rw_fasta::writer : public PipeElement<tray, void> {
-    friend class rw_fasta;
-    writer(std::string str);
-    ~writer();
-    std::ofstream out;
-    std::ofstream out_csv;
-    int seqnum;
-    int excluded;
-public:
-    void operator()(tray);
-        std::string getName() const {return "fasta::writer";}
-private:
-};
-
-
-PipeElement<void, tray>*
-rw_fasta::make_reader(po::variables_map& vm) {
-    return new reader(vm["in"].as<string>());
-}
-
-
-PipeElement<tray,void>*
-rw_fasta::make_writer(po::variables_map& vm) {
-    return new writer(vm["out"].as<string>());
-}
-
-rw_fasta::reader::reader(string infile) 
-    : lineno(0), seqno(0)
+rw_fasta::reader::reader(const string& infile)
+    : data(new priv_data)
 {
-    in.open(infile.c_str(), std::ios_base::in);
-    if (!in) {
+    data->in.open(infile.c_str(), std::ios_base::in);
+    if (data->in.fail()) {
         stringstream msg; 
         msg << "Unable to open file \"" << infile << "\" for reading.";
         throw std::runtime_error(msg.str());
@@ -205,37 +185,51 @@ rw_fasta::reader::reader(string infile)
     
     // if fasta blocking enabled, seek to selected block
     if (opts->fasta_block > 0) {
-        in.seekg(opts->fasta_block * opts->fasta_idx);
+        data->in.seekg(opts->fasta_block * opts->fasta_idx);
     }
 }
 
-tray
-rw_fasta::reader::operator()() {
+rw_fasta::reader::reader(const reader& r)
+    : data(r.data)
+{
+}
+
+rw_fasta::reader&
+rw_fasta::reader::operator=(const reader& r) {
+    data = r.data;
+    return *this;
+}
+
+rw_fasta::reader::~reader() {
+}
+
+bool
+rw_fasta::reader::operator()(tray& t) {
     string line;
-    tray t;
     t.logstream = new stringstream();
     t.input_sequence = new cseq();
-    seqno++;
+    data->seqno++;
     cseq &c = *t.input_sequence;
-    if (!in) throw PipeEOF();
+    if (data->in.fail()) {
+        return false;
+    }
     
     // if fasta blocking enabled, check if we've passed block
     // boundary in last sequence
     if (opts->fasta_block > 0
-        && in.tellg() > opts->fasta_block * (opts->fasta_idx + 1)) {
-        throw PipeEOF();
+        && data->in.tellg() > opts->fasta_block * (opts->fasta_idx + 1)) {
+        return false;
     }
 
     // skip lines not beginning with '>'
-    while (in.peek() != '>' && getline(in,line).good()) {
-        lineno++;
+    while (data->in.peek() != '>' && getline(data->in, line).good()) {
+        data->lineno++;
     }
 
     // parse title
-    lineno++;
-    if (getline(in, line).good()) {
-        // remove "\r" at end
-        if (line[line.size()-1] == '\r') {
+    data->lineno++;
+    if (getline(data->in, line).good()) {
+        if (line[line.size()-1] == '\r') {  // "\r" at end
             line.resize(line.size()-1);
         }
         
@@ -246,14 +240,13 @@ rw_fasta::reader::operator()() {
         if (blank < line.size()) {
             c.set_attr<string>(query_arb::fn_fullname, line.substr(blank+1));
         }
-    } else {
-        // didn't get a title
-        throw PipeEOF();
+    } else { // didn't get a title
+        return false;
     }
 
     // handle comments
-    while (in.peek() == ';' && getline(in,line).good()) {
-        lineno++;
+    while (data->in.peek() == ';' && getline(data->in, line).good()) {
+        data->lineno++;
 
         // if the comment contains an attribute: add it. 
         // Otherwise ignore the comment
@@ -270,39 +263,56 @@ rw_fasta::reader::operator()() {
 
     try {
         // all lines until eof or next /^>/ are data
-        while (in.peek() != '>' && in.good()) {
-            getline(in, line);
-            lineno++;
+        while (data->in.peek() != '>' && data->in.good()) {
+            getline(data->in, line);
+            data->lineno++;
             c.append(line);
         }
     } catch (base_iupac::bad_character_exception& e) {
         std::cerr << "Encountered invalid character while parsing FASTA file." << std::endl
-                  << "Line " << lineno << " (sequence " << seqno << ", '"<< c.getName() << "')"
+                  << "Line " << data->lineno << " (sequence " << data->seqno << ", '"<< c.getName() << "')"
                   << " contains character '" << e.character << "':" << std::endl
                   << line << std::endl
                   << "SKIPPING SEQUENCE!!!" << std::endl;
-        while (in.peek() != '>' && getline(in,line).good()) {
-            lineno++;
+        while (data->in.peek() != '>' && getline(data->in, line).good()) {
+            data->lineno++;
         }
         delete t.input_sequence;
-        return (*this)();
+        return (*this)(t); // FIXME: stack size?
     }
 
-    return t;
+    return true;
 }
 
-rw_fasta::writer::writer(string outfile)
-    : seqnum(0), excluded(0)
+
+/////////////// writer
+
+struct rw_fasta::writer::priv_data {
+    std::ofstream out;
+    std::ofstream out_csv;
+    int seqnum;
+    int excluded;
+    priv_data() : seqnum(0), excluded(0) {}
+    ~priv_data() {
+        std::cerr << "FASTA output: " << std::endl
+                  << "        excluded: " << excluded << std::endl
+                  << "        exported: " << seqnum<< std::endl
+            ;
+    }
+};
+
+rw_fasta::writer::writer(const string& outfile)
+    : data(new priv_data)
 {
-    out.open(outfile.c_str());
-    if (!out) {
+    data->out.open(outfile.c_str());
+    if (data->out.fail()) {
         stringstream msg; 
         msg << "Unable to open file \"" << outfile << "\" for writing.";
         throw std::runtime_error(msg.str());
     }
     if (opts->fastameta == FASTA_META_CSV) {
-        out_csv.open((outfile+".csv").c_str());
-        if (!out_csv) {
+        data->out_csv.open((outfile+".csv").c_str());
+        if (data->out_csv.fail()) {
             stringstream msg; 
             msg << "Unable to open file \"" << outfile << ".csv\" for writing.";
             throw std::runtime_error(msg.str());
@@ -310,11 +320,18 @@ rw_fasta::writer::writer(string outfile)
     }
 }
 
+rw_fasta::writer::writer(const writer& o)
+    : data(o.data)
+{
+}
+
+rw_fasta::writer&
+rw_fasta::writer::operator=(const writer& o) {
+    data = o.data;
+    return *this;
+}
+
 rw_fasta::writer::~writer() {
-    std::cerr << "FASTA output: " << std::endl
-              << "        excluded: " << excluded << std::endl
-              << "        exported: " << seqnum<< std::endl
-        ;
 }
 
 string escape_string(const string& in) {
@@ -332,7 +349,7 @@ string escape_string(const string& in) {
     return tmp.str();
 }
 
-void
+tray
 rw_fasta::writer::operator()(tray t) {
     if (t.input_sequence == 0) {
         throw std::runtime_error("Received broken tray in " __FILE__);
@@ -341,85 +358,82 @@ rw_fasta::writer::operator()(tray t) {
         std::cerr << "Sequence " << t.input_sequence->getName() 
                   << " was not aligned. Nothing to write to FASTA output."
                   << std::endl;
-        ++excluded;
-        t.destroy(); // free data in tray
-        return;
+        ++data->excluded;
+        return t;
     }
     if (opts->min_idty > t.aligned_sequence->get_attr<float>(query_arb::fn_idty)) {
         std::cerr << "Sequence " << t.input_sequence->getName() 
                   << " was below idty threshold at " << t.aligned_sequence->get_attr<float>(query_arb::fn_idty) << " and excluded from FASTA output."
                   << std::endl;
-        ++excluded;
-        t.destroy(); // free data in tray
-        return;
+        ++data->excluded;
+        return t;
     }
     cseq &c = *t.aligned_sequence;
 
     const std::map<string,cseq::variant>& attrs = c.get_attrs();
-    pair<string,cseq::variant> ap;
 
-    out << ">" << c.getName();
+    data->out << ">" << c.getName();
     string fname = c.get_attr<string>(query_arb::fn_fullname);
     if (!fname.empty()) {
-        out << " " << fname;
+        data->out << " " << fname;
     }
 
     switch (opts->fastameta) {
     case FASTA_META_NONE:
-        out << endl;
+        data->out << endl;
         break;
     case FASTA_META_HEADER:
         for (auto& ap: attrs) {
             if (ap.first != query_arb::fn_family
                 && ap.first != query_arb::fn_fullname) {
-                out << " [" << ap.first << "="
-                    << boost::apply_visitor(lexical_cast_visitor<string>(),
+                data->out << " [" << ap.first << "="
+                     << boost::apply_visitor(lexical_cast_visitor<string>(),
                                             ap.second)
-                    << "]";
+                     << "]";
             }
         }
-        out << endl;
+        data->out << endl;
         break;
     case FASTA_META_COMMENT:
-        out << endl;
+        data->out << endl;
 
         for (auto& ap: attrs) {
             if (ap.first != query_arb::fn_family) {
-                out << "; " << ap.first << "="
-                    << boost::apply_visitor(lexical_cast_visitor<string>(),
+                data->out << "; " << ap.first << "="
+                     << boost::apply_visitor(lexical_cast_visitor<string>(),
                                             ap.second)
-                    << endl;
+                     << endl;
             }
         }
         break;
     case FASTA_META_CSV:
-        out << endl;
+        data->out << endl;
 
         // print header
-        if (seqnum == 0) {
-            out_csv << "name";
+        if (data->seqnum == 0) {
+            data->out_csv << "name";
             for (auto& ap: attrs) {
               if (ap.first != query_arb::fn_family) {
-                  out_csv << "," << escape_string(ap.first);
+                  data->out_csv << "," << escape_string(ap.first);
               }
             }
-            out_csv << "\r\n";
+            data->out_csv << "\r\n";
         }
 
-        out_csv << c.getName();
+        data->out_csv << c.getName();
         for (auto& ap: attrs) {
             if (ap.first != query_arb::fn_family) {
-                out_csv << ","
-                        << escape_string(
-                            boost::apply_visitor(
-                                lexical_cast_visitor<string>(),
-                                ap.second
-                                )
-                            );
+                data->out_csv << ","
+                         << escape_string(
+                             boost::apply_visitor(
+                                 lexical_cast_visitor<string>(),
+                                 ap.second
+                                 )
+                             );
             }
         }
 
-        out_csv << "\r\n";
+        data->out_csv << "\r\n";
         break;
     default:
         throw std::runtime_error("Unknown meta-fmt output option");
@@ -429,13 +443,14 @@ rw_fasta::writer::operator()(tray t) {
     int len = seq.size();
     if (opts->line_length > 0) {
         for (int i=0; i<len; i+=opts->line_length) {
-            out << seq.substr(i, opts->line_length) << endl;
+            data->out << seq.substr(i, opts->line_length) << endl;
         }
     } else {
-        out << seq << endl;
+        data->out << seq << endl;
     }
-    seqnum++;
-    t.destroy(); // free data in tray
+    data->seqnum++;
+
+    return t;
 }
 
 } // namespace sina

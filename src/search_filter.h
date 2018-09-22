@@ -31,7 +31,6 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "query_arb.h"
 #include "query_pt.h"
-#include "pipe.h"
 #include "tray.h"
 
 #include <vector>
@@ -40,22 +39,24 @@ for the parts of ARB used as well as that of the covered work.
 namespace sina {
 
 class search_filter {
-    query_arb *arb;
+private:
+    struct options;
+    static struct options *opts;
+    struct priv_data;
+    std::shared_ptr<priv_data> data;
 
-    std::vector<float> weights;
-    std::vector<int> pairs;
-
-    class search;
 public:
-    static PipeElement<tray,tray>* make_search_filter();
+    search_filter();
+    search_filter(const search_filter&);
+    search_filter& operator=(const search_filter&);
+    ~search_filter();
+
+    tray operator()(tray);
 
     static void get_options_description(boost::program_options::options_description& all,
                                         boost::program_options::options_description& adv);
     static void validate_vm(boost::program_options::variables_map&,
                             boost::program_options::options_description&);
-private:
-    struct options;
-    static struct options *opts;
 };
 
 } // namespace sina
