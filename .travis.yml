@@ -52,7 +52,8 @@ script:
   - cd install
   - tar -xvzf ../sina-*-$OSNAME.tar.gz
   - mv $MINICONDA $MINICONDA.bkup; hash -r
-  - DYLD_PRINT_LIBRARIES=1 DYLD_PRINT_RPATHS=1 ./sina-*/sina --help
+  - ls -lR ./sina-*
+  - DYLD_PRINT_LIBRARIES=1 DYLD_PRINT_RPATHS=1 LD_DEBUG=all ./sina-*/sina --help
   - cd ..
 
 deploy:
