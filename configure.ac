@@ -1,7 +1,7 @@
 # Init
 
 AC_INIT([SINA],[1.3.5],[elmar@pruesse.net],,[http://github.com/epruesse/SINA])
-AC_COPYRIGHT([Copyright (c) 2005-2017 Elmar Pruesse])
+AC_COPYRIGHT([Copyright (c) 2005-2018 Elmar Pruesse])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/sina.cpp])
