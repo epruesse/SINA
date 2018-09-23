@@ -216,11 +216,12 @@ bindistdir: all
         for binary in $$binaries; do $(top_srcdir)/tools/fix_libpaths.sh "$$binary"; done; \
 	find $(bindistdir) -name \*.la -delete -o -name \*.a -delete
 
+tar_allow_lns = $${TAR-tar} cof - "$$tardir"
 bindist-gzip: bindistdir
-	tardir=$(bindistdir) && $(am__tar) | GZIP=$(GZIP_ENV) gzip -c >$(bindistdir).tar.gz
+	tardir=$(bindistdir) && $(tar_allow_lns) | GZIP=$(GZIP_ENV) gzip -c >$(bindistdir).tar.gz
 	rm -rf $(bindistdir)
 bindist-bzip2: bindistdir
-	tardir=$(bindistdir) && $(am__tar) | BZIP2=$${BZIP2--9} bzip2 -c >$(bindistdir).tar.bz2
+	tardir=$(bindistdir) && $(tar_allow_lns) | BZIP2=$${BZIP2--9} bzip2 -c >$(bindistdir).tar.bz2
 	rm -rf $(bindistdir)
 
 
