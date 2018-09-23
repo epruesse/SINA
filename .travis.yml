@@ -51,7 +51,7 @@ script:
   - mkdir install
   - cd install
   - tar -xvzf ../sina-*-$OSNAME.tar.gz
-  - rm -rf $MINICONDA; hash -r
+  - mv $MINICONDA $MINICONDA.bkup; hash -r
   - ./sina-*/sina --help
   - cd ..
 
