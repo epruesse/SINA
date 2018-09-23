@@ -95,6 +95,7 @@ src_libsina_la_SOURCES = \
     src/famfinder.cpp \
     src/graph.h \
     src/helpers.h \
+    src/idset.h \
     src/mesh.h \
     src/mesh_debug.h \
     src/mseq.cpp \
