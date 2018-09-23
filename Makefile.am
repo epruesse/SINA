@@ -60,21 +60,18 @@ CLEANFILES =
 # calling pkglibdir our ARBHOME (.../lib/sina), we install 
 # internal libs and binaries to .../bin and .../lib subdirs
 
-bin_PROGRAMS = \
-	src/sina \
+bin_PROGRAMS = src/sina
+noinst_PROGRAMS = \
 	src/sina_probematch \
 	src/kmer_test
 lib_LTLIBRARIES = src/libsina.la
 
 if ENABLE_FAT_TAR 
-arbbindir = $(libdir)/sina/arb/bin
-arblibdir = $(libdir)/sina/arb/lib
+arblibdir = $(libdir)/arb/lib
 
-arbbin_PROGRAMS = arb_pt_server arb_message
+bin_PROGRAMS = arb_pt_server arb_message
 arblib_DATA = \
-    arb_tcp.dat \
-    $(ARBHOME)/lib/libCORE$(LIBEXT) \
-    $(ARBHOME)/lib/libARBDB$(LIBEXT) 
+    arb_tcp.dat
 
 arb_message_SOURCES=
 arb_pt_server_SOURCES=
@@ -153,10 +150,6 @@ src_sina_LDADD = $(sina_libs)
 arb_pt_server$(EXEEXT): $(ARBHOME)/bin/arb_pt_server$(EXEEXT)
 	cp $< $@
 arb_message$(EXEEXT): $(ARBHOME)/bin/arb_message$(EXEXT)
-	cp $< $@
-libARBDB$(LIBEXT): $(ARBHOME)/lib/libARBDB$(LIBEXT) 
-	cp $< $@
-libCORE$(LIBEXT): $(ARBHOME)/lib/libCORE$(LIBEXT)
 	cp $< $@
 arb_tcp.dat: $(ARBHOME)/lib/arb_tcp.dat
 	cp $< $@
