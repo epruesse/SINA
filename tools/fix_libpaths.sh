@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 UNAME=$(uname)
 
@@ -52,7 +51,7 @@ set_rpath() {
 }
 
 copy_libs_needed() {
-    echo "Checking libs for $1"
+    echo "--- Checking required libs for $1 ---"
     ORIGIN=`dirname $1`
     rpaths=$(get_rpaths $1)
     self=`echo ${1##*/} | sed 's/\+/\\\\+/g'`
@@ -75,14 +74,18 @@ copy_libs_needed() {
 	if test -z "$source"; then
 	    echo Missing $name
 	else
-	    echo "$source -> $dest/$name"
-	    cp $source $dest/$name
+	    mkdir -pv "$(dirname $dest/$name)"
+	    cp -v $source $dest/$name
 	    recurse="$recurse $dest/$name"
 	fi
     done
-    for lib in $recurse; do
-	copy_libs_needed $lib
-    done
+    if [ -n "$recurse" ]; then
+	echo "--- Recursing libs added for $1 --"
+	for lib in $recurse; do
+	    copy_libs_needed $lib
+	done
+	echo "--- Recursion finished"
+    fi
 }
 		    
 
@@ -93,17 +96,25 @@ make_rpath_relative_Linux() {
     set_rpath_Linux "$1" '$ORIGIN/../lib/arb/lib:$ORIGIN/../lib'
 }
 make_rpath_relative() {
+    echo "--- Making rpath relative to binary $1 ---"
     make_rpath_relative_$UNAME "$@"
 }
 
 make_absolute_path_relative_Darwin() {
+    echo "--- Checking for non-relative DLL references in $1 ---"
     for lib in $(get_needed_Darwin $1); do
+	echo -ne "- checking lib $lib\t"
 	if test ${lib:0:1} = "/"; then
 	    name=$(basename $lib)
 	    dir="$(dirname $lib)"
 	    if test "$dir" != "/usr/lib"; then
+		echo "[FIXING]"
 		logrun install_name_tool -change $lib @rpath/$name -add_rpath $dir "$1"
+	    else
+		echo "(system) [OK]"
 	    fi
+	else
+	    echo "[OK]"
 	fi
     done
 }
@@ -114,11 +125,17 @@ make_absolute_path_relative() {
     make_absolute_path_relative_$UNAME "$@"
 }
 
+fix_libs() {
+    make_absolute_path_relative "$1"
+    copy_libs_needed "$1"
+    make_rpath_relative "$1"
+}
+
+
 if test "$0" != "-bash"; then
+    set -e
     if test -n "$1"; then
-	echo Fixing libs for "$1"
-	make_absolute_path_relative "$1"
-	copy_libs_needed "$1"
-	make_rpath_relative "$1"
+	fix_libs "$1"
     fi
+    set +e
 fi
