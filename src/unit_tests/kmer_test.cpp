@@ -220,7 +220,9 @@ BOOST_DATA_TEST_CASE(kmer_unique_generator_test,
     const auto& valid = first_k[n];
     const auto& kmers = kmers_k[n];
 
-    unique_kmer_generator kmer(k);
+    std::unordered_set<unsigned int> seen;
+
+    unique_kmer_generator kmer(seen, k);
 
     for (int i = 0; i < test_sequence_len; ++i) {
         kmer.push(test_sequence[i]);
@@ -251,7 +253,8 @@ BOOST_DATA_TEST_CASE(kmer_iterable_unique_generator_test,
 
     int i = 0;
     std::string test_string(test_sequence);
-    for (const auto& kmer : unique_kmers(test_string, k)) {
+    std::unordered_set<unsigned int> seen;
+    for (const auto& kmer : unique_kmers(test_string, seen, k)) {
         while (not valid[i]) { ++i; }
         BOOST_CHECK_EQUAL(kmer, kmers[i]);
         BOOST_CHECK_MESSAGE(kmer == kmers[i], ""
@@ -395,8 +398,10 @@ BOOST_DATA_TEST_CASE(kmer_iterable_unique_prefix_generator_test,
 
     int i = 0;
     int count = 0;
+    std::unordered_set<unsigned int> seen;
+
     std::string test_string(test_sequence);
-    for (const auto& kmer : unique_prefix_kmers(test_string, k, prefix_len, prefix)) {
+    for (const auto& kmer : unique_prefix_kmers(test_string, seen, k, prefix_len, prefix)) {
         bool should_be_valid = false;
         unsigned int current_prefix;
         do {

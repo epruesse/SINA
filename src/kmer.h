@@ -128,13 +128,15 @@ public:
 template<class GENERATOR>
 class unique_filter : public GENERATOR {
 private:
-    std::unordered_set<unsigned int> _seen;
+    std::unordered_set<unsigned int>& _seen;
     bool is_good;
 public:
     template<typename... ARGS>
-    unique_filter(ARGS&&... data)
+    unique_filter(std::unordered_set<unsigned int>& seen, ARGS&&... data)
         : GENERATOR(std::forward<ARGS>(data)...),
+          _seen(seen),
           is_good(false) {
+        seen.clear();
         // seen.reserve(?)
     }
 

@@ -172,12 +172,13 @@ kmer_search::build_index() {
         data.kmer_idx.push_back(new vlimap(data.n_sequences));
     }
     t.stop("alloc");
-    
+
+    std::unordered_set<unsigned int> seen;
     for (int i=0; i < data.n_sequences; i++) {
         const cseq& c = data.arbdb->getCseq(data.sequence_names[i]);
         const auto& bases = c.const_getAlignedBases();
         t.stop("load");
-        for (const auto& kmer: unique_kmers(bases, data.k)) {
+        for (const auto& kmer: unique_kmers(bases, seen, data.k)) {
             data.kmer_idx[kmer]->push_back(i);
         }
         t.stop("hash");
@@ -186,7 +187,7 @@ kmer_search::build_index() {
     }
     t.stop("count");
 
-    cerr << "Index done" << endl
+    cerr << "Indexed " << data.n_sequences << " sequences" << endl
          << "Timings for Index Build: " << t << endl;
 }
 
@@ -230,7 +231,9 @@ kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {
     vector<uint16_t> scores(data.n_sequences, 0);
     data.timeit.stop("load");
 
-    for (unsigned int kmer: unique_kmers(bases, data.k)) {
+    std::unordered_set<unsigned int> seen;
+
+    for (unsigned int kmer: unique_kmers(bases, seen, data.k)) {
         data.kmer_idx[kmer]->increment(scores);
     }
     data.timeit.stop("sum");
