@@ -69,7 +69,7 @@ lib_LTLIBRARIES = src/libsina.la
 if ENABLE_FAT_TAR 
 arblibdir = $(libdir)/arb/lib
 
-bin_PROGRAMS = arb_pt_server arb_message
+bin_PROGRAMS += arb_pt_server arb_message
 arblib_DATA = \
     arb_tcp.dat
 
