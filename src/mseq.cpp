@@ -45,8 +45,8 @@ using std::min;
 using namespace sina;
 
 /* turns a number of sequences into a graph */
-mseq::mseq(vector<cseq>::iterator seqs_begin,
-           vector<cseq>::iterator seqs_end,
+mseq::mseq(std::vector<cseq>::iterator seqs_begin,
+           std::vector<cseq>::iterator seqs_end,
            float weight)
     : num_seqs(seqs_end-seqs_begin), bases_width(seqs_begin->getWidth())
 {

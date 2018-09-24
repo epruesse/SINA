@@ -51,7 +51,7 @@ public:
     search_filter& operator=(const search_filter&);
     ~search_filter();
 
-    tray operator()(tray);
+    tray operator()(tray t);
 
     static void get_options_description(boost::program_options::options_description& all,
                                         boost::program_options::options_description& adv);

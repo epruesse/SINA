@@ -289,7 +289,7 @@ struct iupac_contains {
 };
 
 tray
-search_filter::search_filter::operator()(tray t) {
+search_filter::operator()(tray t) {
     cseq *c;
     if (t.aligned_sequence) {
         c = t.aligned_sequence;
