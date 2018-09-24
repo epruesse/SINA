@@ -53,7 +53,7 @@ public:
                   unsigned int ntaxa, unsigned int alen,
 		  unsigned int *na, unsigned int *nc, unsigned int *ng, 
 		  unsigned int *nu, unsigned int *nM, unsigned int *nT,
-          const std::vector<int>&);
+                  const std::vector<int>& _pairs);
   
   const std::vector<float>& getWeights() const { return weights; }
   const std::vector<int>& getPairs() const { return pairs; }

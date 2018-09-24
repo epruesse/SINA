@@ -178,7 +178,7 @@ struct rw_fasta::reader::priv_data {
     }
 };
 
-rw_fasta::reader::reader(const string& infile)
+rw_fasta::reader::reader(const std::string& infile)
     : data(new priv_data)
 {
     if (infile == "-") {
@@ -315,7 +315,7 @@ struct rw_fasta::writer::priv_data {
     }
 };
 
-rw_fasta::writer::writer(const string& outfile)
+rw_fasta::writer::writer(const std::string& outfile)
     : data(new priv_data)
 {
     if (outfile == "-") {

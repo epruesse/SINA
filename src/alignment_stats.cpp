@@ -54,11 +54,11 @@ alignment_stats::alignment_stats()
 }
 
 alignment_stats::alignment_stats(
-    string _name,
+    std::string _name,
     unsigned int ntaxa, unsigned int alen,
     unsigned int *na, unsigned int *ng, unsigned int *nc, 
     unsigned int *nu, unsigned int *nM, unsigned int *nT,
-    const vector<int>& _pairs
+    const std::vector<int>& _pairs
     ) 
     : name(_name),
       num_taxa(ntaxa), width(alen), global_freqs(), 

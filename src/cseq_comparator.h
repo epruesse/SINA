@@ -133,6 +133,10 @@ public:
     /** 
      * Constructor taking explicit configuration.
      * See type definition for an explanation of the values.
+     *
+     * @param iupac
+     * @param dist
+     * @param cover
      * @param filter_lc if true lower case bases at the beginning
      *                  or end are ignored.
      */

@@ -414,7 +414,7 @@ string color_code(const string& in) {
 }
 
 void
-cseq::write_alignment(ostream& ofs, vector<cseq>& seqs,
+cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
                       cseq::idx_type from_pos,
                       cseq::idx_type to_pos,
                       bool colors
@@ -498,7 +498,7 @@ cseq::write_alignment(ostream& ofs, vector<cseq>& seqs,
 }
 
 void
-cseq::write_alignment(ostream& ofs, vector<cseq>& seqs, bool color_code) {
+cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs, bool color_code) {
     cseq::idx_type imax = seqs[0].getWidth();
     cseq::write_alignment(ofs, seqs, 0, imax, color_code);
 }

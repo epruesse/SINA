@@ -293,7 +293,7 @@ query_arb::init(const char *db_server) {
 }
 
 
-query_arb::query_arb(string arbfile)
+query_arb::query_arb(std::string arbfile)
     : data(* new(priv_data))
 {
     init(arbfile.c_str());
@@ -408,7 +408,10 @@ query_arb::loadKey(cseq& c, const string key) {
 struct query_arb::storeKey_visitor
     : public boost::static_visitor<> {
     /**
-     * @param pQueryArb Pointer to the instance of query_arb. Needed to call the write methods
+     * @param gbmain
+     * @param gbspec
+     * @param key
+     * @param queryArb Pointer to the instance of query_arb. Needed to call the write methods
      */
     storeKey_visitor(GBDATA* gbmain, GBDATA* gbspec, const string& key, query_arb& queryArb)
         : _gbmain(gbmain), _gbspec(gbspec), _key(key), _query_arb(queryArb)  {}
@@ -472,14 +475,14 @@ struct query_arb::storeKey_visitor
 };
 
 inline void
-query_arb::storeKey(GBDATA* gbmain, GBDATA* gbspec, const string& key,
-         cseq::variant var) {
+query_arb::storeKey(GBDATA* gbmain, GBDATA* gbspec, const std::string& key,
+                    cseq::variant var) {
     storeKey_visitor vis(gbmain, gbspec, key,*this);
     boost::apply_visitor(vis, var);
 }
 
 void
-query_arb::storeKey(cseq& c, const string key) {
+query_arb::storeKey(cseq& c, const std::string key) {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data.gbmain);
     storeKey(data.gbmain, data.getGBDATA(c.getName()), key,
@@ -487,7 +490,7 @@ query_arb::storeKey(cseq& c, const string key) {
 }
 
 void
-query_arb::loadCache(vector<string>& keys) {
+query_arb::loadCache(std::vector<std::string>& keys) {
     GBDATA *gbspec;
 
     const char *ali = data.default_alignment;
@@ -720,7 +723,7 @@ query_arb::putSequence(const cseq& seq) {
 }
 
 void
-query_arb::copySequence(query_arb& other, string name, bool mark) {
+query_arb::copySequence(query_arb& other, std::string name, bool mark) {
     boost::mutex::scoped_lock lock(arb_db_access);
 
     // lock underlying arb database
@@ -762,7 +765,7 @@ query_arb::setMark() {
 }
 
 void
-query_arb::setMark(const string& name) {
+query_arb::setMark(const std::string& name) {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data.gbmain);
     GBDATA *gbdata = data.getGBDATA(name);
