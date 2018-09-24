@@ -66,12 +66,6 @@ using boost::is_any_of;
 #include "align.h"
 
 
-/** Writes newly aligned sequence to arb database
- * \param in input family stream, last entry of each family is stored
- * \param out output family stream, in is passed untouched
- * \param arb arb interface object, needed to access arb database
- */
-
 using namespace sina;
 namespace po = boost::program_options;
 
@@ -100,30 +94,27 @@ rw_arb::get_options_description(po::options_description& /*main*/,
 
     po::options_description od("ARB I/O");
     od.add_options()
+        // write
         ("markcopied",
          po::bool_switch(&opts->markcopied),
          "mark copied references")
-
         ("markaligned",
          po::bool_switch(&opts->markaligned),
          "mark aligned sequences")
-
         ("prot-level",
          po::value<int>(&opts->prot_lvl)->default_value(4, ""),
          "arb export protection level (4)")
 
+        // read
         ("select-file",
          po::value<string>(&opts->select_file)->default_value(""),
          "file containting arb names to be used ('-' for STDIN)")
-
         ("select-step",
          po::value<int>(&opts->select_step)->default_value(1, ""),
          "use every n-th sequence (1)" )
-
         ("select-skip",
          po::value<int>(&opts->select_skip)->default_value(0,""),
          "skip the first n seuqences (0)")
-
         ("extra-fields",
          po::value<string>(&opts->extra_fields)->default_value(""),
          "load additional fields, colon separated")
@@ -135,6 +126,7 @@ rw_arb::get_options_description(po::options_description& /*main*/,
 void
 rw_arb::validate_vm(po::variables_map& /*vm*/,
                     po::options_description& /*desc*/) {
+    split(opts->v_extra_fields, opts->extra_fields, is_any_of(":,"));
 }
 
 
@@ -157,80 +149,79 @@ make_datetime() {
 /** Section: Reader
  */
 
-class rw_arb::reader : source {
-    friend class rw_arb;
-    reader(string infile);
-    ~reader();
+struct rw_arb::reader::priv_data {
     query_arb* arb;
     istream *in;
-public:
-    bool operator()(tray&);
+
+    priv_data() : arb(NULL), in(NULL) {}
 };
 
-
-source*
-rw_arb::make_reader(po::variables_map& vm) {
-    return new reader(vm["in"].as<string>());
+rw_arb::reader::reader() {}
+rw_arb::reader::reader(const reader& o) : data(o.data) {}
+rw_arb::reader::~reader() {}
+rw_arb::reader& rw_arb::reader::operator=(const reader& o) {
+    data = o.data;
+    return *this;
 }
 
-rw_arb::reader::reader(string infile)
-{
-    arb = query_arb::getARBDB(infile);
 
-    if (opts->select_file=="-") {
-        in = &std::cin;
+rw_arb::reader::reader(std::string infile)
+    : data(new priv_data())
+{
+    data->arb = query_arb::getARBDB(infile);
+
+    if (opts->select_file ==  "-") {
+        data->in = &std::cin;
     } else if (!opts->select_file.empty()) {
-        in = new ifstream(opts->select_file.c_str());
+        data->in = new ifstream(opts->select_file.c_str());
     } else {
         stringstream *tmp = new stringstream();
-        vector<string> cache = arb->getSequenceNames();
+        vector<string> cache = data->arb->getSequenceNames();
         for (vector<string>::iterator it = cache.begin();
               it != cache.end(); ++it) {
             *tmp << *it << endl;
         }
-        in = tmp;
+        data->in = tmp;
     }
 
     // ignore first <select_skip> names
     string tmp;
     for (int i = 0; i < opts->select_skip; i++) {
-        (*in) >> tmp;
-        //cerr << "skipping " << tmp << endl;
+        (*data->in) >> tmp;
     }
-
-    split(opts->v_extra_fields, opts->extra_fields, is_any_of(":,"));
 }
 
-rw_arb::reader::~reader() {
-}
 
 bool
 rw_arb::reader::operator()(tray& t) {
     string name;
-    t.logstream=new stringstream(); // FIXME: move to tray.cpp
+    t.logstream = new stringstream(); // FIXME: move to tray.cpp
+
+    while (not t.input_sequence) {
+        if (data->in->bad()) {
+            return false;
+        }
+
+        for (int i = 2; i <= opts->select_step; i++) {
+            (*data->in) >> name;
+        }
+        (*data->in) >> name;
     
-retry:
-    if (in->bad()) {
-        return false;
+        if (name.empty()) {
+            return false;
+        }
+    
+        try {
+            t.input_sequence = new cseq(data->arb->getCseq(name));
+        } catch (base_iupac::bad_character_exception& e) {
+            std::cerr << "ERROR: Bad character " << e.character << " in " << name
+                      << ". Skipping sequence." << std::endl;
+        }
     }
 
-    for (int i = 2; i <= opts->select_step; i++) {
-        (*in) >> name;
-    }
-    (*in) >> name;
-    if (name.empty()) {
-        return false;
-    }
-    try {
-        t.input_sequence = new cseq(arb->getCseq(name));
-    } catch (base_iupac::bad_character_exception& e) {
-        std::cerr << "ERROR: Bad character " << e.character << " in " << name
-                  << ". Skipping sequence." << std::endl;
-        goto retry;
-    }
     if (!opts->extra_fields.empty()) {
         for (string& f: opts->v_extra_fields) {
-            arb->loadKey(*t.input_sequence, f);
+            data->arb->loadKey(*t.input_sequence, f);
         }
     }
     return true;
@@ -239,47 +230,39 @@ retry:
 
 /** Section: Writer
  */
-class rw_arb::writer :  public filter {
-    friend class rw_arb;
-    writer(string outfile);
-    ~writer();
-    query_arb *arb, *ptarb;
-public:
+struct rw_arb::writer::priv_data {
+    query_arb *arb;
     string arb_fname;
-    tray operator()(tray);
-    std::string getName() const {return "arb::writer";}
-private:
-    int copyref;
+    ~priv_data() {
+        std::cerr << "Saving..." << endl;
+        if (arb_fname != ":") {
+            arb->save();
+        }
+        std::cerr << "done" << endl;
+    }    
 };
 
-
-filter*
-rw_arb::make_writer(po::variables_map& vm) {
-    return new writer(vm["out"].as<string>());
+rw_arb::writer::writer() {}
+rw_arb::writer::writer(const writer& o) : data(o.data) {}
+rw_arb::writer::~writer() {}
+rw_arb::writer& rw_arb::writer::operator=(const writer& o) {
+    data = o.data;
+    return *this;
 }
 
 rw_arb::writer::writer(string outfile)
-    :  arb_fname(outfile)
+    :  data(new priv_data)
 {
-    arb = query_arb::getARBDB(outfile);
-    arb->setProtectionLevel(opts->prot_lvl);
-    
-    if (copyref) {
-        ptarb = query_arb::getARBDB(opts->pt_database);
-    }
+    data->arb_fname = outfile;
+    data->arb = query_arb::getARBDB(outfile);
+    data->arb->setProtectionLevel(opts->prot_lvl);
 }
 
-rw_arb::writer::~writer() {
-    std::cerr << "Saving..." << endl;
-    if (arb_fname != ":") // cannot save remote db
-        arb->save();
-    std::cerr << "done" << endl;
-}
 
 tray
 rw_arb::writer::operator()(tray t) {
     if (t.aligned_sequence) {
-        arb->putCseq(*t.aligned_sequence);
+        data->arb->putCseq(*t.aligned_sequence);
     }
     return t;
 }

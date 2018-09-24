@@ -399,7 +399,7 @@ int real_main(int argc, char** argv) {
     source_node *source; // will be activated once graph complete
     switch (intype) {
     case SEQUENCE_DB_ARB:
-        source = new source_node(g, *rw_arb::make_reader(vm), false);
+        source = new source_node(g, rw_arb::reader(input_file), false);
         break;
     case SEQUENCE_DB_FASTA:
         source = new source_node(g, rw_fasta::reader(input_file), false);
@@ -480,7 +480,7 @@ int real_main(int argc, char** argv) {
     // Make node writing sequences
     switch(outtype) {
     case SEQUENCE_DB_ARB:
-        node = new filter_node(g, 1, *rw_arb::make_writer(vm));
+        node = new filter_node(g, 1, rw_arb::writer(output_file));
         break;
     case SEQUENCE_DB_FASTA:
         node = new filter_node(g, 1, rw_fasta::writer(output_file));

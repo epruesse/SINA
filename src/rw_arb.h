@@ -31,29 +31,48 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "tray.h"
 
+#include <memory>
 #include <string>
-#include <map>
 #include <boost/program_options.hpp>
 
 namespace sina {
-class query_arb;
 
 class rw_arb {
-public:
-    class reader;
-    class writer;
-
-    static source* make_reader(boost::program_options::variables_map&);
-    static filter* make_writer(boost::program_options::variables_map&);
-
-    static void get_options_description(boost::program_options::options_description& all,
-                                        boost::program_options::options_description& adv);
-    static void validate_vm(boost::program_options::variables_map&,
-                            boost::program_options::options_description&);
 private:
     struct options;
     static struct options *opts;
 
+public:
+    class reader {
+        struct priv_data;
+        std::shared_ptr<priv_data> data;
+    public:
+        reader();
+        reader(std::string infile);
+        reader(const reader& o);
+        reader& operator=(const reader& o);
+        ~reader();
+
+        bool operator()(tray&);
+    };
+        
+    class writer {
+        struct priv_data;
+        std::shared_ptr<priv_data> data;
+    public:
+        writer();
+        writer(std::string outfile);
+        writer(const writer& o);
+        writer& operator=(const writer& o);
+        ~writer();
+
+        tray operator()(tray);
+    };
+            
+    static void get_options_description(boost::program_options::options_description& all,
+                                        boost::program_options::options_description& adv);
+    static void validate_vm(boost::program_options::variables_map&,
+                            boost::program_options::options_description&);
 };
 
 } // namespace sina
