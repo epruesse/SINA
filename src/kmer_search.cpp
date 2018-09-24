@@ -159,6 +159,7 @@ kmer_search::init() {
 
 void
 kmer_search::build_index() {
+    data.arbdb->loadCache(); // parallel load - 10% faster overall
     data.sequence_names = data.arbdb->getSequenceNames();
     data.n_sequences = data.sequence_names.size();
     
