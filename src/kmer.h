@@ -107,40 +107,40 @@ public:
 };
 
 /** filter kmers by prefix */
-template<class generator>
-class prefix_filter : public generator {
+template<class GENERATOR>
+class prefix_filter : public GENERATOR {
 private:
     const unsigned int _p_mask;
     const unsigned int _p_val;
 public:
     template<typename... ARGS>
     prefix_filter(unsigned int k, unsigned int p_len, unsigned int p_val, ARGS&&... data)
-        : generator(k, std::forward<ARGS>(data)...),
+        : GENERATOR(k, std::forward<ARGS>(data)...),
           _p_mask(((1<<p_len*2)-1)<<((k-p_len)*2)),
           _p_val(p_val<<((k-p_len)*2)) {
     }
     bool good() const {
-        return generator::good() && (generator::val() & _p_mask) == _p_val;
+        return GENERATOR::good() && (GENERATOR::val() & _p_mask) == _p_val;
     }
 };
 
 /** filter all but first occurrence */
-template<class generator>
-class unique_filter : public generator {
+template<class GENERATOR>
+class unique_filter : public GENERATOR {
 private:
     std::unordered_set<unsigned int> _seen;
     bool is_good;
 public:
     template<typename... ARGS>
     unique_filter(ARGS&&... data)
-        : generator(std::forward<ARGS>(data)...),
+        : GENERATOR(std::forward<ARGS>(data)...),
           is_good(false) {
         // seen.reserve(?)
     }
 
     void push(const base_iupac& b) {
-        generator::push(b);
-        is_good = generator::good() && _seen.insert(generator::val()).second;
+        GENERATOR::push(b);
+        is_good = GENERATOR::good() && _seen.insert(GENERATOR::val()).second;
     }
 
     bool good() const {
@@ -149,15 +149,15 @@ public:
 };
 
 /** provide container-like access for for-loops */
-template<typename generator, typename bases>
-class iterable : generator {
+template<typename GENERATOR, typename bases>
+class iterable : GENERATOR {
 private:
     typedef typename bases::const_iterator bases_iterator;
     bases_iterator _begin, _end;
 public:
     template<typename... ARGS>
     iterable(bases &v, ARGS&&... data)
-        : generator(std::forward<ARGS>(data)...),
+        : GENERATOR(std::forward<ARGS>(data)...),
           _begin(v.begin()), _end(v.end())
     {}
 
