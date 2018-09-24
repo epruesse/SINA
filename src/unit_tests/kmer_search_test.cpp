@@ -51,38 +51,42 @@ using namespace sina;
 /** shuffles only the first n items **/
 template<class ITER>
 ITER shuffle_n(ITER begin, ITER end, size_t n) {
-  size_t items = std::distance(begin, end);
-  while (n--) {
-    ITER it = begin;
-    int ran = std::rand() % items;
-    std::advance(it, ran);
-    std::swap(*begin, *it);
-    --items, ++begin;
-  }
-  return begin;
+    size_t items = std::distance(begin, end);
+    while (n--) {
+        ITER it = begin;
+        int ran = std::rand() % items;
+        std::advance(it, ran);
+        std::swap(*begin, *it);
+        --items, ++begin;
+    }
+    return begin;
 }
 
 BOOST_AUTO_TEST_CASE(simple, *boost::unit_test::tolerance(0.0001)) {
-  kmer_search *search_index = kmer_search::get_kmer_search(DATABASE);
+    int argc = boost::unit_test::framework::master_test_suite().argc;
+    char** argv = boost::unit_test::framework::master_test_suite().argv;
 
-  query_arb *arbdb = query_arb::getARBDB(DATABASE);
-  std::vector<std::string> ids = arbdb->getSequenceNames();
-  BOOST_TEST(ids.size() > N);
-  shuffle_n(ids.begin(), ids.end(), N);
-
-  std::vector<cseq> family;
-  for (int i=0; i<N; i++) {
-    cseq query = arbdb->getCseq(ids[i]);
-    search_index->find(query, family, M);
-    float max_score = family[0].getScore();
-    std::vector<cseq>::iterator self;
-    self = std::find_if(family.begin(), family.end(),
-			[&](const cseq &c) {
-			  return c.getName() == query.getName();}
-			);
-    BOOST_TEST((self != family.end()));
-    BOOST_TEST(self->getScore() == max_score);
-  }
+    BOOST_TEST(argc>1);
+    kmer_search *search_index = kmer_search::get_kmer_search(argv[1]);
+    
+    query_arb *arbdb = query_arb::getARBDB(DATABASE);
+    std::vector<std::string> ids = arbdb->getSequenceNames();
+    BOOST_TEST(ids.size() > N);
+    shuffle_n(ids.begin(), ids.end(), N);
+    
+    std::vector<cseq> family;
+    for (int i=0; i<N; i++) {
+        cseq query = arbdb->getCseq(ids[i]);
+        search_index->find(query, family, M);
+        float max_score = family[0].getScore();
+        std::vector<cseq>::iterator self;
+        self = std::find_if(family.begin(), family.end(),
+                            [&](const cseq &c) {
+                                return c.getName() == query.getName();}
+            );
+        BOOST_TEST((self != family.end()));
+        BOOST_TEST(self->getScore() == max_score);
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END(); // kmer_search_test

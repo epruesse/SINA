@@ -251,6 +251,8 @@ check_PROGRAMS = \
 check_DATA = \
     test_data/ltp_reduced.arb
 
+TEST_ARGS := $(check_DATA) $(TEST_EXTRA_ARGS)
+export TEST_ARGS
 
 test_data/%: test_data/%.xz
 	mkdir -p $$(dirname $@)
