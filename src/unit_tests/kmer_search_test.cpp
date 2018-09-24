@@ -43,7 +43,7 @@ namespace bdata = boost::unit_test::data;
 BOOST_AUTO_TEST_SUITE(kmer_search_test);
 
 const char* DATABASE = "test_data/ltp_reduced.arb";
-const int N = 100;
+const int N = 10;
 const int M = 10;
 
 using namespace sina;
