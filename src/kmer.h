@@ -171,8 +171,8 @@ public:
 
     class iterator {
     private:
-        bases_iterator _begin, _end;
         iterable _generator;
+        bases_iterator _begin, _end;
     public:
         iterator(iterable& gen,
                  bases_iterator& begin, bases_iterator& end)
