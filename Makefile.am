@@ -251,7 +251,7 @@ check_PROGRAMS = \
 dist_check_DATA = \
     test_data/ltp_reduced.arb
 
-TEST_ARGS := $(dist_check_DATA) $(TEST_EXTRA_ARGS)
+TEST_ARGS := $(srcdir)/$(dist_check_DATA) $(TEST_EXTRA_ARGS)
 export TEST_ARGS
 
 test_data/%: test_data/%.xz
