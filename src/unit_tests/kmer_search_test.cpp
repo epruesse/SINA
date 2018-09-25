@@ -42,7 +42,6 @@ namespace bdata = boost::unit_test::data;
 
 BOOST_AUTO_TEST_SUITE(kmer_search_test);
 
-const char* DATABASE = "test_data/ltp_reduced.arb";
 const int N = 100;
 const int M = 10;
 
@@ -66,12 +65,13 @@ BOOST_AUTO_TEST_CASE(simple, *boost::unit_test::tolerance(0.0001)) {
     int argc = boost::unit_test::framework::master_test_suite().argc;
     char** argv = boost::unit_test::framework::master_test_suite().argv;
 
-    BOOST_TEST(argc>1);
+    BOOST_REQUIRE(argc>1);
+    std::cerr << "Using database " << argv[1] << "for testing" << std::endl;
     kmer_search *search_index = kmer_search::get_kmer_search(argv[1]);
     
-    query_arb *arbdb = query_arb::getARBDB(DATABASE);
+    query_arb *arbdb = query_arb::getARBDB(argv[1]);
     std::vector<std::string> ids = arbdb->getSequenceNames();
-    BOOST_TEST(ids.size() > N);
+    BOOST_REQUIRE(ids.size() > N);
     shuffle_n(ids.begin(), ids.end(), N);
     
     std::vector<cseq> family;
