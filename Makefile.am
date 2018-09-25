@@ -248,7 +248,7 @@ check_PROGRAMS = \
     src/unit_tests/kmer_test \
     src/unit_tests/kmer_search_test
 
-check_DATA = \
+dist_check_DATA = \
     test_data/ltp_reduced.arb
 
 TEST_ARGS := $(check_DATA) $(TEST_EXTRA_ARGS)
