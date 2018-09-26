@@ -54,7 +54,7 @@ alignment_stats::alignment_stats()
 }
 
 alignment_stats::alignment_stats(
-    std::string _name,
+    const std::string& _name,
     unsigned int ntaxa, unsigned int alen,
     unsigned int *na, unsigned int *ng, unsigned int *nc, 
     unsigned int *nu, unsigned int *nM, unsigned int *nT,

@@ -247,7 +247,7 @@ search_filter::~search_filter()
 
 template<typename F>
 struct dereference {
-    dereference(F f) : _f(f){}
+    explicit dereference(F f) : _f(f){}
     dereference() : _f(){}
     typedef typename F::result_type  result_type;
 
@@ -267,7 +267,7 @@ struct dereference {
 struct icontains {
     typedef bool result_type;
     const string bases;
-    icontains(const string& _bases) : bases(_bases) {}
+    explicit icontains(const string& _bases) : bases(_bases) {}
     bool operator()(const cseq& c) {
         return boost::algorithm::icontains(c.getBases(), bases);
     }
@@ -282,7 +282,7 @@ struct iupac_contains {
     };
     typedef bool result_type;
     vector<aligned_base> ref;
-    iupac_contains(cseq& c) : ref(c.getAlignedBases()) {}
+    explicit iupac_contains(cseq& c) : ref(c.getAlignedBases()) {}
     bool operator()(cseq& c) {
         return boost::algorithm::contains(c.getAlignedBases(), ref, iupac_compare());
     }

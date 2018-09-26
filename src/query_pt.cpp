@@ -105,13 +105,15 @@ class managed_pt_server {
     redi::ipstream* process;
 public:
     managed_pt_server(string portname, string dbname);
+    managed_pt_server(const managed_pt_server&);
     ~managed_pt_server();
 };
 
 
 struct query_pt::priv_data {
     priv_data()
-        : range_begin(-1),
+        : link(0L),
+          range_begin(-1),
           range_end(-1),
           find_type_fast(false)
     {}
@@ -384,7 +386,7 @@ query_pt::match(std::vector<cseq> &family, const cseq& queryc,
     int skipped_min_len = 0;
     int skipped_noid = 0;
 
-    if (!query || strlen(query) < 20) {
+    if (query_str.size() < 20) {
         cerr << "Sequence too short (" << strlen(query)
              << " bases) for PT server search!" << endl;
         return 0;
@@ -581,7 +583,7 @@ match_retry:
     return f_relscore;
 }
 
-query_pt_exception::query_pt_exception(std::string msg) throw()
+query_pt_exception::query_pt_exception(const std::string& msg) throw()
     : message(msg)
 {
 }

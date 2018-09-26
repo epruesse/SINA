@@ -49,7 +49,7 @@ public:
               num_mutations(0), num_transversions(0) {}
   };
   alignment_stats();
-  alignment_stats(std::string name,
+  alignment_stats(const std::string& name,
                   unsigned int ntaxa, unsigned int alen,
 		  unsigned int *na, unsigned int *nc, unsigned int *ng, 
 		  unsigned int *nu, unsigned int *nM, unsigned int *nT,

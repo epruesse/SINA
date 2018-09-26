@@ -98,7 +98,7 @@ int main(int argc, const char **argv) {
 
   // iterate over sequences
   for (std::vector<cseq*>::iterator it = sequences.begin();
-       it != sequences.end(); it++) {
+       it != sequences.end(); ++it) {
 
     // iterate over matches of probe
     typedef find_iterator<cseq::iterator> cseq_find_iterator;

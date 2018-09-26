@@ -349,7 +349,8 @@ class famfinder::_famfinder {
     void select_astats(tray &t);
     
 public:
-    _famfinder(int n);
+    explicit _famfinder(int n);
+    _famfinder(const _famfinder&);
     ~_famfinder();
     tray operator()(tray);
     std::string getName() const {return "famfinder";}
@@ -542,7 +543,7 @@ famfinder::_famfinder::select_astats(tray& t) {
 struct has_max_n_gaps {
     typedef bool result_type;
     const int n_gaps;
-    has_max_n_gaps(int _n_gaps) : n_gaps(_n_gaps) {}
+    explicit has_max_n_gaps(int _n_gaps) : n_gaps(_n_gaps) {}
     bool operator()(const cseq& c) {
         return 0 == c.size() // safety, must have bases
             || c.rbegin()->getPosition() - c.size() +1 < n_gaps; 
