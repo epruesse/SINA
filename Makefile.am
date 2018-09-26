@@ -50,7 +50,8 @@ EXTRA_DIST = \
     tools/latex2man \
     tools/latex2man.sty \
     tools/latex2man.cfg \
-    tools/test_driver.sh
+    tools/test_driver.sh \
+    test_data/ltp_reduced.arb.xz
 
 CLEANFILES =
 
@@ -171,7 +172,7 @@ LATEXTOMAN=$(top_srcdir)/tools/latex2man
 
 export TEXINPUTS=$(top_srcdir):$(top_srcdir)/tools/:
 
-CLEANFILES += $(doc_DATA) $(man1_MANS) doc/sina-manual.log  doc/sina-manual.toc doc/sina-manual.aux doc/sina-manual.out
+CLEANFILES += $(doc_DATA) $(check_DATA) $(man1_MANS) doc/sina-manual.log  doc/sina-manual.toc doc/sina-manual.aux doc/sina-manual.out
 
 
 %.txt: sina_%.txt
@@ -248,10 +249,10 @@ check_PROGRAMS = \
     src/unit_tests/kmer_test \
     src/unit_tests/kmer_search_test
 
-dist_check_DATA = \
-    test_data/ltp_reduced.arb
+check_DATA = test_data/ltp_reduced.arb
 
-TEST_ARGS := $(srcdir)/$(dist_check_DATA) $(TEST_EXTRA_ARGS)
+
+TEST_ARGS := $(check_DATA) $(TEST_EXTRA_ARGS)
 export TEST_ARGS
 
 test_data/%: test_data/%.xz
