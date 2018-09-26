@@ -157,8 +157,12 @@ rw_fasta::get_options_description(po::options_description& main,
 
 
 void
-rw_fasta::validate_vm(po::variables_map& /* vm */,
+rw_fasta::validate_vm(po::variables_map& vm,
                       po::options_description& /*desc*/) {
+    if (vm.count("fasta-idx") && vm["fasta-idx"].as<long>() > 0 &&
+        vm.count("in") && vm["in"].as<string>() == "-") {
+        throw std::logic_error("Cannot use --fasta-idx when input is piped");
+    }
 }
 
 
