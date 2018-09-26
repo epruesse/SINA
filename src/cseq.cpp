@@ -301,7 +301,7 @@ void
 cseq::assignFromCompressed(const void* data, size_t len) {
     vector<unsigned char> buf;
     typedef unsigned int uint;
-    compressed_data *cd = (compressed_data*)data;
+    compressed_data *cd = reinterpret_cast<compressed_data*>(data);
     buf.resize(cd->size);
 
     unsigned long compr_size = len - sizeof(compressed_data);
