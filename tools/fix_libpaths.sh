@@ -52,11 +52,11 @@ set_rpath() {
 
 copy_libs_needed() {
     echo "--- Checking required libs for $1 ---"
-    ORIGIN=`dirname $1`
+    ORIGIN=$(dirname $1)
     rpaths=$(get_rpaths $1)
-    self=`echo ${1##*/} | sed 's/\+/\\\\+/g'`
+    self=$(echo ${1##*/} | sed 's/\+/\\\\+/g')
     dtneed=$(get_needed $1 | grep -vE "^(/usr/lib|/System)|$self" || true)
-    dest=`realpath $(dirname $1)/../lib`
+    dest=$(realpath $(dirname $1)/../lib)
     recurse=
     for lib in $dtneed; do
 	#echo "  checking for $lib"

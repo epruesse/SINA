@@ -244,14 +244,12 @@ FIXTURE_CASE(test_compress_aligned, compression_data) {
 }
 
 FIXTURE_CASE(test_decompress_unaligned, compression_data) {
-    std::vector<unsigned char> data;
     cseq c;
     c.assignFromCompressed(c_unalig_compr, sizeof(c_unalig_compr));
     test_data(c, "", 0, rna.c_str());
 }
 
 FIXTURE_CASE(test_decompress_aligned, compression_data) {
-    std::vector<unsigned char> data;
     cseq c;
     c.assignFromCompressed(c_alig_compr, sizeof(c_alig_compr));
     test_data(c, "", 0, rna_aligned.c_str());

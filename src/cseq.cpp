@@ -205,7 +205,7 @@ cseq::getAligned(bool nodots, bool dna) const {
             int i=0;
             int left = (it_end - it) - 1;
             for (vector<aligned_base>::const_iterator jt = it + std::min(2,left); 
-                 jt != bases.begin() && i<10; jt--, i++) {
+                 jt != bases.begin() && i<10; --jt, ++i) {
                 recent << " " << *jt;
             }
 
@@ -287,7 +287,7 @@ cseq::compressAligned(std::vector<unsigned char> &out) {
 
     unsigned long compr_size = compressBound(orig_size);
     out.resize(compr_size);
-    compressed_data *cd = (compressed_data*)&out.front();
+    compressed_data *cd = reinterpret_cast<compressed_data*>(&out.front());
 
     cd->id='#';
     cd->size=(unsigned short)orig_size;
@@ -707,8 +707,8 @@ cseq::calcPairScore(const std::vector<int>& pairs) {
     int num=0;
 
     for(unsigned int i=0; i<pairs.size(); ++i) {
-        unsigned char left, right;
         if (pairs[i]) { // alignment position has "helix-parter"
+            unsigned char left, right;
             left = operator[](i);
             right = operator[](pairs[i]);
 

@@ -335,7 +335,7 @@ calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c) {
 struct not_icontains {
     typedef bool result_type;
     const string bases;
-    not_icontains(const string& _bases) : bases(_bases) {}
+    explicit not_icontains(const string& _bases) : bases(_bases) {}
     bool operator()(const cseq& c) {
         return !boost::algorithm::icontains(c.getBases(), bases);
     }
@@ -344,7 +344,7 @@ struct not_icontains {
 struct iequals_cmp {
     typedef bool result_type;
     const string bases;
-    iequals_cmp(const string& _bases) : bases(_bases) {}
+    explicit iequals_cmp(const string& _bases) : bases(_bases) {}
     bool operator()(const cseq& c) {
         return iequals(bases, c.getBases());
     }

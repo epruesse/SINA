@@ -138,7 +138,6 @@ std::ostream& operator<<(std::ostream& out,
 
 void show_conf(po::variables_map& vm) {
     std::cerr << "Effective parameters:" << endl;
-    std::pair<std::string,po::variable_value> pv;
     for (auto& pv: vm) {
         std::cerr << pv.first << " = ";
         try {

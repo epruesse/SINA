@@ -146,6 +146,7 @@ struct query_arb::priv_data {
         alignment_length(0),
         gbmain(0L),
         gblast(0L),
+        gbspec(0L),
         count(0)
     {}
 

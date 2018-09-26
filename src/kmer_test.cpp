@@ -82,7 +82,6 @@ int main(int argc, const char** argv) {
   for (int i = 0; i < 1000; i++) {
     cseq target = arbdb->getCseq(seqNames[i]);
     search_index->find(target, family, 10);
-    float max_score = family[0].getScore();
     std::vector<cseq>::iterator self;
     self = std::find_if(family.begin(), family.end(),
 			[&](const cseq &c) {
