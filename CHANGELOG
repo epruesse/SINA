@@ -1,3 +1,9 @@
+Version 1.4.0:
+ - process sequences in parallel (#31)
+ - add support for gzipped read/write (#20)
+ - add support for "-" to read/write using pipes
+ - remove internal pipeline in favor of TBB
+
 Version 1.3.5:
  - report number of references discarded due to configured constraints
  - fix crash if no acceptable references found for a query
