@@ -34,10 +34,9 @@ for the parts of ARB used as well as that of the covered work.
 #include "query_arb.h"
 #include "timer.h"
 #include "alignment_stats.h"
+#include "log.h"
 
 #include <iostream>
-using std::cerr;
-using std::endl;
 using std::uppercase;
 using std::hex;
 
@@ -139,6 +138,8 @@ static boost::mutex arb_db_access;
 // List of opened ARB databases
 map<string, query_arb*> query_arb::open_arb_dbs;
 
+static auto logger = Log::create_logger("ARB I/O");
+
 struct query_arb::priv_data {
     priv_data() :
         have_cache(false),
@@ -155,6 +156,7 @@ struct query_arb::priv_data {
             free(const_cast<char*>(default_alignment));
         }
         if (gbmain) {
+            logger->info("Closing ARB database '{}'", filename);
             GB_close(gbmain);
         }
     }
@@ -263,7 +265,7 @@ query_arb::init(const char *db_server) {
         GBT_create_alignment(data.gbmain, "ali_16s", 2000, 0, 4, "rna");
         GBT_set_default_alignment(data.gbmain, "ali_16s");
         data.default_alignment=strdup("ali_16s");
-        cerr << "Created new alignment ali_16s in ARB DB" << endl;
+        logger->warn("Created new alignment ali_16s in '{}'", data.filename);
     }
 
     data.alignment_length =  GBT_get_alignment_len(data.gbmain,
@@ -284,8 +286,8 @@ query_arb::init(const char *db_server) {
     }
     data.count=spec_count;
 
-    cerr << "Loading names map..." << endl;
-    boost::progress_display p(spec_count, cerr);
+    logger->info("Loading names map... (for {})", data.filename);
+    boost::progress_display p(spec_count, std::cerr);
     for ( GBDATA* gbspec = GBT_first_species(data.gbmain);
           gbspec; gbspec = GBT_next_species(gbspec)) {
         data.gbdata_cache[GBT_read_name(gbspec)] = gbspec;
@@ -353,19 +355,18 @@ query_arb::getFileName() const {
 
 void
 query_arb::saveAs(const char* fname, const char* type) {
+    logger->info("Saving database {}", fname);
     {
         GB_transaction trans(data.gbmain);
-        cerr << "Checking alignment...";
+        logger->info("Checking alignment...");
         GB_ERROR err = GBT_check_data(data.gbmain, data.default_alignment);
         if (err) {
-	    cerr << err << endl;
-        } else {
-            cerr << "done" << endl;
+            logger->error(err);
         }
     }
 
     if (GB_ERROR err = GB_save_as(data.gbmain, fname, type)) {
-        cerr << "error \"" << err << "\" while trying to save arb db" << endl;
+        logger->error("Error '{}' while trying to save {}", err, fname);
     }
 }
 
@@ -393,7 +394,7 @@ loadKey(cseq& c, const string key, GBDATA* gbspec) {
                 return;
             case GB_BITS:
             default:
-                cerr <<"query_arb::loadKey failed: type unsupported" << endl;
+                logger->error("loadKey failed: type unsupported");
                 return;
         }
     }
@@ -503,8 +504,8 @@ query_arb::loadCache(std::vector<std::string>& keys) {
     data.loadCache();
     unsigned int scache_size = data.sequence_cache.size();
 
-    cerr << "Loading "<< data.count <<" sequences..." << endl;
-    boost::progress_display p(data.count, cerr);
+    logger->info("Loading {} sequences...", data.count);
+    boost::progress_display p(data.count, std::cerr);
 
     data.sequence_cache.reserve(data.count);
 
@@ -539,13 +540,13 @@ query_arb::loadCache(std::vector<std::string>& keys) {
         data.sequence_cache[sequence.getName()] = sequence;
         ++p;
     }
-    cerr << "Timings for Cache Load: " << t << endl;
+    logger.info("Timings for Cache Load: {}", t);
 
 #else // HAVE_TBB -- parallel implementation
 
     gbspec = GBT_first_species(data.gbmain);
     if (not gbspec) {
-        cerr << "Failed to load sequences -- database empty?" << endl;
+        logger->error("Failed to load sequences -- database empty?");
         return;
     }
 
@@ -599,13 +600,10 @@ query_arb::loadCache(std::vector<std::string>& keys) {
             })
         );
     all.stop("all");
-    cerr << "Timings for cache load: "
-         << all << " "
-         << tkeys << " "
-         << arb << endl;
+    logger->info("Timings for cache load: {} {} {}", all, tkeys, arb);
 #endif // have TBB
 
-    cerr << "Loaded " << data.sequence_cache.size() << " sequences" << endl;
+    logger->info("Loaded {} sequences", data.sequence_cache.size());
     if (data.sequence_cache.size() > scache_size)
         data.storeCache();
 
@@ -735,8 +733,7 @@ query_arb::copySequence(query_arb& other, std::string name, bool mark) {
 
     // don't copy if sequence with identical name exists
     if ( (gbdest=GBT_find_species(data.gbmain, name.c_str())) ) {
-        cerr << "Species \"" << name << "\" already in target db. Not copying."
-             << endl;
+        logger->error("Species \"{}\" already in target db. Not copying.", name);
         if (mark) write_flag(gbdest,1l);
         return;
     }
@@ -745,12 +742,12 @@ query_arb::copySequence(query_arb& other, std::string name, bool mark) {
     gbdest = GB_create_container(data.gbspec, "species");
     if (gbsource && gbdest) {
         GB_copy(gbdest,gbsource);
-        cerr << "Copied species \"" << name <<"\"." << endl;
+        logger->info("Copied species {}", name);
         data.gblast = gbdest;
         if (mark) write_flag(gbdest,1l);
         return;
     } else {
-        cerr << "Error while copying species \"" << name << "\"." << endl;
+        logger->error("Error while copying species \"{}\".", name);
     }
 
     data.gblast = 0;
@@ -774,7 +771,7 @@ query_arb::setMark(const std::string& name) {
         write_flag(gbdata,1);
         data.gblast = gbdata;
     } else {
-        cerr << name << " not found" << endl;
+        logger->error("Failed to mark species {} - name not found", name);
         data.gblast = 0;
     }
 }
@@ -833,7 +830,7 @@ query_arb::getAlignmentStats() {
         // get sai data for current alignment
         GBDATA *gbname = GB_find(gbsai, "name", SEARCH_CHILD);
         if (not gbname) {
-            cerr << "SAI without name? Broken DB!" << endl;
+            logger->error("SAI without name? Broken DB!");
             continue;
         }
         string name = string(GB_read_char_pntr(gbname));
@@ -866,8 +863,9 @@ query_arb::getAlignmentStats() {
         // get frequencies container
         GBDATA *gbfreq = GB_find(gbali, "FREQUENCIES", SEARCH_CHILD);
         if (not gbfreq) {
-            cerr << "ERROR: SAI '"<<name<<"' is of type PVP but lacks" << endl
-                 << "contained 'FREQUENCIES'. Your DB might be corrupted!" << endl;
+            logger->error("ERROR: SAI '{}' is of type PVP but lacks"
+                          "contained 'FREQUENCIES'. Your DB might be corrupted!",
+                          name);
             continue;
         }
     
@@ -876,7 +874,7 @@ query_arb::getAlignmentStats() {
         for ( int i=0; pvp_names[i]; i++) {
             GBDATA *gbdata = GB_find(gbfreq, pvp_names[i], SEARCH_CHILD);
             if (not gbdata) {
-                cerr << "unable to find PVP data " << pvp_names[i] << endl;
+                logger->error("unable to find PVP data {}", pvp_names[i]);
                 continue;
             }
             pvp_data[i] = GB_read_ints(gbdata);
@@ -909,10 +907,11 @@ query_arb::getPairs() {
         for (int i=0; i<data.alignment_length; ++i)
             pairs[i]=helix.entry(i).pair_pos;
     } else {
-        cerr << "No HELIX filter found in ARB file. " 
-             << "Disabling secondary structure features." << endl;
-        for (int i=0; i<data.alignment_length; ++i) 
+        logger->error("No HELIX filter found in ARB file. "
+                      "Disabling secondary structure features.");
+        for (int i=0; i<data.alignment_length; ++i) {
             pairs[i]=0;
+        }
     }
     return pairs;
 }

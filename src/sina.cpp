@@ -28,8 +28,6 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "config.h"
 #include <iostream>
-using std::cerr;
-using std::endl;
 
 #include <fstream>
 using std::ifstream;
@@ -52,8 +50,8 @@ using boost::algorithm::equals;
 using std::exception;
 using std::logic_error;
 
-#include "tbb/task_scheduler_init.h"
-#include "tbb/flow_graph.h"
+#include <tbb/task_scheduler_init.h>
+#include <tbb/flow_graph.h>
 namespace tf = tbb::flow;
 
 #include "famfinder.h"
@@ -66,6 +64,8 @@ namespace tf = tbb::flow;
 #include "cseq_comparator.h"
 
 using namespace sina;
+
+static auto logger = Log::create_logger("log");
 
 // define new type of configuration selection of input/output type
 enum SEQUENCE_DB_TYPE {
@@ -137,16 +137,16 @@ std::ostream& operator<<(std::ostream& out,
 }
 
 void show_conf(po::variables_map& vm) {
-    std::cerr << "Effective parameters:" << endl;
+    std::cerr << "Effective parameters:" << std::endl;
     for (auto& pv: vm) {
         std::cerr << pv.first << " = ";
         try {
-            std::cerr << pv.second.value() << endl;
+            std::cerr << pv.second.value() << std::endl;
         } catch (boost::bad_any_cast &e) {
-            std::cerr << "UNKNOWN TYPE" << endl;
+            std::cerr << "UNKNOWN TYPE" << std::endl;
         }
     }
-    std::cerr << endl;
+    std::cerr << std::endl;
 }
 
 // define hidden options
@@ -231,31 +231,32 @@ parse_options(int argc, char** argv) {
         po::store(po::parse_command_line(argc,argv,all_opts),vm);
 
         if (vm.count("help")) {
-            cerr << opts << endl;
+            std::cerr << opts << std::endl;
             exit(EXIT_SUCCESS);
         }
         if (vm.count("help-all")) {
-            cerr << opts << endl << adv_opts << endl;
+            std::cerr << opts << std::endl
+                      << adv_opts << std::endl;
             exit(EXIT_SUCCESS);
         }
         if (vm.count("has-cli-vers")) {
-            cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
-                 << " present" << endl;
+            std::cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
+                      << " present" << std::endl;
             string requested =  vm["has-cli-vers"].as<string>();
             if (requested == "1" || requested == "2" || requested == "ARB5.99") {
                 exit(EXIT_SUCCESS);
             }
 
-            cerr << "** Error: requested CLI version not supported!" << endl;
+            std::cerr << "** Error: requested CLI version not supported!" << std::endl;
             exit(EXIT_FAILURE);
         }
 
         if (vm.count("version")) {
-            cerr << PACKAGE_STRING
+            std::cerr << PACKAGE_STRING
 #ifdef PACKAGE_BUILDINFO
-                 << " (" << PACKAGE_BUILDINFO << ")"
+                      << " (" << PACKAGE_BUILDINFO << ")"
 #endif
-                 << endl;
+                      << std::endl;
             exit(EXIT_SUCCESS);
         }
 
@@ -355,9 +356,10 @@ parse_options(int argc, char** argv) {
 
 
     } catch (std::logic_error &e) {
-        cerr << "Configuration error:" << endl
-             << e.what() << endl
-             << "Use \"--help\" to show options" << endl << endl;
+        std::cerr << "Configuration error:" << std::endl
+                  << e.what() << std::endl
+                  << "Use \"--help\" to show options" << std::endl
+                  << std::endl;
         if (vm.count("show-conf")) {
             show_conf(vm);
         }
@@ -368,9 +370,8 @@ parse_options(int argc, char** argv) {
 
 
 int real_main(int argc, char** argv) {
-    // Parse options
     po::variables_map vm = parse_options(argc, argv);
-    cerr << "This is " << PACKAGE_STRING << "." << endl;
+    logger->warn("This is {}.", PACKAGE_STRING);
     if (vm.count("show-conf")) {
          show_conf(vm);
     }
@@ -508,9 +509,9 @@ int real_main(int argc, char** argv) {
     source->activate();
     g.wait_for_all();
     timestamp after;
-    cerr << "Time for alignment phase: " << after-before << "s" << endl;
+    logger->warn("Time for alignment phase: {}s", after-before);
     nodes.clear();
-    cerr << "SINA finished." << endl;
+    logger->warn("SINA finished.");
     return 0;
 }
 
@@ -518,9 +519,7 @@ int main(int argc, char** argv) {
     try {
         return real_main(argc, argv);
     } catch (std::exception &e) {
-        // FIXME: catch misconfig separately and present less bad message
-        cerr << "Fatal: uncaught exception" << endl
-             << e.what() << endl;
+        logger->critical("uncaught exception: {}", e.what());
         return EXIT_FAILURE;
     }
 }

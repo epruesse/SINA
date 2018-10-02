@@ -46,9 +46,14 @@ using std::map;
 using std::pair;
 
 #include <fstream>
+#include <memory>
 
 #include <boost/program_options.hpp>
-#include <boost/foreach.hpp>
+#include <boost/program_options/options_description.hpp>
+
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/basic_file_sink.h"
 
 #include "cseq.h"
 #include "query_arb.h"
@@ -56,11 +61,84 @@ using std::pair;
 
 using namespace sina;
 namespace po = boost::program_options;
+using spdlog::level::level_enum;
 
-/// options parsing ///
+static auto logger = Log::create_logger("log");
+
+// having a counter in boost::program_options is difficult:
+
+/* Type to be handled as counter */
+template<typename T>
+struct counting_type {
+    T val;
+    counting_type(const T& t) : val(t) {}
+    static T initial() { return 0; };
+    static T increment(const T& t) { return t+1; }
+};
+
+/* Validator handling options of counting_type<T> */
+template<typename T>
+void validate(boost::any& v,
+	      const std::vector<std::string>& xs,
+	      counting_type<T>*, long) {
+    if (v.empty()) {
+        v = counting_type<T>::increment(counting_type<T>::initial());
+    } else {
+        v = counting_type<T>::increment(boost::any_cast<T>(v));
+    }
+}
+
+/* Specialization of typed_value for counting_type
+ *
+ * This is necessary so the value store can contain T while handling
+ * is done as counting_type<T>
+ */
+template<typename T>
+class counting_value : public po::typed_value<counting_type<T>, char> {
+public:
+    /* The store is of type T, but typed_value doesn't know that. */
+    typedef po::typed_value<counting_type<T>, char> super;
+    counting_value(T* store_to)
+        : super(reinterpret_cast<counting_type<T>*>(store_to))
+    {
+        super::zero_tokens();
+        //default_value(counting_type<T>::initial(), "");
+    }
+
+    counting_value* default_value(const T& v, const std::string& x) {
+        super::default_value(counting_type<T>(v),x);
+    }
+
+    /* Same here, need turn any(int) to any(counting<int>) before notify */
+    void notify(const boost::any& value_store) const {
+        const T* value = boost::any_cast<T>(&value_store);
+        if (value) {
+            boost::any vs(*reinterpret_cast<const counting_type<T>*>(value));
+            super::notify(vs);
+        } else {
+            super::notify(value_store);
+        }
+    }
+};
+
+
+template<typename T>
+po::typed_value<counting_type<T> >* counter(T* t) {
+  return new counting_value<T>(t);
+}
+
+template<typename T>
+po::typed_value<counting_type<T> >* counter() {
+  return new counting_value<T>(0);
+}
+
+
 
 struct Log::options {
-    int verbosity;
+    options() :
+        verbosity(spdlog::level::warn)
+    {}
+    level_enum verbosity;
     bool show_diff;
     bool show_dist;
     bool colors;
@@ -68,24 +146,35 @@ struct Log::options {
     string logfile;
 };
 
-struct Log::options *Log::opts;
+std::unique_ptr<Log::options> Log::opts;
+
+static std::vector<spdlog::sink_ptr> sinks;
+
+namespace spdlog { namespace level {
+std::ostream& operator<<(std::ostream& out, const level_enum& i) {
+    return out << to_c_str(i);
+}
+}}
 
 void
 Log::get_options_description(po::options_description& main,
                              po::options_description& adv) {
-    opts = new struct options;
+    opts = std::unique_ptr<options>(new options);
 
     main.add_options()
+        ("verbose,v",
+         counter<int>(),
+         "increase verbosity")
+        ("quiet,q",
+         counter<int>(),
+         "decrease verbosity")
         ("log-file",
-         po::value<string>(&opts->logfile)->default_value("/dev/stderr", ""),
-         "write log to <arg> (stderr)")
+         po::value<string>(&opts->logfile),
+         "file to write log to")
         ;
 
     po::options_description od("Logging");
     od.add_options()
-        ("verbosity",
-         po::value<int>(&opts->verbosity)->default_value(3,""),
-         "verbosity level (3)")
         ("show-diff",
          po::bool_switch(&opts->show_diff),
          "show difference to original alignment")
@@ -107,11 +196,55 @@ Log::get_options_description(po::options_description& main,
 void
 Log::validate_vm(po::variables_map& vm,
                  po::options_description& /*desc*/) {
+    // calculate effective log level
+    int verbosity = static_cast<int>(opts->verbosity);
+    if (vm.count("quiet")) {
+        verbosity += vm["quiet"].as<int>();
+    }
+    if (vm.count("verbose")) {
+        verbosity -= vm["verbose"].as<int>();
+    }
+    opts->verbosity = static_cast<level_enum>(verbosity);
+
+    opts->verbosity = std::min(
+        std::max(opts->verbosity, spdlog::level::trace),
+        spdlog::level::off);
+
+    // create logging sinks
+    auto console_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+    console_sink->set_level(opts->verbosity);
+    console_sink->set_pattern("%C-%m-%d %T [%n] %^%v%$");
+    sinks.push_back(console_sink);
+
+    if (vm.count("log-file")) {
+        auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+            vm["log-file"].as<string>(), true);
+        file_sink->set_level(std::min(spdlog::level::info, opts->verbosity));
+        sinks.push_back(file_sink);
+    }
+
+    // update sinks of pre-existing loggers
+    spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) {
+            l->sinks() = sinks;
+        });
+
+    // database for computing distance to test case
     if (vm["orig-db"].empty()) {
         if (!vm["db"].empty()) {
             opts->origdb = vm["db"].as<string>();
         }
     }
+}
+
+std::shared_ptr<spdlog::logger>
+Log::create_logger(std::string name) {
+    auto logger = spdlog::get(name);
+    if (logger) {
+        return logger;
+    }
+    logger = std::make_shared<spdlog::logger>(name, sinks.begin(), sinks.end());
+    spdlog::register_logger(logger);
+    return logger;
 }
 
 
@@ -153,6 +286,7 @@ Log::printer::printer()
         data->helix_pairs = data->arb->getPairs();
     } 
 
+    /*
     data->out.open(opts->logfile.c_str(), std::ios_base::app);
 
     if (!data->out) {
@@ -160,6 +294,7 @@ Log::printer::printer()
         tmp << "Unable to open file \"" << opts->logfile << "\" for writing.";
         throw std::runtime_error(tmp.str());
     }
+    */
 }
 
 Log::printer::printer(const printer& o)
@@ -178,13 +313,12 @@ Log::printer::~printer() {
 
 Log::printer::priv_data::~priv_data() {
     if (Log::opts->show_dist) {
-        out << "avg_sps: " << total_sps / sequence_num << endl
-            << "avg_cpm: " << total_cpm / sequence_num << endl
-            << "avg_idty: " << total_idty / sequence_num << endl           
-            << "avg_error: " << total_error / sequence_num << endl
-            << "avg_bps: " << total_bps / sequence_num << endl
-            << "avg_score: " << total_score / sequence_num << endl
-            ;
+        logger->info("avg_sps: {}", total_sps / sequence_num);
+        logger->info("avg_cpm: {}", total_cpm / sequence_num);
+        logger->info("avg_idty: {}", total_idty / sequence_num);
+        logger->info("avg_error: {}", total_error / sequence_num);
+        logger->info("avg_bps: {}", total_bps / sequence_num);
+        logger->info("avg_score: {}", total_score / sequence_num);
     }
 }
 
@@ -335,8 +469,8 @@ Log::printer::operator()(tray t) {
         ref->pop_back();
         tmp << endl << endl;
     }
-    
-    data->out << tmp.str() << endl;
+
+    logger->info(tmp.str());
 
     return t;
 }

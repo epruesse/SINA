@@ -9,6 +9,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 # Common flags for preprocessor and linker
 AM_CPPFLAGS = \
+    -I$(top_srcdir)/include \
     -DBOOST_TEST_DYN_LINK -DBOOST_TEST_MAIN \
     $(BOOST_CPPFLAGS) \
     $(ARB_CPPFLAGS) \

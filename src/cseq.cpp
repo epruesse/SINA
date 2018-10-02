@@ -27,6 +27,7 @@ for the parts of ARB used as well as that of the covered work.
 */
 
 #include "cseq.h"
+#include "log.h"
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
@@ -37,7 +38,6 @@ for the parts of ARB used as well as that of the covered work.
 #include <map>
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
-#include <boost/foreach.hpp>
 #include <functional>
 #include <cmath>
 #include <zlib.h>
@@ -47,6 +47,7 @@ using boost::lambda::bind;
 
 using namespace sina;
 
+static auto logger = Log::create_logger("cseq");
 
 cseq::cseq() 
     : name(), bases(), alignment_width(0), attributes(), score(0.f)
@@ -57,8 +58,9 @@ cseq::cseq(const char *_name, float _score, const char *_data)
     : alignment_width(0), score(_score)
 {
     name.assign(_name);
-    if (_data)
+    if (_data) {
         append(_data);
+    }
 }
 
 cseq::cseq(const cseq& orig) 
@@ -80,10 +82,6 @@ cseq::operator=(const cseq& rhs)
   return *this;
 }
   
-
-
-
-
 void
 cseq::clearSequence() { 
     bases.clear(); 
@@ -115,10 +113,8 @@ cseq::append(const aligned_base& ab) {
         alignment_width = ab.getPosition();
     } else {
         // but the new base must not come _before_ the last one 
-        std::cerr << "$ cseq::append(): wrong order! "
-                  << ab.getBase() << "(" << ab.getPosition() << "<" 
-                  << alignment_width << ")"
-                  << std::endl;
+        logger->error("$ cseq::append(): wrong order! {}({}<{})",
+                      ab.getBase(), ab.getPosition(), alignment_width);
 
         bases.push_back(aligned_base(alignment_width, ab.getBase()));
         //FIXME shoudln't this increase the alignment_width as well?
@@ -209,12 +205,9 @@ cseq::getAligned(bool nodots, bool dna) const {
                 recent << " " << *jt;
             }
 
-            std::cerr << "ERROR: broken sequence!"
-                      << " C=" << cursor << " P=" << pos << " L=" << left
-                      << " B=" << *it 
-                      << " P=\"" << recent.str() << "\""
-                      << std::endl;
-
+            logger->error("broken sequence! C={} P={} L={} B={} P={}",
+                          cursor, pos, left, *it, recent.str());
+            throw runtime_error("Internal error");
         } else {
             aligned.append(pos - cursor, dot);
             cursor = pos;
@@ -227,12 +220,15 @@ cseq::getAligned(bool nodots, bool dna) const {
         }
         cursor++;
         if (cursor != aligned.size()) {
-            cerr << "c=" << cursor << "a=" << aligned.size()<<endl;
+            logger->error("broken sequence! c={} a={}", cursor, aligned.size());
+            throw runtime_error("Internal error");
         }
     }
 
     if (cursor < alignment_width) {
-        if (!nodots) dot='.';
+        if (!nodots) {
+            dot='.';
+        }
         aligned.append(alignment_width - cursor, dot);
     }
 
@@ -610,8 +606,8 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
                     (next_left_gap != -1 && 
                      range_begin - next_left_gap <= next_right_gap - (range_end - 1)) ) {
                     if (next_left_gap == -1) {
-                        std::cerr << "ERROR: no space to left and right?? sequence longe than alignment?!" << endl;
-                        break;
+                        throw runtime_error("ERROR: no space to left and right?? "
+                                            "sequence longe than alignment?!");
                     }
                     num_inserts += last_it - left;
                     range_begin = next_left_gap;
@@ -725,13 +721,14 @@ cseq::calcPairScore(const std::vector<int>& pairs) {
     }
 
 #ifdef DEBUG
-    std::cerr << "bp_detail: ";
+    stringstream detail;
     for (int i=0; i<65536; ++i) {
        if (count[i]>0) {
-           std::cerr << (char)(i>>8) << (char)(i&0xFF) << ": " << count[i]/2 <<"  ";
-        }
+           detail << (char)(i>>8) << (char)(i&0xFF) << ": "
+                  << count[i]/2 << "  ";
+       }
     }
-    std::cerr << endl;
+    std::cerr << "bp_detail: " << detail.str() << std::endl;
 #endif
 
 
