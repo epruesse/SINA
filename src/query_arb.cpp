@@ -83,6 +83,7 @@ using std::unordered_map;
 
 #include <arbdbt.h>
 #include <BI_helix.hxx>
+#include <arb_handlers.h>
 
 #ifndef HAVE_GBT_FIND_SEQUENCE
 inline GBDATA* GBT_find_sequence(GBDATA* gbd, const char* ali) {
@@ -138,6 +139,7 @@ static boost::mutex arb_db_access;
 // List of opened ARB databases
 map<string, query_arb*> query_arb::open_arb_dbs;
 
+static auto arb_logger = Log::create_logger("libARBDB");
 static auto logger = Log::create_logger("ARB I/O");
 
 struct query_arb::priv_data {
@@ -327,11 +329,29 @@ query_arb::closeOpenARBDBs() {
     }
 }
 
+
+static void log_arb_err(const char *msg) {
+    arb_logger->error(msg);
+};
+static void log_arb_warn(const char *msg) {
+    arb_logger->warn(msg);
+};
+static void log_arb_info(const char *msg) {
+    arb_logger->info(msg);
+};
+
+static arb_handlers arb_log_handlers = {
+    log_arb_err, log_arb_warn, log_arb_info, active_arb_handlers->status
+};
+
+
 query_arb*
 query_arb::getARBDB(std::string file_name) {
     boost::mutex::scoped_lock lock(arb_db_access);
     if (not query_arb::priv_data::the_arb_shell) {
         query_arb::priv_data::the_arb_shell = new GB_shell();
+
+        ARB_install_handlers(arb_log_handlers);
     }
     if (open_arb_dbs.size() == 0) {
         atexit(query_arb::closeOpenARBDBs);
