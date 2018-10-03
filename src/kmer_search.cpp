@@ -31,6 +31,8 @@ for the parts of ARB used as well as that of the covered work.
 #include "idset.h"
 #include "query_arb.h"
 #include "helpers.h"
+#include "timer.h"
+#include "log.h"
 
 #include <vector>
 using std::vector;
@@ -43,7 +45,6 @@ using std::sort;
 
 #include <iostream>
 #include <iomanip>
-using std::cerr;
 using std::endl;
 using std::uppercase;
 using std::hex;
@@ -58,7 +59,6 @@ using std::hex;
 using progress = boost::progress_display;
 
 #include <boost/thread/mutex.hpp>
-#include "timer.h"
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -66,6 +66,9 @@ using progress = boost::progress_display;
 #include "zlib.h"
 
 using namespace sina;
+
+static const char* module_name = "kmer_search";
+static auto logger = Log::create_logger(module_name);
 
 std::map<string, kmer_search*> kmer_search::indices;
 static boost::mutex indices_access;
@@ -115,7 +118,7 @@ public:
     {
     }
     ~index() {
-        cerr << "Timings for Kmer Search: " << timeit << endl;
+        logger->info("Timings for Kmer Search: {}", timeit);
     }
 };
 
@@ -146,9 +149,9 @@ void
 kmer_search::init() {
     build_index();
     /*
-    cerr << "Trying to load index from disk..." << endl;
+    logger->info("Trying to load index from disk");
     if (data.try_load_index()) {
-        cerr << "Loaded index" << endl;
+        logger->info("Loaded index");
         return;
     } else {
         build_index();
@@ -162,9 +165,9 @@ kmer_search::build_index() {
     data.arbdb->loadCache(); // parallel load - 10% faster overall
     data.sequence_names = data.arbdb->getSequenceNames();
     data.n_sequences = data.sequence_names.size();
-    
-    cerr << "Building index..." << endl;
-    boost::progress_display p(data.n_sequences, cerr);
+
+    logger->info("Building index...");
+    boost::progress_display p(data.n_sequences, std::cerr);
     timer t;
     t.start();
     data.kmer_idx.clear();
@@ -188,8 +191,8 @@ kmer_search::build_index() {
     }
     t.stop("count");
 
-    cerr << "Indexed " << data.n_sequences << " sequences" << endl
-         << "Timings for Index Build: " << t << endl;
+    logger->info("Indexed {} sequences", data.n_sequences);
+    logger->info("Timings: {}", t);
 }
 
 struct score {

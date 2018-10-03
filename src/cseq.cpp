@@ -728,7 +728,9 @@ cseq::calcPairScore(const std::vector<int>& pairs) {
                   << count[i]/2 << "  ";
        }
     }
-    std::cerr << "bp_detail: " << detail.str() << std::endl;
+    if (detail.str() != "") {
+        logger->info("bp detail: {}", detail.str());
+    }
 #endif
 
 

@@ -31,6 +31,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "query_pt.h"
 #include "query_arb.h"
 #include "kmer_search.h"
+#include "log.h"
 
 #include <iostream>
 using std::ostream;

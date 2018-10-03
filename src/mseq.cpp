@@ -27,22 +27,23 @@ for the parts of ARB used as well as that of the covered work.
 */
 
 #include "mseq.h"
+#include "timer.h"
+#include "log.h"
 #include <set>
 #include <algorithm>
 #include <limits>
-#include "timer.h"
 #include <cmath>
 
 using std::vector;
 using std::list;
-using std::cerr;
-using std::endl;
 using std::set;
 using std::min;
 
-#ifndef TEST
 
 using namespace sina;
+
+static const char* module_name = "mseq";
+static auto logger = Log::create_logger(module_name);
 
 /* turns a number of sequences into a graph */
 mseq::mseq(std::vector<cseq>::iterator seqs_begin,
@@ -54,14 +55,12 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
     for (vector<cseq>::iterator it = seqs_begin;
          it != seqs_end; ++it) {
         if (bases_width != it->getWidth()) {
-            cerr <<
+            logger->critical("Sequence {} ({}/{}): length = {} expected {}",
+                             it->getName(), it-seqs_begin, seqs_end - seqs_begin,
+                             it->getWidth(), bases_width);
+            throw std::runtime_error(
                 "Aligned sequences to be stored in mseq of differ in length!"
-                 << endl;
-            cerr << "Sequence " << it->getName() << "(" << it-seqs_begin  
-                 << "/" << seqs_end - seqs_begin << ")"
-                 << ": length = " << it->getWidth() << " expected " << 
-                bases_width << endl;
-            exit(1);
+                );
         }
     }
 
@@ -117,11 +116,6 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
     }
 }
 
-#else // TEST
-int main(int, char**) {
-    std::cout << "mseq: no tests yet" << endl;
-};
-#endif
 /*
   Local Variables:
   mode:c++
