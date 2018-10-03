@@ -132,22 +132,6 @@ rw_arb::validate_vm(po::variables_map& /*vm*/,
 }
 
 
-/** Section: Common
- */
-string
-make_datetime() {
-    time_t  t;
-    tm      tm;
-    char   buf[50];
-
-    time(&t);
-    gmtime_r(&t, &tm);
-    strftime(buf, 50, "%F %T", &tm);
-
-    return string(buf);
-}
-
-
 /** Section: Reader
  */
 
