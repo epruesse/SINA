@@ -139,8 +139,12 @@ rw_arb::validate_vm(po::variables_map& /*vm*/,
 struct rw_arb::reader::priv_data {
     query_arb* arb;
     istream *in;
+    int seqno;
 
-    priv_data() : arb(NULL), in(NULL) {}
+    priv_data() : arb(NULL), in(NULL), seqno(0) {}
+    ~priv_data() {
+        logger->info("read {} sequences", seqno);
+    }
 };
 
 rw_arb::reader::reader() {}
@@ -212,6 +216,7 @@ rw_arb::reader::operator()(tray& t) {
         }
     }
 
+    ++data->seqno;
     logger->debug("loaded sequence {}", t.input_sequence->getName());
     return true;
 }
