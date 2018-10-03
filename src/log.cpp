@@ -210,10 +210,9 @@ Log::validate_vm(po::variables_map& vm,
         spdlog::level::off);
 
     // create logging sinks
-    auto console_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+    auto console_sink = sinks[0];
     console_sink->set_level(opts->verbosity);
     console_sink->set_pattern("%C-%m-%d %T [%n] %^%v%$");
-    sinks.push_back(console_sink);
 
     if (vm.count("log-file")) {
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
@@ -240,6 +239,9 @@ Log::create_logger(std::string name) {
     auto logger = spdlog::get(name);
     if (logger) {
         return logger;
+    }
+    if (sinks.empty()) {
+        sinks.push_back(std::make_shared<spdlog::sinks::stderr_color_sink_mt>());
     }
     logger = std::make_shared<spdlog::logger>(name, sinks.begin(), sinks.end());
     spdlog::register_logger(logger);
