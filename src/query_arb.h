@@ -58,11 +58,8 @@ private:
 
 
 class query_arb{
-
     query_arb(std::string);
     ~query_arb();
-
-
 
  public:
     /**
@@ -125,15 +122,11 @@ class query_arb{
     int getSeqCount() const;
     std::vector<std::string> getSequenceNames();
 
-
     cseq& getCseq(std::string name);
     void putCseq(const cseq&);
     void putSequence(const cseq&);//calls write
     void loadKey(cseq&, std::string);
     void storeKey(cseq&, std::string);
-
-
-
 
     long getAlignmentWidth();
 
@@ -141,32 +134,25 @@ class query_arb{
     std::vector<int> getPairs();
     std::vector<alignment_stats> getAlignmentStats();
 
-
     void loadCache();
     void loadCache(std::vector<std::string>&);
     std::vector<cseq*> getCacheContents();
 
-
 private:
-
     /**
      * Prints an error statistic to the specified stream.
      */
     void printErrors(std::ostream& stream);
-
     bool bad() const { return !good(); }
-
     bool good() const;
 
     /**
      * @return True if errors occurred while accessing the arb-db. False if no errors occurred.
      */
     bool hasErrors() const;
-
     void setMark();
     void setMark(const std::string&);
     void setMark(const cseq& cs);
-
 
     void copySequence(query_arb& qa, const cseq& cs, bool m); //calls write
     void copySequence(query_arb& qa, const std::string s, bool m);
@@ -175,8 +161,6 @@ private:
     query_arb(const query_arb&);
     query_arb& operator=(const query_arb&);
 
-
-    void init(const char*);
     static void closeOpenARBDBs();
 
     inline void

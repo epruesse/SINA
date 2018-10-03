@@ -68,6 +68,8 @@ using std::unordered_map;
 
 #include <stdio.h>
 
+using std::runtime_error;
+
 #ifdef HAVE_TBB
 #  include "tbb/pipeline.h"
 #endif
@@ -245,16 +247,15 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
     }
 }
 
-void
-query_arb::init(const char *db_server) {
-    if (not db_server) {
-        throw std::runtime_error(string("NULL passed to query_arb::init!"));
+query_arb::query_arb(std::string arbfile)
+    : data(* new(priv_data)) {
+    if (arbfile == "") {
+        throw runtime_error("NULL passed to query_arb::init!");
     }
 
-    data.gbmain = GB_open(db_server, "rwc");
+    data.gbmain = GB_open(arbfile.c_str(), "rwc");
     if (not data.gbmain) {
-        throw std::runtime_error(string("Unable to open ARB database \"") +
-                                 db_server + "\".");
+        throw runtime_error("Unable to open ARB database \"" + arbfile + "\".");
     }
 
     setProtectionLevel(6); // drop privileges
@@ -273,13 +274,13 @@ query_arb::init(const char *db_server) {
     data.alignment_length =  GBT_get_alignment_len(data.gbmain,
                                                    data.default_alignment);
     if (data.alignment_length < 0) {
-        throw std::runtime_error(string("Width of default alignment \"") +
-                                 data.default_alignment  +
-                                 "\" is smaller than zero.");
+        throw runtime_error(string("Width of default alignment \"") +
+                            data.default_alignment +
+                            "\" is smaller than zero.");
     }
 
     data.gbspec = GB_search(data.gbmain, "species_data", GB_CREATE_CONTAINER);
-    data.filename = db_server;
+    data.filename = arbfile;
 
     int spec_count = 0;
     for ( GBDATA *gbspec = GBT_first_species(data.gbmain);
@@ -295,13 +296,6 @@ query_arb::init(const char *db_server) {
         data.gbdata_cache[GBT_read_name(gbspec)] = gbspec;
         ++p;
     }
-}
-
-
-query_arb::query_arb(std::string arbfile)
-    : data(* new(priv_data))
-{
-    init(arbfile.c_str());
 }
 
 query_arb::~query_arb() {
