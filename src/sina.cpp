@@ -42,6 +42,9 @@ using std::get;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 #include <boost/algorithm/string/predicate.hpp>
 using boost::algorithm::iends_with;
 using boost::algorithm::iequals;
@@ -184,10 +187,10 @@ global_get_options_description() {
         ("help-all,H",
          "show full help (long)")
         ("in,i",
-         po::value<string>(),
+         po::value<fs::path>(),
          "input file (arb or fasta)")
         ("out,o",
-         po::value<string>(),
+         po::value<fs::path>(),
          "output file (arb or fasta)")
         ("search,S",
          po::bool_switch(),
@@ -263,9 +266,8 @@ parse_options(int argc, char** argv) {
 
         // Autodetect / validate intype selection
         if (vm["intype"].defaulted() && vm.count("in")) {
-            const string in = vm["in"].as<string>();
-            if (iends_with(in, ".arb")
-                || iequals(in, ":")) {
+            const fs::path in = vm["in"].as<fs::path>();
+            if (in.extension() == "arb" || in.native() == ":") {
                 std::vector<string> cmd(2);
                 cmd[0]="--intype";
                 cmd[1]="ARB";
@@ -287,16 +289,18 @@ parse_options(int argc, char** argv) {
             case SEQUENCE_DB_ARB: 
                 // ARB files can be used for input and output
                 cmd[0]="-o";
-                cmd[1]=vm["in"].as<string>();
+                cmd[1]=vm["in"].as<fs::path>().native();
                 po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
                 break;
             case SEQUENCE_DB_FASTA: 
                 // Use "input.fasta.aligned"
                 cmd[0]="-o";
-                if (equals(vm["in"].as<string>(), "/dev/stdin")) {
-                    cmd[1]="/dev/stdout";
+                if (vm["in"].as<fs::path>() == "/dev/stdin") {
+                    cmd[1] = "/dev/stdout";
+                } else if (vm["in"].as<fs::path>() == "-") {
+                    cmd[1] = "-";
                 } else {
-                    cmd[1]=vm["in"].as<string>()+".aligned";
+                    cmd[1] = vm["in"].as<fs::path>().native()+".aligned";
                 }
                 po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
                 break;
@@ -307,8 +311,8 @@ parse_options(int argc, char** argv) {
 
         // Autodetect / validate outtype selection
         if (vm["outtype"].defaulted() && vm.count("out")) {
-            const string in = vm["out"].as<string>();
-            if (iends_with(in, ".arb") || iequals(in, ":")) {
+            const fs::path out = vm["out"].as<fs::path>();
+            if (out.extension() == ".arb" || out.native() == ":") {
                 std::vector<string> cmd(2);
                 cmd[0]="--outtype";
                 cmd[1]="ARB";
@@ -380,8 +384,8 @@ int real_main(int argc, char** argv) {
 
     SEQUENCE_DB_TYPE intype = vm["intype"].as<SEQUENCE_DB_TYPE>();
     SEQUENCE_DB_TYPE outtype = vm["outtype"].as<SEQUENCE_DB_TYPE>();
-    string input_file = vm["in"].as<string>();
-    string output_file = vm["out"].as<string>();
+    fs::path input_file = vm["in"].as<fs::path>();
+    fs::path output_file = vm["out"].as<fs::path>();
     bool do_align = not (vm["no-align"].as<bool>() || vm["prealigned"].as<bool>());
     bool do_search = vm["search"].as<bool>();
     int max_trays = 10;

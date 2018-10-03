@@ -67,6 +67,7 @@ using boost::is_any_of;
 
 using namespace sina;
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 static const char* module_name = "ARB I/O";
 static auto logger = Log::create_logger(module_name);
@@ -151,10 +152,10 @@ rw_arb::reader& rw_arb::reader::operator=(const reader& o) {
 }
 
 
-rw_arb::reader::reader(std::string infile)
+rw_arb::reader::reader(fs::path infile)
     : data(new priv_data())
 {
-    data->arb = query_arb::getARBDB(infile);
+    data->arb = query_arb::getARBDB(infile.c_str());
 
     if (opts->select_file ==  "-") {
         data->in = &std::cin;
@@ -220,10 +221,10 @@ rw_arb::reader::operator()(tray& t) {
  */
 struct rw_arb::writer::priv_data {
     query_arb *arb;
-    string arb_fname;
+    fs::path arb_fname;
     ~priv_data() {
         logger->info("Saving...");
-        if (arb_fname != ":") {
+        if (arb_fname.native() != ":") {
             arb->save();
         }
     }    
@@ -237,11 +238,11 @@ rw_arb::writer& rw_arb::writer::operator=(const writer& o) {
     return *this;
 }
 
-rw_arb::writer::writer(string outfile)
+rw_arb::writer::writer(fs::path outfile)
     :  data(new priv_data)
 {
     data->arb_fname = outfile;
-    data->arb = query_arb::getARBDB(outfile);
+    data->arb = query_arb::getARBDB(outfile.c_str());
     data->arb->setProtectionLevel(opts->prot_lvl);
 }
 

@@ -135,6 +135,7 @@ src_libsina_la_LIBADD = \
     $(BOOST_IOSTREAMS_LIB) \
     $(BOOST_SERIALIZATION_LIB) \
     $(BOOST_SYSTEM_LIB) \
+    $(BOOST_FILESYSTEM_LIB) \
     $(TBB_LIB) \
     $(TBB_MALLOC_LIB)
 

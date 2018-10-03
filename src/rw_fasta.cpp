@@ -62,6 +62,7 @@ using boost::algorithm::ends_with;
 
 namespace bi = boost::iostreams;
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 namespace sina {
 
@@ -173,16 +174,16 @@ rw_fasta::validate_vm(po::variables_map& vm,
 struct rw_fasta::reader::priv_data {
     bi::file_descriptor_source file;
     bi::filtering_istream in;
-    string filename;
+    fs::path filename;
     int lineno;
     int seqno;
-    priv_data(string filename_) : filename(filename_), lineno(0), seqno(0) {}
+    priv_data(fs::path filename_) : filename(filename_), lineno(0), seqno(0) {}
     ~priv_data() {
         logger->info("read {} sequences from {} lines", seqno-1, lineno-1);
     }
 };
 
-rw_fasta::reader::reader(const std::string& infile)
+rw_fasta::reader::reader(const fs::path& infile)
     : data(new priv_data(infile))
 {
     if (infile == "-") {
@@ -195,7 +196,7 @@ rw_fasta::reader::reader(const std::string& infile)
         msg << "Unable to open file \"" << infile << "\" for reading.";
         throw std::runtime_error(msg.str());
     }
-    if (ends_with(infile, ".gz")) {
+    if (infile.extension() == ".gz") {
         data->in.push(bi::gzip_decompressor());
     }
     data->in.push(data->file);
@@ -314,7 +315,7 @@ struct rw_fasta::writer::priv_data {
     }
 };
 
-rw_fasta::writer::writer(const std::string& outfile)
+rw_fasta::writer::writer(const fs::path& outfile)
     : data(new priv_data)
 {
     if (outfile == "-") {
@@ -327,13 +328,15 @@ rw_fasta::writer::writer(const std::string& outfile)
         msg << "Unable to open file \"" << outfile << "\" for writing.";
         throw std::runtime_error(msg.str());
     }
-    if (ends_with(outfile, ".gz")) {
+    if (outfile.extension() == ".gz") {
         data->out.push(bi::gzip_compressor());
     }
     data->out.push(data->file);
 
     if (opts->fastameta == FASTA_META_CSV) {
-        data->out_csv.open((outfile+".csv").c_str());
+        fs::path outcsv(outfile);
+        outcsv.replace_extension(".csv");
+        data->out_csv.open(outcsv.native());
         if (data->out_csv.fail()) {
             stringstream msg; 
             msg << "Unable to open file \"" << outfile << ".csv\" for writing.";
