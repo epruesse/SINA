@@ -86,7 +86,10 @@ public:
         const_node_ref it=_nodes.begin(), end=_nodes.end();
         while (it != end && it->_id != idx ) ++it;
 #ifdef DEBUG
-        if (it == end) { std::cerr << "ARG234: " << idx << std::endl; exit(1); }
+        if (it == end) {
+            logger->critical("ARG234: {}", idx);
+            exit(1);
+        }
 #endif
         return it->data;
     }

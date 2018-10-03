@@ -42,7 +42,6 @@ using std::pair;
 
 #include <iostream>
 using std::endl;
-using std::clog;
 using std::ostream;
 
 #include <fstream>

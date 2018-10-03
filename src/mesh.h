@@ -90,7 +90,11 @@ public:
 
     value_type&
     operator()(master_idx_type mi, slave_idx_type si) {
-        //if (mi+1<1 || si+1<1) std::cerr <<"$$ mi="<<mi<<" si="<<si<<std::endl;
+#if 0
+        if (mi+1<1 || si+1<1) {
+            std::cerr << "$$ mi=" << mi <<" si=" << si << std::endl;
+        }
+#endif
         return _A.at(mi * _slave.size() + si);
     }
 
@@ -746,15 +750,13 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
     if (out.getWidth() > alig_width) {
         const char* wrn = "warning: result sequence too wide!";
         log << wrn;
-        std::cerr << wrn << std::endl;
     }
 
-    //#ifdef DEBUG
     log << "scoring: raw=" << rval << ", weight=" << sum_weight
         << ", query-len=" << mesh._slave.size()
         << ", aligned-bases=" << aligned_bases
         << ", score=" << rval/sum_weight <<"; ";
-    //#endif
+
     out.setScore(rval/sum_weight);
 
     return rval;

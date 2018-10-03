@@ -160,8 +160,8 @@ cseq::setWidth(vidx_type newWidth) {
 
     // make sure we can safely go on
     if (skip > bases_size) {
-        std::clog << "cseq: cannot shrink aligment width below #bases" 
-                  << std::endl;
+        logger->error("cannot shrink aligment width to {} - got {} bases",
+                      newWidth, bases_size);
         return;
     }
 
@@ -169,8 +169,8 @@ cseq::setWidth(vidx_type newWidth) {
         bases[bases_size - skip].setPosition(alignment_width-skip);
     }
 
-    std::clog << "cseq: had to move last" << skip
-              << "bases to shrink alignment to " << alignment_width << "." << std::endl;
+    logger->warning("moved last {} bases to shrink alignment to {} columns",
+                    skip, alignment_width);
 }
 
 
