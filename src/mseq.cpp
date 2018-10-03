@@ -26,6 +26,10 @@ non-source form of such a combination shall include the source code
 for the parts of ARB used as well as that of the covered work.
 */
 
+#include "log.h"
+static const char* module_name = "mseq";
+static auto logger = sina::Log::create_logger(module_name);
+
 #include "mseq.h"
 #include "timer.h"
 #include "log.h"
@@ -42,8 +46,6 @@ using std::min;
 
 using namespace sina;
 
-static const char* module_name = "mseq";
-static auto logger = Log::create_logger(module_name);
 
 /* turns a number of sequences into a graph */
 mseq::mseq(std::vector<cseq>::iterator seqs_begin,

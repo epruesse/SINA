@@ -169,8 +169,8 @@ cseq::setWidth(vidx_type newWidth) {
         bases[bases_size - skip].setPosition(alignment_width-skip);
     }
 
-    logger->warning("moved last {} bases to shrink alignment to {} columns",
-                    skip, alignment_width);
+    logger->warn("moved last {} bases to shrink alignment to {} columns",
+                 skip, alignment_width);
 }
 
 

@@ -90,12 +90,16 @@ namespace po = boost::program_options;
 #include <unistd.h> //for getpid()
 
 #include "query_pt.h"
-#include "mesh.h"
-#include "mesh_debug.h"
-#include "mseq.h"
 #include "pseq.h"
 #include "cseq_comparator.h"
 #include "query_arb.h"
+
+#include "log.h"
+auto logger = sina::Log::create_logger("align");
+
+#include "mesh.h"
+#include "mesh_debug.h"
+#include "mseq.h"
 
 namespace sina {
 
