@@ -223,7 +223,6 @@ rw_fasta::reader::~reader() {
 bool
 rw_fasta::reader::operator()(tray& t) {
     string line;
-    t.logstream = new stringstream();
     t.input_sequence = new cseq();
     data->seqno++;
     cseq &c = *t.input_sequence;

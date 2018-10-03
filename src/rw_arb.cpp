@@ -197,7 +197,7 @@ rw_arb::reader::reader(std::string infile)
 bool
 rw_arb::reader::operator()(tray& t) {
     string name;
-    t.logstream = new stringstream(); // FIXME: move to tray.cpp
+    t.input_sequence = 0; // we may get initialized tray
 
     while (not t.input_sequence) {
         if (data->in->bad()) {
@@ -212,7 +212,7 @@ rw_arb::reader::operator()(tray& t) {
         if (name.empty()) {
             return false;
         }
-    
+
         try {
             t.input_sequence = new cseq(data->arb->getCseq(name));
         } catch (base_iupac::bad_character_exception& e) {
@@ -226,6 +226,8 @@ rw_arb::reader::operator()(tray& t) {
             data->arb->loadKey(*t.input_sequence, f);
         }
     }
+
+    logger->debug("loaded sequence {}", t.input_sequence->getName());
     return true;
 }
 

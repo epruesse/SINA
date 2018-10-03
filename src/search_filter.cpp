@@ -297,12 +297,12 @@ search_filter::operator()(tray t) {
     if (t.aligned_sequence) {
         c = t.aligned_sequence;
     } else {
-        t.log() << "search: no sequence?!;";
+        t.log << "search: no sequence?!;";
         return t;
     }
 
     if (c->size() < 20) {
-        t.log() << "search:sequence too short (<20 bases);";
+        t.log << "search:sequence too short (<20 bases);";
         return t;
     }
 

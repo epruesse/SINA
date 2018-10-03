@@ -515,10 +515,10 @@ famfinder::_famfinder::select_astats(tray& t) {
             }
         }
         if (best_count > vc.size() * opts->posvar_autofilter_thres) {
-            t.log() << "autofilter: " << best->getName() << ";";
+            t.log << "autofilter: " << best->getName() << ";";
             astats = best;
         } else {
-            t.log() << "autofilter: no match;";
+            t.log << "autofilter: no match;";
         }
     }
 
@@ -580,7 +580,7 @@ famfinder::_famfinder::operator()(tray t) {
     
     // no reference => no alignment
     if (vc.size() < opts->fs_req) {
-        t.log() << "unable to align: too few relatives (" << vc.size() << ");";
+        t.log << "unable to align: too few relatives (" << vc.size() << ");";
         delete t.alignment_reference;
         t.alignment_reference = 0;
         return t;

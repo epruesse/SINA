@@ -345,19 +345,19 @@ Log::printer::operator()(tray t) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
 
-    tmp << "sequence_number: " << ++data->sequence_num << endl
-        << "sequence_identifier: " << t.input_sequence->getName() << endl;
+    tmp << "sequence_number: " << ++data->sequence_num << endl;
+    tmp << "sequence_identifier: " << t.input_sequence->getName() << endl;
 
     if (!t.aligned_sequence) {
         data->out << tmp.str()
-                  << "align_log_slv:" << t.logstream->str() << endl
+                  << "align_log_slv:" << t.log.str() << endl
                   << query_arb::fn_fullname << ":"
                   << t.input_sequence->get_attr<string>(query_arb::fn_fullname) << endl
                   << "alignment failed!" << endl << endl;
         return t;
     }
     t.aligned_sequence->set_attr("align_log_slv", 
-                                 t.logstream->str());
+                                 t.log.str());
 
     cseq& c = *t.aligned_sequence;
 

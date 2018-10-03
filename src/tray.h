@@ -43,15 +43,8 @@ public:
     cseq *aligned_sequence;
     std::vector<cseq> *alignment_reference;
     std::vector<cseq> *search_result;
-    std::stringstream *logstream;
+    std::stringstream log;
     alignment_stats *astats;
-    
-    std::ostream& log() { 
-        if (logstream) 
-            return *logstream; 
-        else 
-            return std::cerr; 
-    }
     
     tray();
     tray(const tray&);

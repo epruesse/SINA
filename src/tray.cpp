@@ -44,7 +44,6 @@ tray::tray()
       aligned_sequence(0),
       alignment_reference(0),
       search_result(0),
-      logstream(0),
       astats(0)
 {
     DBG("Construct");
@@ -55,10 +54,10 @@ tray::tray(const tray& o)
       aligned_sequence(o.aligned_sequence),
       alignment_reference(o.alignment_reference),
       search_result(o.search_result),
-      logstream(o.logstream),
       astats(o.astats)
 {
-    DBG("Copy from" << &o);
+    log.str(o.log.str());
+    DBG("Copy from " << &o);
 }
 
 tray&
@@ -67,10 +66,10 @@ tray::operator=(const tray& o) {
     aligned_sequence=o.aligned_sequence;
     alignment_reference=o.alignment_reference;
     search_result=o.search_result;
-    logstream=o.logstream;
+    log.str(o.log.str());
     astats=o.astats;
 
-    DBG("Assign from" << &o);
+    DBG("Assign from " << &o);
 
     return *this;
 }
@@ -85,7 +84,6 @@ tray::destroy() {
     if (aligned_sequence) { delete aligned_sequence; }
     if (alignment_reference) {delete alignment_reference; }
     if (search_result) { delete search_result; }
-    if (logstream) { delete logstream; }
     if (astats) { delete astats; }
 
     DBG("Destroy");
