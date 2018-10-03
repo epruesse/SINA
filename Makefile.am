@@ -48,11 +48,9 @@ EXTRA_DIST = \
     Makefile.am \
     configure.ac \
     autogen.sh \
-    tools/latex2man \
-    tools/latex2man.sty \
-    tools/latex2man.cfg \
-    tools/test_driver.sh \
+    tools \
     test_data/ltp_reduced.arb.xz
+    include
 
 CLEANFILES =
 
@@ -123,8 +121,7 @@ src_libsina_la_SOURCES = \
     src/tray.h \
     src/kmer.h \
     src/kmer_search.cpp \
-    src/kmer_search.h \
-    include/pstream.h
+    src/kmer_search.h
 
 src_libsina_la_LDFLAGS = \
     $(ARB_LDFLAGS) \
@@ -200,6 +197,11 @@ CLEANFILES += $(doc_DATA) $(check_DATA) $(man1_MANS) doc/sina-manual.log  doc/si
 
 ### PACKAGE ###
 
+
+dist-hook:
+	find $(distdir) \( -name \*~ -or -name \*.log -or -name \*.arb \) -delete
+
+
 BINDISTFILES =
 bindistdir = $(PACKAGE)-$(VERSION)-$(OSNAME)
 
@@ -217,7 +219,7 @@ bindistdir: all
                 grep -E "application/x-(mach|executable)" | cut -d: -f1); \
 	export LDPATHS="$(subst -L,,$(filter -L%, $(BOOST_LDFLAGS)))"; \
         for binary in $$binaries; do $(top_srcdir)/tools/fix_libpaths.sh "$$binary"; done; \
-	find $(bindistdir) -name \*.la -delete -o -name \*.a -delete
+	find $(bindistdir) \( -name \*.la -or -name \*.a \) -delete
 
 tar_allow_lns = $${TAR-tar} cof - "$$tardir"
 bindist-gzip: bindistdir
