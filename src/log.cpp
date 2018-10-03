@@ -38,7 +38,6 @@ using std::string;
 using std::stringstream;
 
 #include <iostream>
-using std::cerr;
 using std::endl;
 
 #include <map>

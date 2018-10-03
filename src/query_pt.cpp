@@ -59,7 +59,7 @@ using std::vector;
 #include <client.h>
 #include <boost/thread/mutex.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include "../include/pstream.h"
+#include <pstream.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
