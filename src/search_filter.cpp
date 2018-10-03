@@ -28,6 +28,7 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "search_filter.h"
 #include "config.h"
+#include "log.h"
 
 #include <string>
 using std::string;
@@ -55,6 +56,8 @@ using boost::algorithm::iequals;
 #include "cseq_comparator.h"
 
 namespace sina{
+
+static auto logger = Log::create_logger("search");
 
 struct search_filter::options {
     string pt_database;
@@ -215,7 +218,7 @@ search_filter::search_filter()
     data->arb = query_arb::getARBDB(opts->pt_database.c_str());
 
     if (opts->search_all) {
-        std::cerr << "Search Module: Caching Sequences..." << std::endl;
+        logger->info("Caching Sequencences...");
         vector<string> names = data->arb->getSequenceNames();
         boost::progress_display p(data->arb->getSeqCount(), std::cerr);
         for (string& name: names) {
@@ -294,12 +297,12 @@ search_filter::operator()(tray t) {
     if (t.aligned_sequence) {
         c = t.aligned_sequence;
     } else {
-        t.log() << "search: no sequence?!;";
+        t.log << "search: no sequence?!;";
         return t;
     }
 
     if (c->size() < 20) {
-        t.log() << "search:sequence too short (<20 bases);";
+        t.log << "search:sequence too short (<20 bases);";
         return t;
     }
 

@@ -27,11 +27,11 @@ for the parts of ARB used as well as that of the covered work.
 */
 
 #include "alignment_stats.h"
+#include "log.h"
+
 #include <cmath>
 #include <algorithm>
 #include <iostream>
-using std::cerr;
-using std::endl;
 using std::string;
 using std::vector;
 namespace sina {
@@ -66,6 +66,8 @@ alignment_stats::alignment_stats(
       maxweight(0), 
       minweight(9999999), sumweight(0), weighted_columns(0)
 {
+    auto console = Log::create_logger("alignment_stats");
+
     column_freqs.resize(width);
     weights.resize(width);
     int first_weighted = width, last_weighted=0;
@@ -91,8 +93,7 @@ alignment_stats::alignment_stats(
             rate = std::min(jukes_cantor(rate), 1.f);
             double weight = .5 - log(rate);
             if (weight > 20 ) {
-                std:: cerr << "extreme weight '" << weight << "'for column " << i 
-                           << " clamped to 20" << std::endl;
+                console->info("extreme weight {} for column {} clamped to 20", weight, i);
                 weight = 20;
             }
             weights[i] = weight;
@@ -109,22 +110,24 @@ alignment_stats::alignment_stats(
 
     int total_bases = global_freqs.num_a + global_freqs.num_c + 
         global_freqs.num_g + global_freqs.num_u;
-  
-    cerr << "alignment stats for subset "<< name << endl 
-         << "weighted/unweighted columns = " << weighted_columns 
-         << "/" << width - weighted_columns << endl
-         << "average weight = " << sumweight / weighted_columns << endl
-         << "minimum weight = " << minweight << endl
-         << "maximum weight = " << maxweight << endl
-         << "ntaxa = " << ntaxa << endl
-         << "base frequencies: na=" << (double)global_freqs.num_a/total_bases
-         <<" nc=" << (double)global_freqs.num_c/total_bases
-         <<" ng=" << (double)global_freqs.num_g/total_bases
-         <<" nu=" << (double)global_freqs.num_u/total_bases << endl
-         << "mutation frequencies: any=" << (double)global_freqs.num_mutations/total_bases
-         <<" transversions=" << (double)global_freqs.num_transversions/total_bases << endl
-         <<" first/last weighted column=" << first_weighted <<"/"<< last_weighted << endl
-        ;
+
+    console->info("alignment stats for subset {}", name);
+    console->info("weighted/unweighted columns = {}/{}",
+                  weighted_columns, width - weighted_columns);
+    console->info("average weight = {}", sumweight / weighted_columns);
+    console->info("minimum weight = {}", minweight);
+    console->info("maximum weight = {}", maxweight);
+    console->info("ntaxa = {}", ntaxa);
+    console->info("base frequencies: na={} nu={} nc={} ng={}",
+                  (double)global_freqs.num_a/total_bases,
+                  (double)global_freqs.num_c/total_bases,
+                  (double)global_freqs.num_g/total_bases,
+                  (double)global_freqs.num_u/total_bases);
+    console->info("mutation frequencies: any={} transversions={}",
+                  (double)global_freqs.num_mutations/total_bases,
+                  (double)global_freqs.num_transversions/total_bases);
+    console->info("first/last weighted column={}/{}",
+                  first_weighted, last_weighted);
 }
 
 const aligned_base::matrix_type 
@@ -152,7 +155,6 @@ alignment_stats::getSubstMatrix(double identity) const {
     }
     avgmm /= 12;
 
-    std::cerr << "avgmm:"<<avgmm<<std::endl;
     return m;
 }
 

@@ -29,8 +29,6 @@ for the parts of ARB used as well as that of the covered work.
 #include "rw_arb.h"
 
 #include <iostream>
-using std::cerr;
-using std::endl;
 
 #include <fstream>
 using std::istream;
@@ -64,10 +62,14 @@ using boost::is_any_of;
 
 #include "query_arb.h"
 #include "align.h"
+#include "log.h"
 
 
 using namespace sina;
 namespace po = boost::program_options;
+
+static const char* module_name = "ARB I/O";
+static auto logger = Log::create_logger(module_name);
 
 
 /** Section:  Configuration
@@ -92,7 +94,7 @@ rw_arb::get_options_description(po::options_description& /*main*/,
                                 po::options_description& adv) {
     opts = new options();
 
-    po::options_description od("ARB I/O");
+    po::options_description od(module_name);
     od.add_options()
         // write
         ("markcopied",
@@ -179,7 +181,7 @@ rw_arb::reader::reader(std::string infile)
         vector<string> cache = data->arb->getSequenceNames();
         for (vector<string>::iterator it = cache.begin();
               it != cache.end(); ++it) {
-            *tmp << *it << endl;
+            *tmp << *it << std::endl;
         }
         data->in = tmp;
     }
@@ -195,7 +197,7 @@ rw_arb::reader::reader(std::string infile)
 bool
 rw_arb::reader::operator()(tray& t) {
     string name;
-    t.logstream = new stringstream(); // FIXME: move to tray.cpp
+    t.input_sequence = 0; // we may get initialized tray
 
     while (not t.input_sequence) {
         if (data->in->bad()) {
@@ -210,12 +212,12 @@ rw_arb::reader::operator()(tray& t) {
         if (name.empty()) {
             return false;
         }
-    
+
         try {
             t.input_sequence = new cseq(data->arb->getCseq(name));
         } catch (base_iupac::bad_character_exception& e) {
-            std::cerr << "ERROR: Bad character " << e.character << " in " << name
-                      << ". Skipping sequence." << std::endl;
+            logger->error("Bad character {} in sequence {}",
+                          e.character, name);
         }
     }
 
@@ -224,6 +226,8 @@ rw_arb::reader::operator()(tray& t) {
             data->arb->loadKey(*t.input_sequence, f);
         }
     }
+
+    logger->debug("loaded sequence {}", t.input_sequence->getName());
     return true;
 }
 
@@ -234,11 +238,10 @@ struct rw_arb::writer::priv_data {
     query_arb *arb;
     string arb_fname;
     ~priv_data() {
-        std::cerr << "Saving..." << endl;
+        logger->info("Saving...");
         if (arb_fname != ":") {
             arb->save();
         }
-        std::cerr << "done" << endl;
     }    
 };
 

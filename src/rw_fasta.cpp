@@ -46,11 +46,10 @@ for the parts of ARB used as well as that of the covered work.
 #include <boost/iostreams/device/file_descriptor.hpp>
 
 #include "query_arb.h"
+#include "log.h"
 
 using std::stringstream;
 using std::vector;
-using std::cerr;
-using std::endl;
 using std::map;
 using std::string;
 using std::pair;
@@ -65,6 +64,9 @@ namespace bi = boost::iostreams;
 namespace po = boost::program_options;
 
 namespace sina {
+
+static const char* module_name = "FASTA I/O";
+static auto logger = Log::create_logger(module_name);
 
 // define extra datatype for metadata output format
 std::ostream& operator<<(std::ostream& out, const sina::FASTA_META_TYPE& m) {
@@ -127,7 +129,7 @@ rw_fasta::get_options_description(po::options_description& main,
          "meta data in (*none*|header|comment|csv)")
         ;
 
-    po::options_description od("Fasta I/O");
+    po::options_description od(module_name);
     od.add_options()
         // write
         ("line-length",
@@ -157,8 +159,12 @@ rw_fasta::get_options_description(po::options_description& main,
 
 
 void
-rw_fasta::validate_vm(po::variables_map& /* vm */,
+rw_fasta::validate_vm(po::variables_map& vm,
                       po::options_description& /*desc*/) {
+    if (vm.count("fasta-idx") && vm["fasta-idx"].as<long>() > 0 &&
+        vm.count("in") && vm["in"].as<string>() == "-") {
+        throw std::logic_error("Cannot use --fasta-idx when input is piped");
+    }
 }
 
 
@@ -167,19 +173,17 @@ rw_fasta::validate_vm(po::variables_map& /* vm */,
 struct rw_fasta::reader::priv_data {
     bi::file_descriptor_source file;
     bi::filtering_istream in;
+    string filename;
     int lineno;
     int seqno;
-    priv_data() : lineno(0), seqno(0) {}
+    priv_data(string filename_) : filename(filename_), lineno(0), seqno(0) {}
     ~priv_data() {
-        std::cerr << "FASTA input: " << std::endl
-                  << "        sequences: " << seqno-1 << std::endl
-                  << "        lines:     " << lineno-1 << std::endl
-            ;
+        logger->info("read {} sequences from {} lines", seqno-1, lineno-1);
     }
 };
 
 rw_fasta::reader::reader(const std::string& infile)
-    : data(new priv_data)
+    : data(new priv_data(infile))
 {
     if (infile == "-") {
         data->file.open(STDIN_FILENO, bi::never_close_handle);
@@ -219,7 +223,6 @@ rw_fasta::reader::~reader() {
 bool
 rw_fasta::reader::operator()(tray& t) {
     string line;
-    t.logstream = new stringstream();
     t.input_sequence = new cseq();
     data->seqno++;
     cseq &c = *t.input_sequence;
@@ -282,11 +285,10 @@ rw_fasta::reader::operator()(tray& t) {
             c.append(line);
         }
     } catch (base_iupac::bad_character_exception& e) {
-        std::cerr << "Encountered invalid character while parsing FASTA file." << std::endl
-                  << "Line " << data->lineno << " (sequence " << data->seqno << ", '"<< c.getName() << "')"
-                  << " contains character '" << e.character << "':" << std::endl
-                  << line << std::endl
-                  << "SKIPPING SEQUENCE!!!" << std::endl;
+        logger->error("Skipping sequence {} (>{}) at {}:{} (contains character '{}')",
+                      data->seqno, c.getName(),
+                      data->filename, data->lineno,
+                      e.character);
         while (data->in.peek() != '>' && getline(data->in, line).good()) {
             data->lineno++;
         }
@@ -308,10 +310,7 @@ struct rw_fasta::writer::priv_data {
     int excluded;
     priv_data() : seqnum(0), excluded(0) {}
     ~priv_data() {
-        std::cerr << "FASTA output: " << std::endl
-                  << "        excluded: " << excluded << std::endl
-                  << "        exported: " << seqnum<< std::endl
-            ;
+        logger->info("wrote {} sequences ({} excluded)", seqnum, excluded);
     }
 };
 
@@ -378,16 +377,16 @@ rw_fasta::writer::operator()(tray t) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
     if (t.aligned_sequence == 0) {
-        std::cerr << "Sequence " << t.input_sequence->getName() 
-                  << " was not aligned. Nothing to write to FASTA output."
-                  << std::endl;
+        logger->info("Not writing sequence {} (>{}): not aligned",
+                     data->seqnum, t.input_sequence->getName());
         ++data->excluded;
         return t;
     }
-    if (opts->min_idty > t.aligned_sequence->get_attr<float>(query_arb::fn_idty)) {
-        std::cerr << "Sequence " << t.input_sequence->getName() 
-                  << " was below idty threshold at " << t.aligned_sequence->get_attr<float>(query_arb::fn_idty) << " and excluded from FASTA output."
-                  << std::endl;
+    float idty = t.aligned_sequence->get_attr<float>(query_arb::fn_idty);
+    if (opts->min_idty > idty) {
+        logger->info("Not writing sequence {} (>{}): below identity threshold ({}<={})",
+                     data->seqnum, t.input_sequence->getName(),
+                     idty, opts->min_idty);
         ++data->excluded;
         return t;
     }
@@ -403,7 +402,7 @@ rw_fasta::writer::operator()(tray t) {
 
     switch (opts->fastameta) {
     case FASTA_META_NONE:
-        data->out << endl;
+        data->out << std::endl;
         break;
     case FASTA_META_HEADER:
         for (auto& ap: attrs) {
@@ -415,22 +414,22 @@ rw_fasta::writer::operator()(tray t) {
                      << "]";
             }
         }
-        data->out << endl;
+        data->out << std::endl;
         break;
     case FASTA_META_COMMENT:
-        data->out << endl;
+        data->out << std::endl;
 
         for (auto& ap: attrs) {
             if (ap.first != query_arb::fn_family) {
                 data->out << "; " << ap.first << "="
-                     << boost::apply_visitor(lexical_cast_visitor<string>(),
+                          << boost::apply_visitor(lexical_cast_visitor<string>(),
                                             ap.second)
-                     << endl;
+                          << std::endl;
             }
         }
         break;
     case FASTA_META_CSV:
-        data->out << endl;
+        data->out << std::endl;
 
         // print header
         if (data->seqnum == 0) {
@@ -466,10 +465,10 @@ rw_fasta::writer::operator()(tray t) {
     int len = seq.size();
     if (opts->line_length > 0) {
         for (int i=0; i<len; i+=opts->line_length) {
-            data->out << seq.substr(i, opts->line_length) << endl;
+            data->out << seq.substr(i, opts->line_length) << std::endl;
         }
     } else {
-        data->out << seq << endl;
+        data->out << seq << std::endl;
     }
     data->seqnum++;
 

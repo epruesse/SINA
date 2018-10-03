@@ -43,8 +43,6 @@ using boost::algorithm::first_finder;
 using boost::algorithm::find_iterator;
 using boost::algorithm::make_find_iterator;
 using boost::algorithm::equals;
-using std::cerr;
-using std::endl;
 
 // predicate checking aligned_base objects for possible match
 // returns try if match is conceivable: N matches all
@@ -120,7 +118,7 @@ int main(int argc, const char **argv) {
 	<< jt->begin()->getPosition() << "\t"
 	<< jt->end()->getPosition() << "\t"
 	<< iupac_count
-	<< endl;
+	<< std::endl;
     }
   }
 }

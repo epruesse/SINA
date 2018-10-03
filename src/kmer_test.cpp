@@ -32,6 +32,7 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "query_pt.h"
 #include "timer.h"
+#include "log.h"
 
 #include <vector>
 #include <string>
@@ -43,15 +44,17 @@ for the parts of ARB used as well as that of the covered work.
 #endif
 
 using namespace sina;
-using std::cerr;
-using std::endl;
+
+static const char* module_name = "kmer_test";
+static auto logger = Log::create_logger(module_name);
+
 
 
 int main(int argc, const char** argv) {
   timer t;
 
   if (argc<2) {
-      std::cerr << "need arb db as argument" << std::endl;
+      logger->critical("need arb db as argument");
       exit(1);
   }
 
@@ -69,7 +72,7 @@ int main(int argc, const char** argv) {
   */
 
   t.stop();
-  cerr << "Preloading sequence cache..." << endl;
+  logger->info("Preloading sequence cache...");
   std::vector<std::string> seqNames = arbdb->getSequenceNames();
   for (int i = 0; i < seqNames.size(); i++) {
     //cseq target = arbdb->getCseq(seqNames[i]);
@@ -88,11 +91,10 @@ int main(int argc, const char** argv) {
 			  return c.getName() == target.getName();}
 			);
     if (self == family.end()) {
-      std::cerr << seqNames[i] << ": " << std::endl;
+      logger->info("{}:", seqNames[i]);
       for (int i=0; i<family.size(); i++) {
-	std::cerr << family[i].getNameScore() << std::endl;
+	logger->info(family[i].getNameScore());
       }
-      std::cerr << std::endl;
     }
   }
   t.stop();
@@ -105,8 +107,7 @@ int main(int argc, const char** argv) {
     pt.match(family, target, 40, 40, 0);
   }
   */
-  std::cerr << t << std::endl;
-  
+  logger->info("Timings: {}", t);
 
   return 0;
 }

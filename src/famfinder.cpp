@@ -31,11 +31,9 @@ for the parts of ARB used as well as that of the covered work.
 #include "query_pt.h"
 #include "query_arb.h"
 #include "kmer_search.h"
+#include "log.h"
 
 #include <iostream>
-using std::endl;
-using std::cerr;
-using std::clog;
 using std::ostream;
 
 #include <sstream>
@@ -68,6 +66,8 @@ using boost::algorithm::iequals;
 
 
 namespace sina {
+
+static auto logger = Log::create_logger("famfinder");
 
 enum ENGINE_TYPE {
     ENGINE_ARB_PT=0,
@@ -227,7 +227,6 @@ famfinder::get_options_description(po::options_description& main,
 
     po::options_description od("Advanced Reference Selection");
     od.add_options()
-        ("help-familyfinder", "show advanced module help")
         ("ptdb",
          po::value<string>(&opts->database),
          "PT server database (old name)")
@@ -282,17 +281,11 @@ void famfinder::validate_vm(po::variables_map& vm,
     if (!opts) {
         throw logic_error("Family Finder: options not parsed?!");
     }
-    if (vm.count("help-familyfinder")) {
-        po::options_description od;
-        get_options_description(od, od);
-        std::cout << od << std::endl;
-        exit(EXIT_SUCCESS);
-    }
     if (vm["db"].empty() && vm["ptdb"].empty()) {
         throw logic_error(string("Family Finder: PT server database not set"));
     }
     if (not vm["ptdb"].empty()) {
-        cerr << "WARNING: Option --ptdb deprecated; please use --db instead" << endl;
+        logger->warn("Option --ptdb deprecated; please use --db instead");
     }
     if (not vm["ptdb"].empty() && not vm["db"].empty()) {
         throw logic_error(string("Family Finder: please use only new --db option"));
@@ -309,9 +302,8 @@ void fixme() {
     if (!termini.empty()) {
         termini_begin = termini.find_first_of('x')+1 ;
         termini_end = termini.find_last_of('x')+1;
-        std::cerr << "Found TERMINI filter: "
-                  << termini_begin << " - " << termini_end
-                  << endl;
+        logger->info("Found TERMINI filter: {} - {}",
+                     termini_begin, termini_end);
     }
 
     // FIXME: find a good way to do this with program_options
@@ -329,13 +321,11 @@ void fixme() {
             opts->gene_end = termini_end;
         }
     }
-    std::cerr << "Range of gene within alignment: "
-              << opts->gene_start << " - " << opts->gene_end
-              << endl;
+    log->info("Range of gene within alignment: {} - {}",
+              opts->gene_start, opts->gene_end);
     // decrement range ... we start at 0 around here
     --opts->gene_start;
     --opts->gene_end;
-    */
 }
 #endif
 
@@ -525,10 +515,10 @@ famfinder::_famfinder::select_astats(tray& t) {
             }
         }
         if (best_count > vc.size() * opts->posvar_autofilter_thres) {
-            t.log() << "autofilter: " << best->getName() << ";";
+            t.log << "autofilter: " << best->getName() << ";";
             astats = best;
         } else {
-            t.log() << "autofilter: no match;";
+            t.log << "autofilter: no match;";
         }
     }
 
@@ -590,7 +580,7 @@ famfinder::_famfinder::operator()(tray t) {
     
     // no reference => no alignment
     if (vc.size() < opts->fs_req) {
-        t.log() << "unable to align: too few relatives (" << vc.size() << ");";
+        t.log << "unable to align: too few relatives (" << vc.size() << ");";
         delete t.alignment_reference;
         t.alignment_reference = 0;
         return t;

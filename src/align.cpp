@@ -42,7 +42,6 @@ using std::pair;
 
 #include <iostream>
 using std::endl;
-using std::clog;
 using std::ostream;
 
 #include <fstream>
@@ -91,12 +90,16 @@ namespace po = boost::program_options;
 #include <unistd.h> //for getpid()
 
 #include "query_pt.h"
-#include "mesh.h"
-#include "mesh_debug.h"
-#include "mseq.h"
 #include "pseq.h"
 #include "cseq_comparator.h"
 #include "query_arb.h"
+
+#include "log.h"
+auto logger = sina::Log::create_logger("align");
+
+#include "mesh.h"
+#include "mesh_debug.h"
+#include "mseq.h"
 
 namespace sina {
 
@@ -381,25 +384,25 @@ aligner::operator()(tray t) {
     // if there are such sequences...
     if (it != vc.end()) {
         if (opts->realign) { // ...either realign (throw them out)
-            t.log() << "sequences ";
+            t.log << "sequences ";
             for (vector<cseq>::iterator it2 = it;
                  it2 != vc.end(); ++it2) {
-                t.log() << it->get_attr<string>(query_arb::fn_acc) << " ";
+                t.log << it->get_attr<string>(query_arb::fn_acc) << " ";
             }
-            t.log() << "containing exact candidate removed from family;";
+            t.log << "containing exact candidate removed from family;";
             vc.erase(it, vc.end());
             if (it == vc.begin()) {
-                t.log() << "that's ALL of them. skipping sequence;";
+                t.log << "that's ALL of them. skipping sequence;";
                 return t;
             }
         } else { // ...or steal their alignment
             vector<cseq>::iterator exact_match = find_if(it,vc.end(),iequals_cmp(bases));
             if (exact_match != vc.end()) {
                 c.setAlignedBases(exact_match->getAlignedBases());
-                t.log() << "copied alignment from identical template sequence "
-                        << exact_match->get_attr<string>(query_arb::fn_acc) << ":"
-                        << exact_match->get_attr<string>(query_arb::fn_start)
-                        << "; ";
+                t.log << "copied alignment from identical template sequence "
+                      << exact_match->get_attr<string>(query_arb::fn_acc) << ":"
+                      << exact_match->get_attr<string>(query_arb::fn_start)
+                      << "; ";
             } else {
                 vector<aligned_base> subalignment, refalignment;
                 string refsequence = it->getBases();
@@ -414,10 +417,10 @@ aligner::operator()(tray t) {
 
 
                 c.setAlignedBases(subalignment);
-                t.log() << "copied alignment from (longer) template sequence "
-                        << it->get_attr<string>(query_arb::fn_acc) << ":"
-                        << it->get_attr<string>(query_arb::fn_start)
-                        << "; ";
+                t.log << "copied alignment from (longer) template sequence "
+                      << it->get_attr<string>(query_arb::fn_acc) << ":"
+                      << it->get_attr<string>(query_arb::fn_start)
+                      << "; ";
                 BOOST_ASSERT(bases == c.getBases());
            }
             c.setWidth(it->getWidth());
@@ -443,13 +446,13 @@ aligner::operator()(tray t) {
             if (t.astats->getWidth() == 0) {
                 scoring_scheme_simple s(-opts->match_score, -opts->mismatch_score,
                                         opts->gap_penalty, opts->gap_ext_penalty);
-                choose_transition(c, *t.input_sequence, m, s, t.log());
+                choose_transition(c, *t.input_sequence, m, s, t.log);
             } else {
                 vector<float> weights = t.astats->getWeights();
                 scoring_scheme_weighted s(-opts->match_score, -opts->mismatch_score,
                                           opts->gap_penalty, opts->gap_ext_penalty,
                                           weights);
-                choose_transition(c, *t.input_sequence, m, s, t.log());
+                choose_transition(c, *t.input_sequence, m, s, t.log);
             }
         } else {
             vector<float> weights(vc.begin()->getWidth(), 1.f);
@@ -457,17 +460,17 @@ aligner::operator()(tray t) {
                 weights = t.astats->getWeights();
             }
             float dist = vc.begin()->getScore();
-            t.log() << "using dist: " << dist << endl;
+            t.log << "using dist: " << dist << endl;
             scoring_scheme_matrix<aligned_base::matrix_type>
                 s(opts->gap_penalty, opts->gap_ext_penalty, weights,
                   t.astats->getSubstMatrix(dist));
-            choose_transition(c, *t.input_sequence, m, s, t.log());
+            choose_transition(c, *t.input_sequence, m, s, t.log);
         }
     } else {
         pseq p(vc.begin(), vc.end());
         scoring_scheme_profile s(-opts->match_score, -opts->mismatch_score,
                                  opts->gap_penalty, opts->gap_ext_penalty);
-        choose_transition(c, *t.input_sequence, p, s, t.log());
+        choose_transition(c, *t.input_sequence, p, s, t.log);
     }
 
     if (opts->write_used_rels) {

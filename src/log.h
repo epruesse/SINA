@@ -30,6 +30,9 @@ for the parts of ARB used as well as that of the covered work.
 #define _LOG_H_
 
 #include <boost/program_options.hpp>
+#include "spdlog/spdlog.h"
+#include "spdlog/fmt/ostr.h" // logging from ostreamable
+
 #include "tray.h"
 
 namespace sina {
@@ -37,7 +40,7 @@ namespace sina {
 class Log {
 private:
     struct options;
-    static struct options *opts;
+    static std::unique_ptr<options> opts;
 public:
     class printer {
         struct priv_data;
@@ -50,6 +53,7 @@ public:
         tray operator()(tray);
     };
 
+    static std::shared_ptr<spdlog::logger> create_logger(std::string name);
     static void get_options_description(boost::program_options::options_description& all,
                                         boost::program_options::options_description& adv);
     static void validate_vm(boost::program_options::variables_map&,

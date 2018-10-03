@@ -40,12 +40,12 @@ for the parts of ARB used as well as that of the covered work.
 #include <unistd.h>
 
 using std::endl;
-using std::cerr;
 using std::stringstream;
 using std::string;
 using std::vector;
 
 #include "cseq.h"
+#include "log.h"
 
 #ifndef TEST
 
@@ -59,14 +59,16 @@ using std::vector;
 #include <client.h>
 #include <boost/thread/mutex.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include "../include/pstream.h"
+#include <pstream.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-
-
 namespace sina {
+
+static auto logger = Log::create_logger("ARB search");
+static auto pt_logger = Log::create_logger("ARB_PT_SERVER");
+
 
 /* Locate ARBHOME based on the libARBDB loaded for us
  *
@@ -127,6 +129,9 @@ struct query_pt::priv_data {
     int  range_begin;
     int  range_end;
     bool find_type_fast;
+    int  kmer_len;
+    int  num_mismatch;
+    bool relative_sort;
 
     static std::map<string, std::weak_ptr<managed_pt_server>> servers;
     std::shared_ptr<managed_pt_server> server;
@@ -189,11 +194,11 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
     if (ARBHOME == NULL || strlen(ARBHOME) == 0) {
         ARBHOME = get_arbhome();
         if (ARBHOME != NULL && strlen(ARBHOME) != 0) {
-            cerr << "Setting ARBHOME=" << ARBHOME << endl;
+            logger->info("Setting ARBHOME={}", ARBHOME);
             setenv("ARBHOME", ARBHOME, 1);
         } else {
-            cerr << "Warning: Unable to determine ARBHOME. "
-                 << "Expect PT server to fail below" << endl;
+            logger->warn("Warning: Unable to determine ARBHOME.");
+            logger->warn("Expect PT server to fail below.");
         }
     }
 
@@ -203,9 +208,9 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
     if (stat(ptindex.c_str(), &ptindex_stat) 
         || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
         if (arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-            cerr << "PT server index missing. Building... " << endl;
+            logger->info("PT server index missing. Building... ");
         } else {
-            cerr << "PT server index out of date. Rebuilding..." << endl;
+            logger->info("PT server index out of date. Rebuilding...");
         }
 
         vector<string> cmds;
@@ -213,11 +218,9 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
         cmds.push_back(string("arb_pt_server -build_clean -D") + dbname + ".index.arb");
         cmds.push_back(string("arb_pt_server -build -D") + dbname + ".index.arb");
         for (auto& cmd :  cmds) {
-            cerr << "Executing \"" << cmd << "\"" << endl
-                 << "============================================================" << endl;
+            logger->info("Executing '{}'", cmd);
             system(cmd.c_str());
-            cerr << "============================================================" << endl
-                 << "Command \"" << cmd << "\" finished." << endl;
+            logger->info("Command finished");
         }
 
         if (stat(ptindex.c_str(), &ptindex_stat) 
@@ -239,8 +242,8 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
 
     // Actually launch the server now:
     string cmd = string("arb_pt_server -D") + dbname + " -T" + portname;
-    cerr << "Launching background PT server process..." << endl
-         << " command: " << cmd << endl;
+    logger->info("Launching background PT server process...");
+    logger->info("Executing '{}'", cmd);
     process = new redi::ipstream(cmd, redi::pstreams::pstdout|redi::pstreams::pstderr);
 
     // read the pt server output. once it says "ok"
@@ -249,17 +252,17 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
     // FIXME: abort if waiting for too long
     string line;
     while (std::getline(*process, line)) {
-        cerr << "ARB_PT_SERVER: " << line << endl;
+        pt_logger->info(line);
         if (line == "ok, server is running.") {
             break;
         }
     }
 
-    cerr << "Launched PT server." << endl;
+    logger->info("Launched PT server.");
 }
 
 managed_pt_server::~managed_pt_server() {
-    cerr << "Terminating PT server..." << endl;
+    logger->info("Terminating PT server...");
     process->rdbuf()->kill();
 }
 
@@ -296,12 +299,13 @@ query_pt::~query_pt() {
 #if 0
 void
 query_pt::restart() {
-    cerr << "Trying to restart pt server connection..." << endl;
+    logger->info("Trying to restart pt server connection...");
     exit();
-    cerr << "Terminated aisc. Sleeping for 5." << endl;
+    logger->info("Terminated PT server. Sleeping for 5 seconds.");
     sleep(5);
+    logger->info("Restarting PT server");
     init();
-    cerr << "Done. Hopefully." << endl;
+    logger->info("Done.");
     // FIXME: settings need to be restored!
 }
 #endif
@@ -313,8 +317,11 @@ query_pt::set_find_type_fast(bool fast) {
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_FIND_TYPE, fast?1:0,
                        NULL);
-    if (err) cerr << "Unable to set find_type" << endl;
-    else data->find_type_fast = fast;
+    if (err) {
+        logger->warn("Unable to set find_type = {}", fast ? "fast" : "normal");
+    } else {
+        data->find_type_fast = fast;
+    }
 }
 
 void
@@ -324,7 +331,11 @@ query_pt::set_probe_len(int len) {
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_PROBE_LEN, len,
                        NULL);
-    if (err) cerr << "Unable to set probe len" << endl;
+    if (err) {
+        logger->warn("Unable to set k = {}", len);
+    } else {
+        data->kmer_len = len;
+    }
 }
 
 void
@@ -335,7 +346,11 @@ query_pt::set_mismatches(int len) {
                        FAMILYFINDER_MISMATCH_NUMBER, len,
                        NULL);
 
-    if (err) cerr << "Unable to set mismatch number" << endl;
+    if (err) {
+        logger->warn("Unable to set allowable mismatches to {}", len);
+    } else {
+        data->num_mismatch = len;
+    }
 }
 
 void
@@ -345,23 +360,31 @@ query_pt::set_sort_type(bool absolute) {
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_SORT_TYPE, absolute?0:1,
                        NULL);
-    if (err) cerr << "Unable to set sort type" << endl;
+    if (err) {
+        logger->warn("Unable to set sort type = {}", absolute ? "absolute" : "relative");
+    } else {
+        data->relative_sort = !absolute;
+    }
 }
 
 void
 query_pt::set_range(int startpos, int stoppos) {
     boost::mutex::scoped_lock lock(data->arb_pt_access);
-/*
+#if 0
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_RANGE_STARTPOS, startpos,
                        FAMILYFINDER_RANGE_ENDPOS, stoppos,
                        NULL);
-    if (err) cerr << "Unable to set matching range" << endl;
-*/
-
-    data->range_begin = startpos;
-    data->range_end = stoppos;
+#else
+    int err = 0;
+#endif
+    if (err) {
+        logger->warn("Unable to constain matching to {}-{}", startpos, stoppos);
+    } else {
+        data->range_begin = startpos;
+        data->range_end = stoppos;
+    }
 }
 
 void
@@ -387,8 +410,8 @@ query_pt::match(std::vector<cseq> &family, const cseq& queryc,
     int skipped_noid = 0;
 
     if (query_str.size() < 20) {
-        cerr << "Sequence too short (" << strlen(query)
-             << " bases) for PT server search!" << endl;
+        logger->warn("Sequence {} too short ({} bp) for PT server search",
+                     queryc.getName(), strlen(query));
         return 0;
     }
 
@@ -424,11 +447,12 @@ match_retry:
                        FAMILYFINDER_FIND_FAMILY, &bs,
                        NULL);
     if (err) {
-        cerr << "Unable to execute find_family command on pt-server" 
-             << endl;
+        logger->error("Unable to execute find_family command on pt-server");
         if (--maxfail==0) {
-            cerr << "Retried too often. Aborting." << endl;
+            logger->error("No retries left; aborting.");
             return 0;
+        } else {
+            logger->error("Retrying...");
         }
         //FIXME restart();
         goto match_retry;
@@ -438,7 +462,11 @@ match_retry:
                    PT_FAMILYFINDER, data->ffinder,
                    FAMILYFINDER_FAMILY_LIST, f_list.as_result_param(),
                    NULL);
-    if (err || !f_list.exists() ) {
+    if (err) {
+        logger->error("Unable to get results for search");
+        return 0;
+    }
+    if (!f_list.exists()) {
         return 0;
     }
 
@@ -452,12 +480,12 @@ match_retry:
                        FAMILYLIST_NEXT, f_list.as_result_param(),
                        NULL);
         if (err) {
-            cerr << "Unable to get next item in family list" << endl;
+            logger->error("Unable to get next item in family list");
             break;
         }
 
         if (leave_query_out && f_name == queryc.getName()) {
-            cerr << "Leaving out query." << endl;
+            logger->info("Omitting sequence with same name as query from result");
             free(f_name);
             continue;
         }
@@ -476,9 +504,8 @@ match_retry:
                 try {
                     seq = arb->getCseq(f_name);
                 } catch (base_iupac::bad_character_exception& e) {
-                    cerr << "Reference Sequence " << f_name 
-                         << " contains invalid character " << e.character 
-                         << ". Skipping." << endl;
+                    logger->error("Sequence {} contains invalid character{}. Skipping",
+                                  f_name, e.character);
                     sequence_broken=true;
                 }
                 seq.setScore(f_relscore);
@@ -528,7 +555,7 @@ match_retry:
                            NULL);
 
             if (err) {
-                cerr << "Unable to get next item in family list" << endl;
+                logger->warn("Unable to get next item in family list");
                 break;
             }
             if (data->find_type_fast) {
@@ -564,20 +591,9 @@ match_retry:
     }
 
     if (skipped_max_score || skipped_broken || skipped_min_len || skipped_noid) {
-        cerr << "ptmatch skipped ";
-        if (skipped_max_score) {
-            cerr << skipped_max_score << " (msc_max)";
-        }
-        if (skipped_broken) {
-            cerr << skipped_broken << " (broken)";
-        }
-        if (skipped_min_len) {
-            cerr << skipped_min_len << " (min_len)";
-        }
-        if (skipped_noid) {
-            cerr << skipped_noid << " (noid)";
-        }
-        cerr << " sequences" << endl;
+        logger->warn("Skipped {} sequences ({} id < {}, {} broken, {} len < {}, {} noid)",
+                     skipped_max_score + skipped_broken + skipped_min_len + skipped_noid,
+                     skipped_max_score, skipped_broken, skipped_min_len, skipped_noid);
     }
 
     return f_relscore;

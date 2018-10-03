@@ -30,14 +30,16 @@ for the parts of ARB used as well as that of the covered work.
 #ifndef _MESH_H_
 #define _MESH_H_
 
-#include<vector>
-#include<iomanip>
-#include<iostream>
-#include<algorithm>
-#include<sstream>
-#include<cmath>
-#include<set>
+#include <vector>
+#include <iomanip>
+#include <iostream>
+#include <algorithm>
+#include <sstream>
+#include <cmath>
+#include <set>
 #include <memory>
+#include <string>
+
 
 #include "align.h"
 #include "graph.h"
@@ -88,7 +90,11 @@ public:
 
     value_type&
     operator()(master_idx_type mi, slave_idx_type si) {
-        //if (mi+1<1 || si+1<1) std::cerr <<"$$ mi="<<mi<<" si="<<si<<std::endl;
+#if 0
+        if (mi+1<1 || si+1<1) {
+            std::cerr << "$$ mi=" << mi <<" si=" << si << std::endl;
+        }
+#endif
         return _A.at(mi * _slave.size() + si);
     }
 
@@ -606,7 +612,7 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
         int n = send-s;
         cutoff_tail= n;
         int last_base_pos = mesh._master.getById(m).getPosition()+1;
-        string bases = mesh._slave.getBases().substr(mesh._slave.size()-n,n);
+        std::string bases = mesh._slave.getBases().substr(mesh._slave.size()-n,n);
         if (lowercase == LOWERCASE_UNALIGNED) {
             std::transform(bases.begin(), bases.end(), bases.begin(), ::tolower);
         }
@@ -744,15 +750,13 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
     if (out.getWidth() > alig_width) {
         const char* wrn = "warning: result sequence too wide!";
         log << wrn;
-        std::cerr << wrn << std::endl;
     }
 
-    //#ifdef DEBUG
     log << "scoring: raw=" << rval << ", weight=" << sum_weight
         << ", query-len=" << mesh._slave.size()
         << ", aligned-bases=" << aligned_bases
         << ", score=" << rval/sum_weight <<"; ";
-    //#endif
+
     out.setScore(rval/sum_weight);
 
     return rval;
