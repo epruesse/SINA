@@ -49,7 +49,7 @@ EXTRA_DIST = \
     configure.ac \
     autogen.sh \
     tools \
-    test_data/ltp_reduced.arb.xz
+    test_data/ltp_reduced.arb.xz \
     include
 
 CLEANFILES =
