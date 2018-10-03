@@ -68,7 +68,7 @@ namespace tf = tbb::flow;
 
 using namespace sina;
 
-static auto logger = Log::create_logger("log");
+static auto logger = Log::create_logger("SINA");
 
 // define new type of configuration selection of input/output type
 enum SEQUENCE_DB_TYPE {
