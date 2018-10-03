@@ -267,7 +267,7 @@ parse_options(int argc, char** argv) {
         // Autodetect / validate intype selection
         if (vm["intype"].defaulted() && vm.count("in")) {
             const fs::path in = vm["in"].as<fs::path>();
-            if (in.extension() == "arb" || in.native() == ":") {
+            if (in.extension() == ".arb" || in.native() == ":") {
                 std::vector<string> cmd(2);
                 cmd[0]="--intype";
                 cmd[1]="ARB";
