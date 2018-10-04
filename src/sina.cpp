@@ -501,8 +501,10 @@ int real_main(int argc, char** argv) {
     nodes.emplace_back(node);
     last_node = node;
 
+    int count = 0;
     tf::function_node<tray, tf::continue_msg>
         sink(g, 1, [&](tray t) -> tf::continue_msg {
+                count++;
                 t.destroy();
                 return tf::continue_msg();
             });
@@ -513,7 +515,8 @@ int real_main(int argc, char** argv) {
     source->activate();
     g.wait_for_all();
     timestamp after;
-    logger->warn("Time for alignment phase: {}s", after-before);
+    logger->warn("Took {} to align {} sequences ({} sequences/s)",
+                 after-before, count, count/(after-before));
     nodes.clear();
     logger->warn("SINA finished.");
     return 0;
