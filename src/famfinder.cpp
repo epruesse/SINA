@@ -195,15 +195,9 @@ famfinder::get_options_description(po::options_description& main,
     od.add_options()
         ("ptdb", po::value<string>(&opts->database),
          "PT server database (old name)")
-        ("ptport",
-#ifdef HAVE_GETPID
-         po::value<string>(&opts->pt_port)
-         ->default_value(":/tmp/sina_pt_"
-                         + boost::lexical_cast<std::string>(getpid()), ""),
-#else
-         po::value<string>(&opts->pt_port)->default_value("localhost:4040"),
-#endif
-         "PT server port")
+        ("ptport", po::value<string>(&opts->pt_port)
+         ->default_value(fmt::format(":/tmp/sina_pt_{}", getpid()), ""),
+         "PT server port (:/tmp/sina_pt_<pid>)")
         ("fs-kmer-no-fast", po::bool_switch(&opts->fs_no_fast),
          "don't use fast family search")
         ("fs-kmer-mm", po::value<int>(&opts->fs_kmer_mm)->default_value(0,""),

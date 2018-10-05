@@ -103,15 +103,9 @@ search_filter::get_options_description(po::options_description& main,
 
     po::options_description od("Search & Classify");
     od.add_options()
-        ("search-port",
-#ifdef HAVE_GETPID
-         po::value<string>(&opts->pt_port)
-         ->default_value(":/tmp/sina_pt2_"
-                         + boost::lexical_cast<std::string>(getpid()),""),
-#else
-         po::value<string>(&opts->pt_port)->default_value("localhost:4041"),
-#endif
-         "PT server port")
+        ("search-port", po::value<string>(&opts->pt_port)
+         ->default_value(fmt::format(":/tmp/sina_pt2_{}", getpid()), ""),
+         "PT server port (:/tmp/sina_pt2_<pid>)")
         ("search-all", po::bool_switch(&opts->search_all), "do not use k-mer heuristic")
         ("search-no-fast", po::bool_switch(&opts->fs_no_fast), "don't use fast family search")
         ("search-kmer-candidates", po::value<int>(&opts->kmer_candidates)->default_value(1000,""),         "number of most similar sequences to acquire via kmer-step (1000)")
