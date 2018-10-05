@@ -295,15 +295,8 @@ aligner::get_options_description(po::options_description& main,
     adv.add(od);
 }
 
-void aligner::validate_vm(boost::program_options::variables_map& vm,
-                          po::options_description& desc) {
-    if (vm.count("no-align")) {
-        return;
-    }
-
-    if (!opts) {
-        throw logic_error("aligner options not parsed?!");
-    }
+void aligner::validate_vm(boost::program_options::variables_map& /*vm*/,
+                          po::options_description& /*desc*/) {
 }
 
 } // namespace sina;
