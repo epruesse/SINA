@@ -9,6 +9,23 @@ test_num=0
 test_count=$(grep -c "begin_test" "$0")
 echo "1..$test_count"
 
+test_helper_tmpdirs_=()
+trap test_helper_cleanup_ EXIT
+
+maketmpdir() {
+    local tmp
+    tmp=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
+    test_helper_tmpdirs_+=($tmp)
+    echo $tmp
+}
+
+test_helper_cleanup_() {
+    for dir in "${test_helper_tmpdirs_[@]}"; do
+	echo "Removing $dir"
+	rm -rf "$dir"
+    done
+}
+
 capture_stdout() {
     echo "Running \"$*"\"
     output=$(eval "$*" | tee /dev/fd/6)

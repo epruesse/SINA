@@ -2,6 +2,14 @@
 . $(dirname $0)/test_helper.sh
 
 TEST_ARB=$TEST_ARGS
+T=$(maketmpdir)
+
+if [ -d "$T" ]; then
+    echo "Using TMPDIR '$T'";
+else
+    echo Bail Out!
+    exit 1
+fi
 
 begin_test "Show help"
 capture_stderr ./src/sina --help
@@ -35,52 +43,52 @@ assert_exit_fail
 end_test
 
 begin_test "Copy ARB to FASTA"
-capture_stdouterr "./src/sina -i $TEST_ARB -o extracted.fasta --select-step 1000 --prealigned"
+capture_stdouterr "./src/sina -i $TEST_ARB -o $T/extracted.fasta --select-step 1000 --prealigned"
 assert_exit_success
 assert_output_contains "align 12 sequences"
 end_test
 
 begin_test "Copy ARB to FASTA.gz"
-capture_stdouterr "./src/sina -i $TEST_ARB -o extracted.fasta.gz --select-step 1000 --prealigned"
+capture_stdouterr "./src/sina -i $TEST_ARB -o $T/extracted.fasta.gz --select-step 1000 --prealigned"
 assert_exit_success
 assert_output_contains "align 12 sequences"
-capture_stderr "gunzip -c extracted.fasta.gz | cmp - extracted.fasta"
+capture_stderr "gunzip -c $T/extracted.fasta.gz | cmp - extracted.fasta"
 end_test
 
 begin_test "Copy FASTA to ARB"
-capture_stdouterr "./src/sina -i extracted.fasta -o extracted.arb --prealigned"
+capture_stdouterr "./src/sina -i $T/extracted.fasta -o $T/extracted.arb --prealigned"
 assert_exit_success
 assert_output_contains "align 12 sequences"
 end_test
 
 begin_test "Copy FASTA to ARB"
-capture_stdouterr "./src/sina -i extracted.fasta -o extracted.arb --prealigned"
+capture_stdouterr "./src/sina -i $T/extracted.fasta -o $T/extracted.arb --prealigned"
 assert_exit_success
 assert_output_contains "align 12 sequences"
 end_test
 
 begin_test "Align from FASTA->FASTA"
-capture_stdouterr "./src/sina -i extracted.fasta -o aligned.fasta --preserve-order --realign --db extracted.arb"
+capture_stdouterr "./src/sina -i $T/extracted.fasta -o $T/aligned.fasta --preserve-order --realign --db $T/extracted.arb"
 assert_output_contains "align 12 sequences"
 assert_exit_success
 end_test
 
 begin_test "Align from FASTA->FASTA(stdout)"
-capture_stdouterr "./src/sina -i extracted.fasta --preserve-order --realign --db extracted.arb >aligned.2.fasta"
+capture_stdouterr "./src/sina -i $T/extracted.fasta --preserve-order --realign --db $T/extracted.arb >$T/aligned.2.fasta"
 assert_output_contains "align 12 sequences"
 assert_exit_success
-capture_stdouterr "cmp aligned.fasta aligned.2.fasta"
+capture_stdouterr "cmp $T/aligned.fasta $T/aligned.2.fasta"
 assert_exit_success
 end_test
 
 begin_test "Align from FASTA->ARB"
-capture_stdouterr "./src/sina -i extracted.fasta -o aligned.arb --realign --db extracted.arb"
+capture_stdouterr "./src/sina -i $T/extracted.fasta -o $T/aligned.arb --realign --db $T/extracted.arb"
 assert_output_contains "align 12 sequences"
 assert_exit_success
 end_test
 
 begin_test "Align from ARB->ARB"
-capture_stdouterr "./src/sina -i extracted.arb -o aligned.arb --db extracted.arb"
+capture_stdouterr "./src/sina -i $T/extracted.arb -o $T/aligned.arb --db $T/extracted.arb"
 assert_output_contains "align 12 sequences"
 assert_exit_success
 end_test
