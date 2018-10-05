@@ -303,13 +303,6 @@ int real_main(int argc, char** argv) {
     }
 
     tbb::task_scheduler_init init(vm["threads"].as<unsigned int>());
-
-    SEQUENCE_DB_TYPE intype = vm["intype"].as<SEQUENCE_DB_TYPE>();
-    SEQUENCE_DB_TYPE outtype = vm["outtype"].as<SEQUENCE_DB_TYPE>();
-    fs::path input_file = vm["in"].as<fs::path>();
-    fs::path output_file = vm["out"].as<fs::path>();
-    bool do_align = not (vm["no-align"].as<bool>() || vm["prealigned"].as<bool>());
-    bool do_search = vm["search"].as<bool>();
     int max_trays = 100;
 
     tf::graph g;  // Main data flow graph (pipeline)
@@ -323,12 +316,12 @@ int real_main(int argc, char** argv) {
 
     // Make source node reading sequences
     source_node *source; // will be activated once graph complete
-    switch (intype) {
+    switch (opts.intype) {
     case SEQUENCE_DB_ARB:
-        source = new source_node(g, rw_arb::reader(input_file), false);
+        source = new source_node(g, rw_arb::reader(opts.in), false);
         break;
     case SEQUENCE_DB_FASTA:
-        source = new source_node(g, rw_fasta::reader(input_file), false);
+        source = new source_node(g, rw_fasta::reader(opts.in), false);
         break;
     default:
         throw logic_error("input type undefined");
@@ -342,7 +335,7 @@ int real_main(int argc, char** argv) {
     nodes.emplace_back(limiter);
     last_node = limiter;
 
-    if (!do_align) {
+    if (opts.skip_align || opts.noalign) {
         // Just copy alignment over
         node = new filter_node(g, tf::unlimited, [](tray t) -> tray {
                 t.aligned_sequence = new cseq(*t.input_sequence);
@@ -396,7 +389,7 @@ int real_main(int argc, char** argv) {
         last_node = node;
     }
 
-    if (do_search) {
+    if (opts.do_search) {
         node = new filter_node(g, 1, search_filter());
         tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
@@ -404,12 +397,12 @@ int real_main(int argc, char** argv) {
     }
 
     // Make node writing sequences
-    switch(outtype) {
+    switch(opts.outtype) {
     case SEQUENCE_DB_ARB:
-        node = new filter_node(g, 1, rw_arb::writer(output_file));
+        node = new filter_node(g, 1, rw_arb::writer(opts.out));
         break;
     case SEQUENCE_DB_FASTA:
-        node = new filter_node(g, 1, rw_fasta::writer(output_file));
+        node = new filter_node(g, 1, rw_fasta::writer(opts.out));
         break;
     default:
         throw logic_error("input type undefined");
