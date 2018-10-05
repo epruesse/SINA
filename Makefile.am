@@ -239,6 +239,8 @@ test_libs = \
 test_scripts = \
     src/unit_tests/integration.test
 
+$(test_scripts): $(bin_PROGRAMS)
+
 EXTRA_DIST += $(test_scripts) src/unit_tests/test_helper.sh
 
 TESTS =  $(check_PROGRAMS) $(test_scripts)
