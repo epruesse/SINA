@@ -135,7 +135,12 @@ po::typed_value<counting_type<T> >* counter() {
 
 struct Log::options {
     options() :
-        verbosity(spdlog::level::warn)
+        quiet_count(0),
+        verbose_count(0),
+        verbosity(spdlog::level::warn),
+        show_diff(false),
+        show_dist(false),
+        colors(false)
     {}
     int quiet_count;
     int verbose_count;
@@ -195,6 +200,8 @@ Log::validate_vm(po::variables_map& vm,
     auto console_sink = sinks[0];
     console_sink->set_level(opts->verbosity);
     console_sink->set_pattern("%C-%m-%d %T [%n] %^%v%$");
+
+    logger->info("Loglevel set to {}", opts->verbosity);
 
     if (vm.count("log-file")) {
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
