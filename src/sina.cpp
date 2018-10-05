@@ -273,8 +273,10 @@ parse_options(int argc, char** argv) {
         Log::validate_vm(vm, all_od);
         rw_arb::validate_vm(vm, all_od);
         rw_fasta::validate_vm(vm, all_od);
-        aligner::validate_vm(vm, all_od);
-        famfinder::validate_vm(vm, all_od);
+        if (!opts.skip_align && !opts.noalign) {
+            famfinder::validate_vm(vm, all_od);
+            aligner::validate_vm(vm, all_od);
+        }
         if (opts.do_search) {
             search_filter::validate_vm(vm, all_od);
         }
