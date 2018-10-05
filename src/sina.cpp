@@ -139,61 +139,99 @@ void show_conf(po::variables_map& vm) {
     std::cerr << std::endl;
 }
 
+struct options {
+    SEQUENCE_DB_TYPE intype;
+    SEQUENCE_DB_TYPE outtype;
+    fs::path in;
+    fs::path out;
+    bool noalign;
+    bool do_search;
+    bool skip_align;
+    unsigned int threads;
+    string has_cli_vers;
+};
+
+static options opts;
+
 // define hidden options
-po::options_description
-global_get_hidden_options_description() {
-    po::options_description hidden("Advanced Options");
-    hidden.add_options()
-        ("show-conf",
-         "show effective configuration")
+void get_options_description(po::options_description& main,
+                             po::options_description& adv) {
+    adv.add_options()
+        ("show-conf", "show effective configuration")
         ("intype",
-         po::value<SEQUENCE_DB_TYPE>()->default_value(SEQUENCE_DB_NONE,""),
+         po::value<SEQUENCE_DB_TYPE>(&opts.intype)->default_value(SEQUENCE_DB_AUTO),
          "override input file type")
         ("outtype",
-         po::value<SEQUENCE_DB_TYPE>()->default_value(SEQUENCE_DB_NONE,""),
+         po::value<SEQUENCE_DB_TYPE>(&opts.outtype)->default_value(SEQUENCE_DB_AUTO),
          "override output file type")
 
-        ("has-cli-vers",
-         po::value<string>(),
-         "verify support of cli version")
-        ("no-align",
-         po::bool_switch(),
+        ("has-cli-vers", po::value<string>(&opts.has_cli_vers), "verify support of cli version")
+        ("no-align", po::bool_switch(&opts.noalign),
          "disable alignment stage (same as prealigned)")
-
         ;
-    return hidden;
+
+    unsigned int threads = tbb::task_scheduler_init::automatic;
+    main.add_options()
+        ("help,h", "show short help")
+        ("help-all,H", "show full help (long)")
+        ("in,i", po::value<fs::path>(&opts.in)->default_value("-"),
+         "input file (arb or fasta)")
+        ("out,o", po::value<fs::path>(&opts.out)->default_value("-"),
+         "output file (arb or fasta)")
+        ("search,S", po::bool_switch(&opts.do_search), "enable search stage")
+        ("prealigned,P", po::bool_switch(&opts.skip_align), "skip alignment stage")
+        ("threads,p", po::value<unsigned int>(&opts.threads)->default_value(threads, ""),
+         "limit number of threads (automatic)")
+        ("version,V", "show version")
+        ;
 }
 
-// define global options
-po::options_description
-global_get_options_description() {
-    po::options_description glob("Options");
-    glob.add_options()
-        ("help,h",
-         "show short help")
-        ("help-all,H",
-         "show full help (long)")
-        ("in,i",
-         po::value<fs::path>(),
-         "input file (arb or fasta)")
-        ("out,o",
-         po::value<fs::path>(),
-         "output file (arb or fasta)")
-        ("search,S",
-         po::bool_switch(),
-         "enable search stage")
-        ("prealigned,P",
-         po::bool_switch(),
-         "skip alignment stage")
-        ("threads,p",
-         po::value<unsigned int>()->default_value(
-             tbb::task_scheduler_init::automatic, ""),
-         "limit number of threads (automatic)")
-        ("version,V",
-         "show version")
+void validate_vm(po::variables_map& vm, po::options_description all_od) {
+    if (vm.count("has-cli-vers")) {
+        std::cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
+                  << " present" << std::endl;
+        const char* supported_versions[]{"1", "2", "ARB5.99"};
+        for (auto& supported : supported_versions) {
+            if (opts.has_cli_vers == supported) {
+                exit(EXIT_SUCCESS);
+            }
+        }
 
-        ;
-    return glob;
+        std::cerr << "** Error: requested CLI version not supported!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (vm.count("version")) {
+        std::cerr << PACKAGE_STRING
+#ifdef PACKAGE_BUILDINFO
+                  << " (" << PACKAGE_BUILDINFO << ")"
+#endif
+                  << std::endl;
+        exit(EXIT_SUCCESS);
+    }
+
+    // Autodetect / validate intype selection
+    if (opts.intype == SEQUENCE_DB_AUTO) {
+        if (opts.in.extension() == ".arb" || opts.in.native() == ":") {
+            opts.intype = SEQUENCE_DB_ARB;
+        } else {
+            opts.intype = SEQUENCE_DB_FASTA;
+        }
+    }
+
+    // Pick suitable output if no output given
+    if (opts.out == "-" && opts.intype == SEQUENCE_DB_ARB) {
+        opts.out = opts.in;
+    }
+
+    // Autodetect / validate outtype selection
+    if (opts.outtype == SEQUENCE_DB_AUTO) {
+        if (opts.out.extension() == ".arb" || opts.out.native() == ":") {
+            opts.outtype = SEQUENCE_DB_ARB;
+        } else {
+            opts.outtype = SEQUENCE_DB_FASTA;
+        }
+    }
 }
 
 // do the messy option parsing/validating
@@ -202,150 +240,45 @@ parse_options(int argc, char** argv) {
     po::variables_map vm;
 
     string infile, outfile;
-    po::options_description
-        opts = global_get_options_description(),
-        adv_opts = global_get_hidden_options_description();
+    po::options_description od("Options"), adv_od("Advanced Options");
 
-    Log::get_options_description(opts, adv_opts);
-    rw_arb::get_options_description(opts, adv_opts);
-    rw_fasta::get_options_description(opts, adv_opts);
-    aligner::get_options_description(opts, adv_opts);
-    famfinder::get_options_description(opts, adv_opts);
-    search_filter::get_options_description(opts, adv_opts);
-    query_pt::get_options_description(opts, adv_opts);
+    get_options_description(od, adv_od);
+    Log::get_options_description(od, adv_od);
+    rw_arb::get_options_description(od, adv_od);
+    rw_fasta::get_options_description(od, adv_od);
+    aligner::get_options_description(od, adv_od);
+    famfinder::get_options_description(od, adv_od);
+    search_filter::get_options_description(od, adv_od);
+    query_pt::get_options_description(od, adv_od);
 
-    po::options_description all_opts(opts);
-    all_opts.add(adv_opts);
+    po::options_description all_od(od);
+    all_od.add(adv_od);
 
     try {
-        po::store(po::parse_command_line(argc,argv,all_opts),vm);
+        po::store(po::parse_command_line(argc,argv,all_od),vm);
 
         if (vm.count("help")) {
-            std::cerr << opts << std::endl;
+            std::cerr << od << std::endl;
             exit(EXIT_SUCCESS);
         }
         if (vm.count("help-all")) {
-            std::cerr << opts << std::endl
-                      << adv_opts << std::endl;
+            std::cerr << od << std::endl
+                      << adv_od << std::endl;
             exit(EXIT_SUCCESS);
-        }
-        if (vm.count("has-cli-vers")) {
-            std::cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
-                      << " present" << std::endl;
-            string requested =  vm["has-cli-vers"].as<string>();
-            if (requested == "1" || requested == "2" || requested == "ARB5.99") {
-                exit(EXIT_SUCCESS);
-            }
-
-            std::cerr << "** Error: requested CLI version not supported!" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        if (vm.count("version")) {
-            std::cerr << PACKAGE_STRING
-#ifdef PACKAGE_BUILDINFO
-                      << " (" << PACKAGE_BUILDINFO << ")"
-#endif
-                      << std::endl;
-            exit(EXIT_SUCCESS);
-        }
-
-
-        // Autodetect / validate intype selection
-        if (vm["intype"].defaulted() && vm.count("in")) {
-            const fs::path in = vm["in"].as<fs::path>();
-            if (in.extension() == ".arb" || in.native() == ":") {
-                std::vector<string> cmd(2);
-                cmd[0]="--intype";
-                cmd[1]="ARB";
-                po::store(po::command_line_parser(cmd).options(all_opts).run(),
-                          vm);
-            } else {
-                std::vector<string> cmd(2);
-                cmd[0]="--intype";
-                cmd[1]="FASTA";
-                po::store(po::command_line_parser(cmd).options(all_opts).run(),
-                          vm);
-            } 
-        }
-
-        // Pick suitable output if no output given
-        if (not vm.count("out") && vm.count("in")) {
-            std::vector<string> cmd(4);
-            switch(vm["intype"].as<SEQUENCE_DB_TYPE>()) {
-            case SEQUENCE_DB_ARB: 
-                // ARB files can be used for input and output
-                cmd[0]="-o";
-                cmd[1]=vm["in"].as<fs::path>().native();
-                po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
-                break;
-            case SEQUENCE_DB_FASTA: 
-                // Use "input.fasta.aligned"
-                cmd[0]="-o";
-                if (vm["in"].as<fs::path>() == "/dev/stdin") {
-                    cmd[1] = "/dev/stdout";
-                } else if (vm["in"].as<fs::path>() == "-") {
-                    cmd[1] = "-";
-                } else {
-                    cmd[1] = vm["in"].as<fs::path>().native()+".aligned";
-                }
-                po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
-                break;
-            default:
-                throw logic_error("broken output type");
-            }
-        }
-
-        // Autodetect / validate outtype selection
-        if (vm["outtype"].defaulted() && vm.count("out")) {
-            const fs::path out = vm["out"].as<fs::path>();
-            if (out.extension() == ".arb" || out.native() == ":") {
-                std::vector<string> cmd(2);
-                cmd[0]="--outtype";
-                cmd[1]="ARB";
-                po::store(po::command_line_parser(cmd).options(all_opts).run(),
-                          vm);
-            } else {
-                std::vector<string> cmd(2);
-                cmd[0]="--outtype";
-                cmd[1]="FASTA";
-                po::store(po::command_line_parser(cmd).options(all_opts).run(),
-                          vm);
-            }
-        }
-
-        if (vm["no-align"].as<bool>() || vm["prealigned"].as<bool>()) {
-            if (vm["db"].empty() && vm["ptdb"].empty()) {
-                std::vector<string> cmd(2);
-                cmd[0]="--db";
-                cmd[1]="NONE";
-                po::store(po::command_line_parser(cmd).options(all_opts).run(),
-                          vm);
-            }
-        }
-        
-        // enable calc-idty if min-idty requested
-        if (!vm["min-idty"].empty()) {
-            std::vector<string> cmd(1);
-            cmd[0]="--calc-idty";
-            po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
-        }
-
-        Log::validate_vm(vm, all_opts);
-        rw_arb::validate_vm(vm, all_opts);
-        rw_fasta::validate_vm(vm, all_opts);
-        aligner::validate_vm(vm, all_opts);
-        famfinder::validate_vm(vm, all_opts);
-        search_filter::validate_vm(vm, all_opts);
-        query_pt::validate_vm(vm, all_opts);
-
-        if (vm.count("in") == 0) {
-            throw logic_error("need input file");
         }
 
         po::notify(vm);
 
-
+        validate_vm(vm, all_od);
+        Log::validate_vm(vm, all_od);
+        rw_arb::validate_vm(vm, all_od);
+        rw_fasta::validate_vm(vm, all_od);
+        aligner::validate_vm(vm, all_od);
+        famfinder::validate_vm(vm, all_od);
+        if (opts.do_search) {
+            search_filter::validate_vm(vm, all_od);
+        }
+        query_pt::validate_vm(vm, all_od);
     } catch (std::logic_error &e) {
         std::cerr << "Configuration error:" << std::endl
                   << e.what() << std::endl
@@ -375,7 +308,7 @@ int real_main(int argc, char** argv) {
     fs::path output_file = vm["out"].as<fs::path>();
     bool do_align = not (vm["no-align"].as<bool>() || vm["prealigned"].as<bool>());
     bool do_search = vm["search"].as<bool>();
-    int max_trays = 10;
+    int max_trays = 100;
 
     tf::graph g;  // Main data flow graph (pipeline)
     std::vector<std::unique_ptr<tf::graph_node>> nodes; // Nodes (for cleanup)
