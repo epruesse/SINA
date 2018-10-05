@@ -160,12 +160,8 @@ rw_fasta::get_options_description(po::options_description& main,
 
 
 void
-rw_fasta::validate_vm(po::variables_map& vm,
+rw_fasta::validate_vm(po::variables_map& /*vm*/,
                       po::options_description& /*desc*/) {
-    if (vm.count("fasta-idx") && vm["fasta-idx"].as<long>() > 0 &&
-        vm.count("in") && vm["in"].as<string>() == "-") {
-        throw std::logic_error("Cannot use --fasta-idx when input is piped");
-    }
 }
 
 
@@ -203,6 +199,10 @@ rw_fasta::reader::reader(const fs::path& infile)
     
     // if fasta blocking enabled, seek to selected block
     if (opts->fasta_block > 0) {
+        if (infile == "-") {
+            throw std::logic_error("Cannot use --fasta-idx when input is piped");
+        }
+
         data->in.seekg(opts->fasta_block * opts->fasta_idx);
     }
 }

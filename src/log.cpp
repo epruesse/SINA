@@ -137,6 +137,8 @@ struct Log::options {
     options() :
         verbosity(spdlog::level::warn)
     {}
+    int quiet_count;
+    int verbose_count;
     level_enum verbosity;
     bool show_diff;
     bool show_dist;
@@ -177,20 +179,14 @@ Log::get_options_description(po::options_description& main,
     adv.add(od);
 }
 
-
 void
 Log::validate_vm(po::variables_map& vm,
                  po::options_description& /*desc*/) {
     // calculate effective log level
     int verbosity = static_cast<int>(opts->verbosity);
-    if (vm.count("quiet")) {
-        verbosity += vm["quiet"].as<int>();
-    }
-    if (vm.count("verbose")) {
-        verbosity -= vm["verbose"].as<int>();
-    }
+    verbosity += opts->quiet_count;
+    verbosity -= opts->verbose_count;
     opts->verbosity = static_cast<level_enum>(verbosity);
-
     opts->verbosity = std::min(
         std::max(opts->verbosity, spdlog::level::trace),
         spdlog::level::off);
