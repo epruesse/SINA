@@ -73,8 +73,8 @@ static auto logger = Log::create_logger("SINA");
 // define new type of configuration selection of input/output type
 enum SEQUENCE_DB_TYPE {
     SEQUENCE_DB_NONE,
+    SEQUENCE_DB_AUTO,
     SEQUENCE_DB_ARB,
-    SEQUENCE_DB_SILVA,
     SEQUENCE_DB_FASTA,
 };
 
@@ -82,20 +82,11 @@ enum SEQUENCE_DB_TYPE {
 std::ostream& operator<<(std::ostream& out,
                          const SEQUENCE_DB_TYPE& db) {
     switch(db) {
-    case SEQUENCE_DB_NONE:
-        out << "NONE";
-        break;
-    case SEQUENCE_DB_ARB:
-        out << "ARB";
-        break;
-    case SEQUENCE_DB_SILVA:
-        out << "SILVA";
-        break;
-    case SEQUENCE_DB_FASTA:
-        out << "FASTA";
-        break;
-    default:
-        out << "Undef!";
+    case SEQUENCE_DB_NONE:  out << "NONE";  break;
+    case SEQUENCE_DB_AUTO:  out << "AUTO";  break;
+    case SEQUENCE_DB_ARB:   out << "ARB";   break;
+    case SEQUENCE_DB_FASTA: out << "FASTA"; break;
+    default:                out << "Undef!";
     }
     return out;
 }
@@ -106,15 +97,11 @@ void validate(boost::any& v,
               SEQUENCE_DB_TYPE* /*db*/, int) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
-    if (iequals(s, "ARB")) {
-        v = SEQUENCE_DB_ARB;
-    } else if (iequals (s, "FASTA")) {
-        v = SEQUENCE_DB_FASTA;
-    } else if (iequals (s, "SILVA")) {
-        v = SEQUENCE_DB_SILVA;
-    } else {
-        throw po::invalid_option_value("unknown input/output type");
-    }
+    if (iequals(s, "NONE"))  v = SEQUENCE_DB_NONE;
+    else if (iequals(s, "AUTO")) v = SEQUENCE_DB_AUTO;
+    else if (iequals(s, "ARB")) v = SEQUENCE_DB_ARB;
+    else if (iequals (s, "FASTA")) v = SEQUENCE_DB_FASTA;
+    else throw po::invalid_option_value(s);
 }
 
 // make known any<> types printable
