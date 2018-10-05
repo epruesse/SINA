@@ -145,9 +145,10 @@ struct options {
     fs::path in;
     fs::path out;
     bool noalign;
-    bool do_search;
     bool skip_align;
+    bool do_search;
     unsigned int threads;
+    unsigned int num_pt_servers;
     string has_cli_vers;
 };
 
@@ -182,6 +183,8 @@ void get_options_description(po::options_description& main,
         ("prealigned,P", po::bool_switch(&opts.skip_align), "skip alignment stage")
         ("threads,p", po::value<unsigned int>(&opts.threads)->default_value(threads, ""),
          "limit number of threads (automatic)")
+        ("num_pts", po::value<unsigned int>(&opts.num_pt_servers)->default_value(1, ""),
+         "number of PT servers to start (1)")
         ("version,V", "show version")
         ;
 }
@@ -356,7 +359,7 @@ int real_main(int argc, char** argv) {
         tray_and_finder_join_node *join = new tray_and_finder_join_node(g);
 
         finder_node *family_find = new finder_node(
-            g, 1,
+            g, opts.num_pt_servers,
             [&](const tray_and_finder &in, finder_node_out &out) -> void {
                 const tray& t = get<0>(in);
                 famfinder::finder finder(get<1>(in));
@@ -379,7 +382,7 @@ int real_main(int argc, char** argv) {
         tf::make_edge(*join, *family_find);
         nodes.emplace_back(family_find);
 
-        for (int i=0; i<3; i++) {
+        for (int i=0; i<opts.num_pt_servers; i++) {
             buffer->try_put(famfinder::finder(i));
         }
 
