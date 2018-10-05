@@ -24,6 +24,9 @@ AC_PROG_INSTALL
 AC_PROG_MKDIR_P
 LT_INIT([shared static])
 
+AC_REQUIRE_AUX_FILE([tap-driver.sh])
+
+
 # Check for C++ and required features
 
 AC_SUBST(CPPFLAGS)

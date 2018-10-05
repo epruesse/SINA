@@ -1,0 +1,19 @@
+#!/bin/bash
+. $(dirname $0)/test_helper.sh
+
+TEST_ARB=$TEST_ARGS
+
+begin_test "Copy ARB to FASTA"
+capture_stdouterr ./src/sina -i $TEST_ARB -o extracted.fasta --select-step 1000 --prealigned
+assert_exit_success
+assert_output_contains "align 12 sequences"
+end_test
+
+begin_test "Copy FASTA to ARB"
+capture_stdouterr ./src/sina -i extracted.fasta -o extracted.arb --prealigned
+assert_exit_success
+assert_output_contains "align 12 sequences"
+end_test
+
+
+
