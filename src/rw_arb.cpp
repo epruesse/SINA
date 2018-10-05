@@ -186,6 +186,7 @@ rw_arb::reader::reader(fs::path infile)
 bool
 rw_arb::reader::operator()(tray& t) {
     string name;
+    t.seqno = data->seqno;
     t.input_sequence = 0; // we may get initialized tray
 
     while (not t.input_sequence) {

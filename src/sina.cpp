@@ -147,6 +147,7 @@ struct options {
     bool noalign;
     bool skip_align;
     bool do_search;
+    bool inorder;
     unsigned int threads;
     unsigned int num_pt_servers;
     string has_cli_vers;
@@ -165,6 +166,8 @@ void get_options_description(po::options_description& main,
         ("outtype",
          po::value<SEQUENCE_DB_TYPE>(&opts.outtype)->default_value(SEQUENCE_DB_AUTO),
          "override output file type")
+        ("preserve-order", po::bool_switch(&opts.inorder),
+         "maintain order of sequences")
 
         ("has-cli-vers", po::value<string>(&opts.has_cli_vers), "verify support of cli version")
         ("no-align", po::bool_switch(&opts.noalign),
@@ -404,6 +407,14 @@ int real_main(int argc, char** argv) {
 
     if (opts.do_search) {
         node = new filter_node(g, 1, search_filter());
+        tf::make_edge(*last_node, *node);
+        nodes.emplace_back(node);
+        last_node = node;
+    }
+
+    if (opts.inorder) {
+        typedef tf::sequencer_node<tray> sequencer_node;
+        sequencer_node *node = new sequencer_node(g, [](const tray& t) -> int {return t.seqno;});
         tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
         last_node = node;

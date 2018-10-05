@@ -223,9 +223,8 @@ rw_fasta::reader::~reader() {
 
 bool
 rw_fasta::reader::operator()(tray& t) {
-    string line;
+    t.seqno = data->seqno;
     t.input_sequence = new cseq();
-    data->seqno++;
     cseq &c = *t.input_sequence;
     if (data->in.fail()) {
         return false;
@@ -238,6 +237,7 @@ rw_fasta::reader::operator()(tray& t) {
         return false;
     }
 
+    string line;
     // skip lines not beginning with '>'
     while (data->in.peek() != '>' && getline(data->in, line).good()) {
         data->lineno++;
@@ -297,6 +297,8 @@ rw_fasta::reader::operator()(tray& t) {
         return (*this)(t); // FIXME: stack size?
     }
 
+    ++data->seqno;
+    logger->debug("loaded sequence {}", t.input_sequence->getName());
     return true;
 }
 
@@ -307,11 +309,11 @@ struct rw_fasta::writer::priv_data {
     bi::file_descriptor_sink file;
     bi::filtering_ostream out;
     std::ofstream out_csv;
-    int seqnum;
+    int count;
     int excluded;
-    priv_data() : seqnum(0), excluded(0) {}
+    priv_data() : count(0), excluded(0) {}
     ~priv_data() {
-        logger->info("wrote {} sequences ({} excluded)", seqnum, excluded);
+        logger->info("wrote {} sequences ({} excluded)", count, excluded);
     }
 };
 
@@ -381,14 +383,14 @@ rw_fasta::writer::operator()(tray t) {
     }
     if (t.aligned_sequence == 0) {
         logger->info("Not writing sequence {} (>{}): not aligned",
-                     data->seqnum, t.input_sequence->getName());
+                     t.seqno, t.input_sequence->getName());
         ++data->excluded;
         return t;
     }
     float idty = t.aligned_sequence->get_attr<float>(query_arb::fn_idty);
     if (opts->min_idty > idty) {
         logger->info("Not writing sequence {} (>{}): below identity threshold ({}<={})",
-                     data->seqnum, t.input_sequence->getName(),
+                     t.seqno, t.input_sequence->getName(),
                      idty, opts->min_idty);
         ++data->excluded;
         return t;
@@ -435,7 +437,7 @@ rw_fasta::writer::operator()(tray t) {
         data->out << std::endl;
 
         // print header
-        if (data->seqnum == 0) {
+        if (data->count == 0) {
             data->out_csv << "name";
             for (auto& ap: attrs) {
               if (ap.first != query_arb::fn_family) {
@@ -473,7 +475,7 @@ rw_fasta::writer::operator()(tray t) {
     } else {
         data->out << seq << std::endl;
     }
-    data->seqnum++;
+    data->count++;
 
     return t;
 }

@@ -336,7 +336,7 @@ Log::printer::operator()(tray t) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
 
-    tmp << "sequence_number: " << ++data->sequence_num << endl;
+    tmp << "sequence_number: " << t.seqno << endl;
     tmp << "sequence_identifier: " << t.input_sequence->getName() << endl;
 
     if (!t.aligned_sequence) {

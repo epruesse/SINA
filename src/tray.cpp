@@ -40,7 +40,8 @@ for the parts of ARB used as well as that of the covered work.
 namespace sina {
 
 tray::tray()
-    : input_sequence(0),
+    : seqno(0),
+      input_sequence(0),
       aligned_sequence(0),
       alignment_reference(0),
       search_result(0),
@@ -50,7 +51,8 @@ tray::tray()
 }
 
 tray::tray(const tray& o)
-    : input_sequence(o.input_sequence),
+    : seqno(o.seqno),
+      input_sequence(o.input_sequence),
       aligned_sequence(o.aligned_sequence),
       alignment_reference(o.alignment_reference),
       search_result(o.search_result),
@@ -62,6 +64,7 @@ tray::tray(const tray& o)
 
 tray&
 tray::operator=(const tray& o) {
+    seqno=o.seqno;
     input_sequence=o.input_sequence;
     aligned_sequence=o.aligned_sequence;
     alignment_reference=o.alignment_reference;

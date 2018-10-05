@@ -39,6 +39,7 @@ namespace sina {
 
 class tray {
 public:
+    unsigned int seqno;
     cseq *input_sequence;
     cseq *aligned_sequence;
     std::vector<cseq> *alignment_reference;
