@@ -87,24 +87,16 @@ search_filter::get_options_description(po::options_description& main,
                                        po::options_description& adv){
     opts = new struct search_filter::options();
 
-    //main.add_options()
-
     po::options_description mid("Search & Classify");
     mid.add_options()
-        ("search-db",
-         po::value<string>(&opts->pt_database),
-         "reference db")
-        ("search-min-sim",
-         po::value<float>(&opts->min_sim)->default_value(.7, ""),
+        ("search-db", po::value<fs::path>(&opts->pt_database), "reference db")
+        ("search-min-sim", po::value<float>(&opts->min_sim)->default_value(.7, ""),
          "required sequence similarity (0.7)")
-        ("search-max-result",
-         po::value<int>(&opts->max_result)->default_value(10, ""),
+        ("search-max-result", po::value<int>(&opts->max_result)->default_value(10, ""),
          "desired number of search results (10)")
-        ("lca-fields",
-         po::value<string>(&opts->lca_fields)->default_value(""),
+        ("lca-fields", po::value<string>(&opts->lca_fields)->default_value(""),
          "names of fields containing source taxonomy (colon separated list)")
-        ("lca-quorum",
-         po::value<float>(&opts->lca_quorum)->default_value(.7, ""),
+        ("lca-quorum", po::value<float>(&opts->lca_quorum)->default_value(.7, ""),
          "fraction of search result that must share resulting classification (0.7)")
         ;
     main.add(mid);
@@ -120,32 +112,18 @@ search_filter::get_options_description(po::options_description& main,
          po::value<string>(&opts->pt_port)->default_value("localhost:4041"),
 #endif
          "PT server port")
-        ("search-all",
-         po::bool_switch(&opts->search_all),
-         "do not use k-mer heuristic")
-//        ("search-filter",
-//         po::value<string>(&opts->posvar_filter)->default_value("none"),
-//         "select posvar filter")
-        ("search-no-fast",
-         po::bool_switch(&opts->fs_no_fast),
-         "don't use fast family search")
-        ("search-kmer-candidates",
-         po::value<int>(&opts->kmer_candidates)->default_value(1000,""),
-         "number of most similar sequences to acquire via kmer-step (1000)")
-        ("search-kmer-len",
-         po::value<int>(&opts->fs_kmer_len)->default_value(12,""),
+        ("search-all", po::bool_switch(&opts->search_all), "do not use k-mer heuristic")
+        ("search-no-fast", po::bool_switch(&opts->fs_no_fast), "don't use fast family search")
+        ("search-kmer-candidates", po::value<int>(&opts->kmer_candidates)->default_value(1000,""),         "number of most similar sequences to acquire via kmer-step (1000)")
+        ("search-kmer-len", po::value<int>(&opts->fs_kmer_len)->default_value(12,""),
          "length of k-mers (12)")
-        ("search-kmer-mm",
-         po::value<int>(&opts->fs_kmer_mm)->default_value(0,""),
+        ("search-kmer-mm", po::value<int>(&opts->fs_kmer_mm)->default_value(0,""),
          "allowed mismatches per k-mer (0)")
-        ("search-kmer-norel",
-         po::bool_switch(&opts->fs_kmer_norel),
+        ("search-kmer-norel", po::bool_switch(&opts->fs_kmer_norel),
          "don't score k-mer distance relative to target length")
-        ("search-ignore-super",
-         po::bool_switch(&opts->ignore_super),
+        ("search-ignore-super", po::bool_switch(&opts->ignore_super),
          "ignore sequences containing query")
-        ("search-copy-fields",
-         po::value<string>(&opts->copy_fields)->default_value(""),
+        ("search-copy-fields", po::value<string>(&opts->copy_fields)->default_value(""),
          "copy fields from result sequences to query sequence")
         ;
     od.add(cseq_comparator::get_options_description("search-"));

@@ -161,31 +161,17 @@ Log::get_options_description(po::options_description& main,
     opts = std::unique_ptr<options>(new options);
 
     main.add_options()
-        ("verbose,v",
-         counter<int>(),
-         "increase verbosity")
-        ("quiet,q",
-         counter<int>(),
-         "decrease verbosity")
-        ("log-file",
-         po::value<string>(&opts->logfile),
-         "file to write log to")
+        ("verbose,v", counter<int>(&opts->verbose_count), "increase verbosity")
+        ("quiet,q", counter<int>(&opts->quiet_count), "decrease verbosity")
+        ("log-file", po::value<string>(&opts->logfile), "file to write log to")
         ;
 
     po::options_description od("Logging");
     od.add_options()
-        ("show-diff",
-         po::bool_switch(&opts->show_diff),
-         "show difference to original alignment")
-        ("show-dist",
-         po::bool_switch(&opts->show_dist),
-         "show distance to original alignment")
-        ("orig-db",
-         po::value<string>(&opts->origdb),
-         "ARB DB containing original alignment")
-        ("colors",
-         po::bool_switch(&opts->colors),
-         "distinguish printed bases using colors")
+        ("show-diff", po::bool_switch(&opts->show_diff), "show difference to original alignment")
+        ("show-dist", po::bool_switch(&opts->show_dist), "show distance to original alignment")
+        ("orig-db", po::value<string>(&opts->origdb), "ARB DB containing original alignment")
+        ("colors", po::bool_switch(&opts->colors), "distinguish printed bases using colors")
         ;
 
     adv.add(od);

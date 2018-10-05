@@ -114,25 +114,16 @@ void validate(boost::any& v,
     using namespace boost::program_options;
     validators::check_first_occurrence(v);
     const std::string& s = validators::get_single_string(values);
-    if (iequals(s, "pt-server")) {
-        v = ENGINE_ARB_PT;
-    } else if (iequals(s, "internal")) {
-        v = ENGINE_SINA_KMER;
-    } else {
-        throw po::invalid_option_value("must be 'pt-server' or 'internal'");
-    }
+    if (iequals(s, "pt-server")) v = ENGINE_ARB_PT;
+    else if (iequals(s, "internal")) v = ENGINE_SINA_KMER;
+    else throw po::invalid_option_value(s);
 }
 
 std::ostream& operator<<(std::ostream& out, const ENGINE_TYPE& t) {
     switch(t) {
-    case ENGINE_ARB_PT:
-        out << "pt-server";
-        break;
-    case ENGINE_SINA_KMER:
-        out << "internal";
-        break;
-    default:
-        out << "[UNKNOWN!]";
+    case ENGINE_ARB_PT: out << "pt-server"; break;
+    case ENGINE_SINA_KMER: out << "internal"; break;
+    default: out << "[UNKNOWN!]";
     }
     return out;
 }
@@ -143,30 +134,18 @@ void validate(boost::any& v,
     using namespace boost::program_options;
     validators::check_first_occurrence(v);
     const std::string& s = validators::get_single_string(values);
-    if (iequals(s, "none")) {
-        v = TURN_NONE;
-    } else if (iequals(s, "revcomp")) {
-        v = TURN_REVCOMP;
-    } else if (iequals(s, "all")) {
-        v = TURN_ALL;
-    } else {
-        throw po::invalid_option_value("must be one of 'none','revcomp' or 'all'");
-    }
+    if (iequals(s, "none")) v = TURN_NONE;
+    else if (iequals(s, "revcomp")) v = TURN_REVCOMP;
+    else if (iequals(s, "all")) v = TURN_ALL;
+    else throw po::invalid_option_value(s);
 }
 
 std::ostream& operator<<(std::ostream& out, const TURN_TYPE& t) {
     switch(t) {
-    case TURN_NONE:
-        out << "none";
-        break;
-    case TURN_REVCOMP:
-        out << "revcomp";
-        break;
-    case TURN_ALL:
-        out << "all";
-        break;
-    default:
-        out << "[UNKNOWN!]";
+    case TURN_NONE: out << "none"; break;
+    case TURN_REVCOMP: out << "revcomp"; break;
+    case TURN_ALL: out << "all"; break;
+    default: out << "[UNKNOWN!]";
     }
     return out;
 }
@@ -177,58 +156,44 @@ famfinder::get_options_description(po::options_description& main,
     opts = new struct famfinder::options();
 
     main.add_options()
-        ("db,r",
-         po::value<string>(&opts->database),
-         "reference database")
-        ("turn,t",
-         po::value<TURN_TYPE>(&opts->turn_which)
+        ("db,r", po::value<string>(&opts->database), "reference database")
+        ("turn,t", po::value<TURN_TYPE>(&opts->turn_which)
          ->default_value(TURN_NONE, "")
          ->implicit_value(TURN_REVCOMP, ""),
          "check other strand as well\n"
-        "'all' checks all four frames")
+         "'all' checks all four frames")
         ;
 
     po::options_description mid("Reference Selection");
     mid.add_options()
-        ("fs-engine",
-         po::value<ENGINE_TYPE>(&opts->engine),
+        ("fs-engine", po::value<ENGINE_TYPE>(&opts->engine),
          "search engine to use for reference selection "
          "[*pt-server*|internal]")
-        ("fs-kmer-len",
-         po::value<int>(&opts->fs_kmer_len)->default_value(10,""),
+        ("fs-kmer-len", po::value<int>(&opts->fs_kmer_len)->default_value(10,""),
          "length of k-mers (10)")
-        ("fs-req",
-         po::value<int>(&opts->fs_req)->default_value(1,""),
+        ("fs-req", po::value<int>(&opts->fs_req)->default_value(1,""),
          "required number of reference sequences (1)\n"
          "queries with less matches will be dropped")
-        ("fs-min",
-         po::value<int>(&opts->fs_min)->default_value(40,""),
+        ("fs-min", po::value<int>(&opts->fs_min)->default_value(40,""),
          "number of references used regardless of shared fraction (40)")
-        ("fs-max",
-         po::value<int>(&opts->fs_max)->default_value(40,""),
+        ("fs-max", po::value<int>(&opts->fs_max)->default_value(40,""),
          "number of references used at most (40)")
-        ("fs-msc",
-         po::value<float>(&opts->fs_msc)->default_value(.7, ""),
+        ("fs-msc", po::value<float>(&opts->fs_msc)->default_value(.7, ""),
          "required fractional identity of references (0.7)")
-        ("fs-req-full",
-         po::value<int>(&opts->fs_req_full)->default_value(1, ""),
+        ("fs-req-full", po::value<int>(&opts->fs_req_full)->default_value(1, ""),
          "required number of full length references (1)")
-        ("fs-full-len",
-         po::value<int>(&opts->fs_full_len)->default_value(1400, ""),
+        ("fs-full-len", po::value<int>(&opts->fs_full_len)->default_value(1400, ""),
          "minimum length of full length reference (1400)")
-        ("fs-req-gaps",
-         po::value<int>(&opts->fs_req_gaps)->default_value(10, ""),
+        ("fs-req-gaps", po::value<int>(&opts->fs_req_gaps)->default_value(10, ""),
          "ignore references with less internal gaps (10)")
-        ("fs-min-len",
-         po::value<int>(&opts->fs_min_len)->default_value(150, ""),
+        ("fs-min-len", po::value<int>(&opts->fs_min_len)->default_value(150, ""),
          "minimal reference length (150)")
         ;
     main.add(mid);
 
     po::options_description od("Advanced Reference Selection");
     od.add_options()
-        ("ptdb",
-         po::value<string>(&opts->database),
+        ("ptdb", po::value<string>(&opts->database),
          "PT server database (old name)")
         ("ptport",
 #ifdef HAVE_GETPID
@@ -239,56 +204,42 @@ famfinder::get_options_description(po::options_description& main,
          po::value<string>(&opts->pt_port)->default_value("localhost:4040"),
 #endif
          "PT server port")
-        ("fs-kmer-no-fast",
-         po::bool_switch(&opts->fs_no_fast),
+        ("fs-kmer-no-fast", po::bool_switch(&opts->fs_no_fast),
          "don't use fast family search")
-        ("fs-kmer-mm",
-         po::value<int>(&opts->fs_kmer_mm)->default_value(0,""),
+        ("fs-kmer-mm", po::value<int>(&opts->fs_kmer_mm)->default_value(0,""),
          "allowed mismatches per k-mer (0)")
-        ("fs-kmer-norel",
-         po::bool_switch(&opts->fs_kmer_norel),
+        ("fs-kmer-norel", po::bool_switch(&opts->fs_kmer_norel),
          "don't score k-mer distance relative to target length")
-        ("fs-msc-max",
-         po::value<float>(&opts->fs_msc_max)->default_value(2, ""),
+        ("fs-msc-max", po::value<float>(&opts->fs_msc_max)->default_value(2, ""),
          "max identity of used references (for evaluation)")
-        ("fs-leave-query-out",
-         po::bool_switch(&opts->fs_leave_query_out),
+        ("fs-leave-query-out", po::bool_switch(&opts->fs_leave_query_out),
          "ignore candidate if found in reference (for evaluation)")
-        ("gene-start",
-         po::value<int>(&opts->gene_start)->default_value(0,""),
+        ("gene-start", po::value<int>(&opts->gene_start)->default_value(0,""),
          "alignment position of first base of gene (0)")
-        ("gene-end",
-         po::value<int>(&opts->gene_end)->default_value(0,""),
+        ("gene-end", po::value<int>(&opts->gene_end)->default_value(0,""),
          "alignment position of last base of gene (0)")
-        ("fs-cover-gene",
-         po::value<int>(&opts->fs_cover_gene)->default_value(0,""),
+        ("fs-cover-gene", po::value<int>(&opts->fs_cover_gene)->default_value(0,""),
          "required number of references covering each gene end (0)")
-        ("filter",
-         po::value<string>(&opts->posvar_filter)->default_value(""),
+        ("filter", po::value<string>(&opts->posvar_filter)->default_value(""),
          "select posvar filter")
-        ("auto-filter-field",
-         po::value<string>(&opts->posvar_autofilter_field)->default_value(""),
-         "select field for auto filter selection")
-        ("auto-filter-threshold",
-         po::value<float>(&opts->posvar_autofilter_thres)->default_value(0.8, ""),
-         "quorum for auto filter selection (0.8)")
+        ("auto-filter-field", po::value<string>(&opts->posvar_autofilter_field)
+         ->default_value(""), "select field for auto filter selection")
+        ("auto-filter-threshold",  po::value<float>(&opts->posvar_autofilter_thres)
+         ->default_value(0.8, ""), "quorum for auto filter selection (0.8)")
         ;
     adv.add(od);
 }
 
 void famfinder::validate_vm(po::variables_map& vm,
                             po::options_description& desc) {
-    if (!opts) {
-        throw logic_error("Family Finder: options not parsed?!");
-    }
     if (vm["db"].empty() && vm["ptdb"].empty()) {
-        throw logic_error(string("Family Finder: PT server database not set"));
+        throw logic_error("Family Finder: PT server database not set");
     }
     if (not vm["ptdb"].empty()) {
         logger->warn("Option --ptdb deprecated; please use --db instead");
     }
     if (not vm["ptdb"].empty() && not vm["db"].empty()) {
-        throw logic_error(string("Family Finder: please use only new --db option"));
+        throw logic_error("Family Finder: please use only new --db option");
     }
     if (vm["fs-req"].as<int>() < 1) {
         throw logic_error("Family Finder: fs-req must be >= 1");
