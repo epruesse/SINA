@@ -1,3 +1,5 @@
+set -o pipefail
+
 # copy FDs
 exec 5<&0
 exec 6>&1
@@ -41,6 +43,14 @@ assert_exit_success() {
     if [ $exit_code -ne 0 ]; then
 	test_err="$test_err
 # command exited with $exit_code 
+"
+    fi
+}
+
+assert_exit_fail() {
+    if [ $exit_code -eq 0 ]; then
+	test_err="$test_err
+# command exited with $exit_code
 "
     fi
 }
