@@ -183,7 +183,7 @@ void get_options_description(po::options_description& main,
         ("prealigned,P", po::bool_switch(&opts.skip_align), "skip alignment stage")
         ("threads,p", po::value<unsigned int>(&opts.threads)->default_value(threads, ""),
          "limit number of threads (automatic)")
-        ("num_pts", po::value<unsigned int>(&opts.num_pt_servers)->default_value(1, ""),
+        ("num-pts", po::value<unsigned int>(&opts.num_pt_servers)->default_value(1, ""),
          "number of PT servers to start (1)")
         ("version,V", "show version")
         ;
@@ -237,6 +237,19 @@ void validate_vm(po::variables_map& vm, po::options_description all_od) {
     }
 }
 
+void show_help(po::options_description* od,
+               po::options_description* adv = NULL) {
+    std::cerr << "Usage:" << std::endl
+              << " sina -i input [-o output] [--prealigned|--db reference] [--search] "
+              << "[--search-db search.arb] [options]"
+              << std::endl << std::endl
+              << *od << std::endl;
+    if (adv) {
+        std::cerr << *adv << std::endl;
+    }
+    exit(EXIT_SUCCESS);
+}
+
 // do the messy option parsing/validating
 po::variables_map
 parse_options(int argc, char** argv) {
@@ -261,13 +274,10 @@ parse_options(int argc, char** argv) {
         po::store(po::parse_command_line(argc,argv,all_od),vm);
 
         if (vm.count("help")) {
-            std::cerr << od << std::endl;
-            exit(EXIT_SUCCESS);
+            show_help(&od);
         }
         if (vm.count("help-all")) {
-            std::cerr << od << std::endl
-                      << adv_od << std::endl;
-            exit(EXIT_SUCCESS);
+            show_help(&od, &adv_od);
         }
 
         po::notify(vm);

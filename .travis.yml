@@ -33,7 +33,7 @@ script:
        --disable-docs
        || (cat config.log; false)
   - make -j2
-  - make check
+  - make check || (cat test-suite.log; false)
   - make install
   - $HOME/install/bin/sina --help
   - DISTCHECK_CONFIGURE_FLAGS="--with-arbhome=$MINICONDA/lib/arb --with-boost=$CONDA_PREFIX --with-boost-libdir=$MINICONDA/lib --with-tbb=$MINICONDA --disable-docs" make distcheck
