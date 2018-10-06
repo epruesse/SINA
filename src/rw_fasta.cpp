@@ -62,6 +62,7 @@ using boost::algorithm::ends_with;
 
 namespace bi = boost::iostreams;
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 namespace sina {
 
@@ -159,12 +160,8 @@ rw_fasta::get_options_description(po::options_description& main,
 
 
 void
-rw_fasta::validate_vm(po::variables_map& vm,
+rw_fasta::validate_vm(po::variables_map& /*vm*/,
                       po::options_description& /*desc*/) {
-    if (vm.count("fasta-idx") && vm["fasta-idx"].as<long>() > 0 &&
-        vm.count("in") && vm["in"].as<string>() == "-") {
-        throw std::logic_error("Cannot use --fasta-idx when input is piped");
-    }
 }
 
 
@@ -173,16 +170,16 @@ rw_fasta::validate_vm(po::variables_map& vm,
 struct rw_fasta::reader::priv_data {
     bi::file_descriptor_source file;
     bi::filtering_istream in;
-    string filename;
+    fs::path filename;
     int lineno;
     int seqno;
-    priv_data(string filename_) : filename(filename_), lineno(0), seqno(0) {}
+    priv_data(fs::path filename_) : filename(filename_), lineno(0), seqno(0) {}
     ~priv_data() {
         logger->info("read {} sequences from {} lines", seqno-1, lineno-1);
     }
 };
 
-rw_fasta::reader::reader(const std::string& infile)
+rw_fasta::reader::reader(const fs::path& infile)
     : data(new priv_data(infile))
 {
     if (infile == "-") {
@@ -195,13 +192,17 @@ rw_fasta::reader::reader(const std::string& infile)
         msg << "Unable to open file \"" << infile << "\" for reading.";
         throw std::runtime_error(msg.str());
     }
-    if (ends_with(infile, ".gz")) {
+    if (infile.extension() == ".gz") {
         data->in.push(bi::gzip_decompressor());
     }
     data->in.push(data->file);
     
     // if fasta blocking enabled, seek to selected block
     if (opts->fasta_block > 0) {
+        if (infile == "-") {
+            throw std::logic_error("Cannot use --fasta-idx when input is piped");
+        }
+
         data->in.seekg(opts->fasta_block * opts->fasta_idx);
     }
 }
@@ -222,9 +223,8 @@ rw_fasta::reader::~reader() {
 
 bool
 rw_fasta::reader::operator()(tray& t) {
-    string line;
+    t.seqno = data->seqno;
     t.input_sequence = new cseq();
-    data->seqno++;
     cseq &c = *t.input_sequence;
     if (data->in.fail()) {
         return false;
@@ -237,6 +237,7 @@ rw_fasta::reader::operator()(tray& t) {
         return false;
     }
 
+    string line;
     // skip lines not beginning with '>'
     while (data->in.peek() != '>' && getline(data->in, line).good()) {
         data->lineno++;
@@ -296,6 +297,8 @@ rw_fasta::reader::operator()(tray& t) {
         return (*this)(t); // FIXME: stack size?
     }
 
+    ++data->seqno;
+    logger->debug("loaded sequence {}", t.input_sequence->getName());
     return true;
 }
 
@@ -306,15 +309,15 @@ struct rw_fasta::writer::priv_data {
     bi::file_descriptor_sink file;
     bi::filtering_ostream out;
     std::ofstream out_csv;
-    int seqnum;
+    int count;
     int excluded;
-    priv_data() : seqnum(0), excluded(0) {}
+    priv_data() : count(0), excluded(0) {}
     ~priv_data() {
-        logger->info("wrote {} sequences ({} excluded)", seqnum, excluded);
+        logger->info("wrote {} sequences ({} excluded)", count, excluded);
     }
 };
 
-rw_fasta::writer::writer(const std::string& outfile)
+rw_fasta::writer::writer(const fs::path& outfile)
     : data(new priv_data)
 {
     if (outfile == "-") {
@@ -327,13 +330,15 @@ rw_fasta::writer::writer(const std::string& outfile)
         msg << "Unable to open file \"" << outfile << "\" for writing.";
         throw std::runtime_error(msg.str());
     }
-    if (ends_with(outfile, ".gz")) {
+    if (outfile.extension() == ".gz") {
         data->out.push(bi::gzip_compressor());
     }
     data->out.push(data->file);
 
     if (opts->fastameta == FASTA_META_CSV) {
-        data->out_csv.open((outfile+".csv").c_str());
+        fs::path outcsv(outfile);
+        outcsv.replace_extension(".csv");
+        data->out_csv.open(outcsv.native());
         if (data->out_csv.fail()) {
             stringstream msg; 
             msg << "Unable to open file \"" << outfile << ".csv\" for writing.";
@@ -378,14 +383,14 @@ rw_fasta::writer::operator()(tray t) {
     }
     if (t.aligned_sequence == 0) {
         logger->info("Not writing sequence {} (>{}): not aligned",
-                     data->seqnum, t.input_sequence->getName());
+                     t.seqno, t.input_sequence->getName());
         ++data->excluded;
         return t;
     }
     float idty = t.aligned_sequence->get_attr<float>(query_arb::fn_idty);
     if (opts->min_idty > idty) {
         logger->info("Not writing sequence {} (>{}): below identity threshold ({}<={})",
-                     data->seqnum, t.input_sequence->getName(),
+                     t.seqno, t.input_sequence->getName(),
                      idty, opts->min_idty);
         ++data->excluded;
         return t;
@@ -432,7 +437,7 @@ rw_fasta::writer::operator()(tray t) {
         data->out << std::endl;
 
         // print header
-        if (data->seqnum == 0) {
+        if (data->count == 0) {
             data->out_csv << "name";
             for (auto& ap: attrs) {
               if (ap.first != query_arb::fn_family) {
@@ -470,7 +475,7 @@ rw_fasta::writer::operator()(tray t) {
     } else {
         data->out << seq << std::endl;
     }
-    data->seqnum++;
+    data->count++;
 
     return t;
 }

@@ -135,8 +135,15 @@ po::typed_value<counting_type<T> >* counter() {
 
 struct Log::options {
     options() :
-        verbosity(spdlog::level::warn)
+        quiet_count(0),
+        verbose_count(0),
+        verbosity(spdlog::level::warn),
+        show_diff(false),
+        show_dist(false),
+        colors(false)
     {}
+    int quiet_count;
+    int verbose_count;
     level_enum verbosity;
     bool show_diff;
     bool show_dist;
@@ -161,59 +168,40 @@ Log::get_options_description(po::options_description& main,
     opts = std::unique_ptr<options>(new options);
 
     main.add_options()
-        ("verbose,v",
-         counter<int>(),
-         "increase verbosity")
-        ("quiet,q",
-         counter<int>(),
-         "decrease verbosity")
-        ("log-file",
-         po::value<string>(&opts->logfile),
-         "file to write log to")
+        ("verbose,v", counter<int>(&opts->verbose_count), "increase verbosity")
+        ("quiet,q", counter<int>(&opts->quiet_count), "decrease verbosity")
+        ("log-file", po::value<string>(&opts->logfile), "file to write log to")
         ;
 
     po::options_description od("Logging");
     od.add_options()
-        ("show-diff",
-         po::bool_switch(&opts->show_diff),
-         "show difference to original alignment")
-        ("show-dist",
-         po::bool_switch(&opts->show_dist),
-         "show distance to original alignment")
-        ("orig-db",
-         po::value<string>(&opts->origdb),
-         "ARB DB containing original alignment")
-        ("colors",
-         po::bool_switch(&opts->colors),
-         "distinguish printed bases using colors")
+        ("show-diff", po::bool_switch(&opts->show_diff), "show difference to original alignment")
+        ("show-dist", po::bool_switch(&opts->show_dist), "show distance to original alignment")
+        ("orig-db", po::value<string>(&opts->origdb), "ARB DB containing original alignment")
+        ("colors", po::bool_switch(&opts->colors), "distinguish printed bases using colors")
         ;
 
     adv.add(od);
 }
-
 
 void
 Log::validate_vm(po::variables_map& vm,
                  po::options_description& /*desc*/) {
     // calculate effective log level
     int verbosity = static_cast<int>(opts->verbosity);
-    if (vm.count("quiet")) {
-        verbosity += vm["quiet"].as<int>();
-    }
-    if (vm.count("verbose")) {
-        verbosity -= vm["verbose"].as<int>();
-    }
+    verbosity += opts->quiet_count;
+    verbosity -= opts->verbose_count;
     opts->verbosity = static_cast<level_enum>(verbosity);
-
     opts->verbosity = std::min(
         std::max(opts->verbosity, spdlog::level::trace),
         spdlog::level::off);
 
     // create logging sinks
-    auto console_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+    auto console_sink = sinks[0];
     console_sink->set_level(opts->verbosity);
     console_sink->set_pattern("%C-%m-%d %T [%n] %^%v%$");
-    sinks.push_back(console_sink);
+
+    logger->info("Loglevel set to {}", opts->verbosity);
 
     if (vm.count("log-file")) {
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
@@ -240,6 +228,9 @@ Log::create_logger(std::string name) {
     auto logger = spdlog::get(name);
     if (logger) {
         return logger;
+    }
+    if (sinks.empty()) {
+        sinks.push_back(std::make_shared<spdlog::sinks::stderr_color_sink_mt>());
     }
     logger = std::make_shared<spdlog::logger>(name, sinks.begin(), sinks.end());
     spdlog::register_logger(logger);
@@ -345,7 +336,7 @@ Log::printer::operator()(tray t) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
 
-    tmp << "sequence_number: " << ++data->sequence_num << endl;
+    tmp << "sequence_number: " << t.seqno << endl;
     tmp << "sequence_identifier: " << t.input_sequence->getName() << endl;
 
     if (!t.aligned_sequence) {

@@ -34,6 +34,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <fstream>
 #include <memory>
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 
 namespace sina {
 
@@ -53,7 +54,7 @@ public:
         struct priv_data;
         std::shared_ptr<priv_data> data;
     public:
-        explicit reader(const std::string&);
+        explicit reader(const boost::filesystem::path&);
         reader(const reader&);
         reader& operator=(const reader&);
         ~reader();
@@ -64,7 +65,7 @@ public:
         struct priv_data;
         std::shared_ptr<priv_data> data;
     public:
-        explicit writer(const std::string&);
+        explicit writer(const boost::filesystem::path&);
         writer(const writer&);
         writer& operator=(const writer&);
         ~writer();

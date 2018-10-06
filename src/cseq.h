@@ -65,7 +65,7 @@ public:
     class const_reverse_iterator;
     typedef iterator pn_iterator;
     typedef const_iterator const_pn_iterator;
-    typedef boost::variant<std::string, char, int, float, std::vector<cseq> > variant;
+    typedef boost::variant<std::string, char, int, float> variant;
 
     // Constructors / assignment operator
 

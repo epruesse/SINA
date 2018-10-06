@@ -40,11 +40,6 @@ EXTRA_BINDIST = \
 
 EXTRA_DIST = \
     $(EXTRA_BINDIST) \
-    LICENSE \
-    CHANGELOG \
-    README.md \
-    arb_LICENSE.txt \
-    arb_PUBLIB_LICENSE.txt \
     Makefile.am \
     configure.ac \
     autogen.sh \
@@ -135,6 +130,7 @@ src_libsina_la_LIBADD = \
     $(BOOST_IOSTREAMS_LIB) \
     $(BOOST_SERIALIZATION_LIB) \
     $(BOOST_SYSTEM_LIB) \
+    $(BOOST_FILESYSTEM_LIB) \
     $(TBB_LIB) \
     $(TBB_MALLOC_LIB)
 
@@ -240,10 +236,20 @@ test_libs = \
     $(BOOST_UNIT_TEST_FRAMEWORK_LIB) \
     $(BOOST_SYSTEM_LIB)
 
-TESTS =  $(check_PROGRAMS)
+test_scripts = \
+    src/unit_tests/integration.test
+
+$(test_scripts): $(bin_PROGRAMS)
+
+EXTRA_DIST += $(test_scripts) src/unit_tests/test_helper.sh
+
+TESTS =  $(check_PROGRAMS) $(test_scripts)
 
 export ARBHOME
 LOG_COMPILER = $(top_srcdir)/tools/test_driver.sh
+
+TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) \
+                  $(top_srcdir)/build-aux/tap-driver.sh
 
 check_PROGRAMS = \
     src/unit_tests/cseq_test \

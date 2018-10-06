@@ -42,6 +42,9 @@ using std::get;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 #include <boost/algorithm/string/predicate.hpp>
 using boost::algorithm::iends_with;
 using boost::algorithm::iequals;
@@ -50,6 +53,7 @@ using boost::algorithm::equals;
 using std::exception;
 using std::logic_error;
 
+#define TBB_PREVIEW_FLOW_GRAPH_FEATURES 1
 #include <tbb/task_scheduler_init.h>
 #include <tbb/flow_graph.h>
 namespace tf = tbb::flow;
@@ -65,13 +69,13 @@ namespace tf = tbb::flow;
 
 using namespace sina;
 
-static auto logger = Log::create_logger("log");
+static auto logger = Log::create_logger("SINA");
 
 // define new type of configuration selection of input/output type
 enum SEQUENCE_DB_TYPE {
     SEQUENCE_DB_NONE,
+    SEQUENCE_DB_AUTO,
     SEQUENCE_DB_ARB,
-    SEQUENCE_DB_SILVA,
     SEQUENCE_DB_FASTA,
 };
 
@@ -79,20 +83,11 @@ enum SEQUENCE_DB_TYPE {
 std::ostream& operator<<(std::ostream& out,
                          const SEQUENCE_DB_TYPE& db) {
     switch(db) {
-    case SEQUENCE_DB_NONE:
-        out << "NONE";
-        break;
-    case SEQUENCE_DB_ARB:
-        out << "ARB";
-        break;
-    case SEQUENCE_DB_SILVA:
-        out << "SILVA";
-        break;
-    case SEQUENCE_DB_FASTA:
-        out << "FASTA";
-        break;
-    default:
-        out << "Undef!";
+    case SEQUENCE_DB_NONE:  out << "NONE";  break;
+    case SEQUENCE_DB_AUTO:  out << "AUTO";  break;
+    case SEQUENCE_DB_ARB:   out << "ARB";   break;
+    case SEQUENCE_DB_FASTA: out << "FASTA"; break;
+    default:                out << "Undef!";
     }
     return out;
 }
@@ -103,15 +98,11 @@ void validate(boost::any& v,
               SEQUENCE_DB_TYPE* /*db*/, int) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
-    if (iequals(s, "ARB")) {
-        v = SEQUENCE_DB_ARB;
-    } else if (iequals (s, "FASTA")) {
-        v = SEQUENCE_DB_FASTA;
-    } else if (iequals (s, "SILVA")) {
-        v = SEQUENCE_DB_SILVA;
-    } else {
-        throw po::invalid_option_value("unknown input/output type");
-    }
+    if (iequals(s, "NONE"))  v = SEQUENCE_DB_NONE;
+    else if (iequals(s, "AUTO")) v = SEQUENCE_DB_AUTO;
+    else if (iequals(s, "ARB")) v = SEQUENCE_DB_ARB;
+    else if (iequals (s, "FASTA")) v = SEQUENCE_DB_FASTA;
+    else throw po::invalid_option_value(s);
 }
 
 // make known any<> types printable
@@ -149,61 +140,123 @@ void show_conf(po::variables_map& vm) {
     std::cerr << std::endl;
 }
 
+struct options {
+    SEQUENCE_DB_TYPE intype;
+    SEQUENCE_DB_TYPE outtype;
+    fs::path in;
+    fs::path out;
+    bool noalign;
+    bool skip_align;
+    bool do_search;
+    bool inorder;
+    unsigned int threads;
+    unsigned int num_pt_servers;
+    unsigned int max_trays;
+    string has_cli_vers;
+};
+
+static options opts;
+
 // define hidden options
-po::options_description
-global_get_hidden_options_description() {
-    po::options_description hidden("Advanced Options");
-    hidden.add_options()
-        ("show-conf",
-         "show effective configuration")
+void get_options_description(po::options_description& main,
+                             po::options_description& adv) {
+    int tbb_threads = tbb::task_scheduler_init::default_num_threads();
+    unsigned int tbb_automatic = tbb::task_scheduler_init::automatic;
+
+    adv.add_options()
+        ("show-conf", "show effective configuration")
         ("intype",
-         po::value<SEQUENCE_DB_TYPE>()->default_value(SEQUENCE_DB_NONE,""),
+         po::value<SEQUENCE_DB_TYPE>(&opts.intype)->default_value(SEQUENCE_DB_AUTO),
          "override input file type")
         ("outtype",
-         po::value<SEQUENCE_DB_TYPE>()->default_value(SEQUENCE_DB_NONE,""),
+         po::value<SEQUENCE_DB_TYPE>(&opts.outtype)->default_value(SEQUENCE_DB_AUTO),
          "override output file type")
-
-        ("has-cli-vers",
-         po::value<string>(),
-         "verify support of cli version")
-        ("no-align",
-         po::bool_switch(),
+        ("preserve-order", po::bool_switch(&opts.inorder),
+         "maintain order of sequences")
+        ("max-in-flight", po::value<unsigned int>(&opts.max_trays)
+         ->default_value(tbb_threads*2),
+         "max number of sequences processed at a time")
+        ("has-cli-vers", po::value<string>(&opts.has_cli_vers), "verify support of cli version")
+        ("no-align", po::bool_switch(&opts.noalign),
          "disable alignment stage (same as prealigned)")
-
         ;
-    return hidden;
+
+    main.add_options()
+        ("help,h", "show short help")
+        ("help-all,H", "show full help (long)")
+        ("in,i", po::value<fs::path>(&opts.in)->default_value("-"),
+         "input file (arb or fasta)")
+        ("out,o", po::value<fs::path>(&opts.out)->default_value("-"),
+         "output file (arb or fasta)")
+        ("search,S", po::bool_switch(&opts.do_search), "enable search stage")
+        ("prealigned,P", po::bool_switch(&opts.skip_align), "skip alignment stage")
+        ("threads,p", po::value<unsigned int>(&opts.threads)->default_value(tbb_automatic, ""),
+         "limit number of threads (automatic)")
+        ("num-pts", po::value<unsigned int>(&opts.num_pt_servers)->default_value(1, ""),
+         "number of PT servers to start (1)")
+        ("version,V", "show version")
+        ;
 }
 
-// define global options
-po::options_description
-global_get_options_description() {
-    po::options_description glob("Options");
-    glob.add_options()
-        ("help,h",
-         "show short help")
-        ("help-all,H",
-         "show full help (long)")
-        ("in,i",
-         po::value<string>(),
-         "input file (arb or fasta)")
-        ("out,o",
-         po::value<string>(),
-         "output file (arb or fasta)")
-        ("search,S",
-         po::bool_switch(),
-         "enable search stage")
-        ("prealigned,P",
-         po::bool_switch(),
-         "skip alignment stage")
-        ("threads,p",
-         po::value<unsigned int>()->default_value(
-             tbb::task_scheduler_init::automatic, ""),
-         "limit number of threads (automatic)")
-        ("version,V",
-         "show version")
+void validate_vm(po::variables_map& vm, po::options_description all_od) {
+    if (vm.count("has-cli-vers")) {
+        std::cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
+                  << " present" << std::endl;
+        const char* supported_versions[]{"1", "2", "ARB5.99"};
+        for (auto& supported : supported_versions) {
+            if (opts.has_cli_vers == supported) {
+                exit(EXIT_SUCCESS);
+            }
+        }
 
-        ;
-    return glob;
+        std::cerr << "** Error: requested CLI version not supported!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (vm.count("version")) {
+        std::cerr << PACKAGE_STRING
+#ifdef PACKAGE_BUILDINFO
+                  << " (" << PACKAGE_BUILDINFO << ")"
+#endif
+                  << std::endl;
+        exit(EXIT_SUCCESS);
+    }
+
+    // Autodetect / validate intype selection
+    if (opts.intype == SEQUENCE_DB_AUTO) {
+        if (opts.in.extension() == ".arb" || opts.in.native() == ":") {
+            opts.intype = SEQUENCE_DB_ARB;
+        } else {
+            opts.intype = SEQUENCE_DB_FASTA;
+        }
+    }
+
+    // Pick suitable output if no output given
+    if (opts.out == "-" && opts.intype == SEQUENCE_DB_ARB) {
+        opts.out = opts.in;
+    }
+
+    // Autodetect / validate outtype selection
+    if (opts.outtype == SEQUENCE_DB_AUTO) {
+        if (opts.out.extension() == ".arb" || opts.out.native() == ":") {
+            opts.outtype = SEQUENCE_DB_ARB;
+        } else {
+            opts.outtype = SEQUENCE_DB_FASTA;
+        }
+    }
+}
+
+void show_help(po::options_description* od,
+               po::options_description* adv = NULL) {
+    std::cerr << "Usage:" << std::endl
+              << " sina -i input [-o output] [--prealigned|--db reference] [--search] "
+              << "[--search-db search.arb] [options]"
+              << std::endl << std::endl
+              << *od << std::endl;
+    if (adv) {
+        std::cerr << *adv << std::endl;
+    }
+    exit(EXIT_SUCCESS);
 }
 
 // do the messy option parsing/validating
@@ -212,149 +265,44 @@ parse_options(int argc, char** argv) {
     po::variables_map vm;
 
     string infile, outfile;
-    po::options_description
-        opts = global_get_options_description(),
-        adv_opts = global_get_hidden_options_description();
+    po::options_description od("Options"), adv_od("Advanced Options");
 
-    Log::get_options_description(opts, adv_opts);
-    rw_arb::get_options_description(opts, adv_opts);
-    rw_fasta::get_options_description(opts, adv_opts);
-    aligner::get_options_description(opts, adv_opts);
-    famfinder::get_options_description(opts, adv_opts);
-    search_filter::get_options_description(opts, adv_opts);
-    query_pt::get_options_description(opts, adv_opts);
+    get_options_description(od, adv_od);
+    Log::get_options_description(od, adv_od);
+    rw_arb::get_options_description(od, adv_od);
+    rw_fasta::get_options_description(od, adv_od);
+    aligner::get_options_description(od, adv_od);
+    famfinder::get_options_description(od, adv_od);
+    search_filter::get_options_description(od, adv_od);
+    query_pt::get_options_description(od, adv_od);
 
-    po::options_description all_opts(opts);
-    all_opts.add(adv_opts);
+    po::options_description all_od(od);
+    all_od.add(adv_od);
 
     try {
-        po::store(po::parse_command_line(argc,argv,all_opts),vm);
+        po::store(po::parse_command_line(argc,argv,all_od),vm);
 
         if (vm.count("help")) {
-            std::cerr << opts << std::endl;
-            exit(EXIT_SUCCESS);
+            show_help(&od);
         }
         if (vm.count("help-all")) {
-            std::cerr << opts << std::endl
-                      << adv_opts << std::endl;
-            exit(EXIT_SUCCESS);
-        }
-        if (vm.count("has-cli-vers")) {
-            std::cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
-                      << " present" << std::endl;
-            string requested =  vm["has-cli-vers"].as<string>();
-            if (requested == "1" || requested == "2" || requested == "ARB5.99") {
-                exit(EXIT_SUCCESS);
-            }
-
-            std::cerr << "** Error: requested CLI version not supported!" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        if (vm.count("version")) {
-            std::cerr << PACKAGE_STRING
-#ifdef PACKAGE_BUILDINFO
-                      << " (" << PACKAGE_BUILDINFO << ")"
-#endif
-                      << std::endl;
-            exit(EXIT_SUCCESS);
-        }
-
-
-        // Autodetect / validate intype selection
-        if (vm["intype"].defaulted() && vm.count("in")) {
-            const string in = vm["in"].as<string>();
-            if (iends_with(in, ".arb")
-                || iequals(in, ":")) {
-                std::vector<string> cmd(2);
-                cmd[0]="--intype";
-                cmd[1]="ARB";
-                po::store(po::command_line_parser(cmd).options(all_opts).run(),
-                          vm);
-            } else {
-                std::vector<string> cmd(2);
-                cmd[0]="--intype";
-                cmd[1]="FASTA";
-                po::store(po::command_line_parser(cmd).options(all_opts).run(),
-                          vm);
-            } 
-        }
-
-        // Pick suitable output if no output given
-        if (not vm.count("out") && vm.count("in")) {
-            std::vector<string> cmd(4);
-            switch(vm["intype"].as<SEQUENCE_DB_TYPE>()) {
-            case SEQUENCE_DB_ARB: 
-                // ARB files can be used for input and output
-                cmd[0]="-o";
-                cmd[1]=vm["in"].as<string>();
-                po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
-                break;
-            case SEQUENCE_DB_FASTA: 
-                // Use "input.fasta.aligned"
-                cmd[0]="-o";
-                if (equals(vm["in"].as<string>(), "/dev/stdin")) {
-                    cmd[1]="/dev/stdout";
-                } else {
-                    cmd[1]=vm["in"].as<string>()+".aligned";
-                }
-                po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
-                break;
-            default:
-                throw logic_error("broken output type");
-            }
-        }
-
-        // Autodetect / validate outtype selection
-        if (vm["outtype"].defaulted() && vm.count("out")) {
-            const string in = vm["out"].as<string>();
-            if (iends_with(in, ".arb") || iequals(in, ":")) {
-                std::vector<string> cmd(2);
-                cmd[0]="--outtype";
-                cmd[1]="ARB";
-                po::store(po::command_line_parser(cmd).options(all_opts).run(),
-                          vm);
-            } else {
-                std::vector<string> cmd(2);
-                cmd[0]="--outtype";
-                cmd[1]="FASTA";
-                po::store(po::command_line_parser(cmd).options(all_opts).run(),
-                          vm);
-            }
-        }
-
-        if (vm["no-align"].as<bool>() || vm["prealigned"].as<bool>()) {
-            if (vm["db"].empty() && vm["ptdb"].empty()) {
-                std::vector<string> cmd(2);
-                cmd[0]="--db";
-                cmd[1]="NONE";
-                po::store(po::command_line_parser(cmd).options(all_opts).run(),
-                          vm);
-            }
-        }
-        
-        // enable calc-idty if min-idty requested
-        if (!vm["min-idty"].empty()) {
-            std::vector<string> cmd(1);
-            cmd[0]="--calc-idty";
-            po::store(po::command_line_parser(cmd).options(all_opts).run(), vm);
-        }
-
-        Log::validate_vm(vm, all_opts);
-        rw_arb::validate_vm(vm, all_opts);
-        rw_fasta::validate_vm(vm, all_opts);
-        aligner::validate_vm(vm, all_opts);
-        famfinder::validate_vm(vm, all_opts);
-        search_filter::validate_vm(vm, all_opts);
-        query_pt::validate_vm(vm, all_opts);
-
-        if (vm.count("in") == 0) {
-            throw logic_error("need input file");
+            show_help(&od, &adv_od);
         }
 
         po::notify(vm);
 
-
+        validate_vm(vm, all_od);
+        Log::validate_vm(vm, all_od);
+        rw_arb::validate_vm(vm, all_od);
+        rw_fasta::validate_vm(vm, all_od);
+        if (!opts.skip_align && !opts.noalign) {
+            famfinder::validate_vm(vm, all_od);
+            aligner::validate_vm(vm, all_od);
+        }
+        if (opts.do_search) {
+            search_filter::validate_vm(vm, all_od);
+        }
+        query_pt::validate_vm(vm, all_od);
     } catch (std::logic_error &e) {
         std::cerr << "Configuration error:" << std::endl
                   << e.what() << std::endl
@@ -378,14 +326,6 @@ int real_main(int argc, char** argv) {
 
     tbb::task_scheduler_init init(vm["threads"].as<unsigned int>());
 
-    SEQUENCE_DB_TYPE intype = vm["intype"].as<SEQUENCE_DB_TYPE>();
-    SEQUENCE_DB_TYPE outtype = vm["outtype"].as<SEQUENCE_DB_TYPE>();
-    string input_file = vm["in"].as<string>();
-    string output_file = vm["out"].as<string>();
-    bool do_align = not (vm["no-align"].as<bool>() || vm["prealigned"].as<bool>());
-    bool do_search = vm["search"].as<bool>();
-    int max_trays = 10;
-
     tf::graph g;  // Main data flow graph (pipeline)
     std::vector<std::unique_ptr<tf::graph_node>> nodes; // Nodes (for cleanup)
     tf::sender<tray> *last_node; // Last tray producing node
@@ -397,12 +337,12 @@ int real_main(int argc, char** argv) {
 
     // Make source node reading sequences
     source_node *source; // will be activated once graph complete
-    switch (intype) {
+    switch (opts.intype) {
     case SEQUENCE_DB_ARB:
-        source = new source_node(g, rw_arb::reader(input_file), false);
+        source = new source_node(g, rw_arb::reader(opts.in), false);
         break;
     case SEQUENCE_DB_FASTA:
-        source = new source_node(g, rw_fasta::reader(input_file), false);
+        source = new source_node(g, rw_fasta::reader(opts.in), false);
         break;
     default:
         throw logic_error("input type undefined");
@@ -411,12 +351,12 @@ int real_main(int argc, char** argv) {
     last_node = source;
 
     // Make node limiting in-flight sequence trays
-    limiter_node *limiter = new limiter_node(g, max_trays);
+    limiter_node *limiter = new limiter_node(g, opts.max_trays);
     tf::make_edge(*last_node, *limiter);
     nodes.emplace_back(limiter);
     last_node = limiter;
 
-    if (!do_align) {
+    if (opts.skip_align || opts.noalign) {
         // Just copy alignment over
         node = new filter_node(g, tf::unlimited, [](tray t) -> tray {
                 t.aligned_sequence = new cseq(*t.input_sequence);
@@ -437,7 +377,7 @@ int real_main(int argc, char** argv) {
         tray_and_finder_join_node *join = new tray_and_finder_join_node(g);
 
         finder_node *family_find = new finder_node(
-            g, 1,
+            g, opts.num_pt_servers,
             [&](const tray_and_finder &in, finder_node_out &out) -> void {
                 const tray& t = get<0>(in);
                 famfinder::finder finder(get<1>(in));
@@ -460,7 +400,7 @@ int real_main(int argc, char** argv) {
         tf::make_edge(*join, *family_find);
         nodes.emplace_back(family_find);
 
-        for (int i=0; i<3; i++) {
+        for (int i=0; i<opts.num_pt_servers; i++) {
             buffer->try_put(famfinder::finder(i));
         }
 
@@ -470,20 +410,28 @@ int real_main(int argc, char** argv) {
         last_node = node;
     }
 
-    if (do_search) {
+    if (opts.do_search) {
         node = new filter_node(g, 1, search_filter());
         tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
         last_node = node;
     }
 
+    if (opts.inorder) {
+        typedef tf::sequencer_node<tray> sequencer_node;
+        sequencer_node *node = new sequencer_node(g, [](const tray& t) -> int {return t.seqno;});
+        tf::make_edge(*last_node, *node);
+        nodes.emplace_back(node);
+        last_node = node;
+    }
+
     // Make node writing sequences
-    switch(outtype) {
+    switch(opts.outtype) {
     case SEQUENCE_DB_ARB:
-        node = new filter_node(g, 1, rw_arb::writer(output_file));
+        node = new filter_node(g, 1, rw_arb::writer(opts.out));
         break;
     case SEQUENCE_DB_FASTA:
-        node = new filter_node(g, 1, rw_fasta::writer(output_file));
+        node = new filter_node(g, 1, rw_fasta::writer(opts.out));
         break;
     default:
         throw logic_error("input type undefined");
@@ -497,8 +445,10 @@ int real_main(int argc, char** argv) {
     nodes.emplace_back(node);
     last_node = node;
 
-    tf::function_node<tray, tf::continue_msg>
+    int count = 0;
+    tf::function_node<tray, tf::continue_msg, tf::lightweight>
         sink(g, 1, [&](tray t) -> tf::continue_msg {
+                count++;
                 t.destroy();
                 return tf::continue_msg();
             });
@@ -509,7 +459,8 @@ int real_main(int argc, char** argv) {
     source->activate();
     g.wait_for_all();
     timestamp after;
-    logger->warn("Time for alignment phase: {}s", after-before);
+    logger->warn("Took {} to align {} sequences ({} sequences/s)",
+                 after-before, count, count/(after-before));
     nodes.clear();
     logger->warn("SINA finished.");
     return 0;

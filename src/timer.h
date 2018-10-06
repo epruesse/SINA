@@ -62,6 +62,10 @@ struct timestamp : private timeval {
     timestamp() {
         get();
     }
+
+    operator float() {
+        return tv_sec + float(tv_usec)/1000000;
+    }
     
     timestamp operator-(const timestamp& rval) {
         timestamp result(0);
