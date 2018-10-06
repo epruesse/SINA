@@ -53,6 +53,7 @@ using boost::algorithm::equals;
 using std::exception;
 using std::logic_error;
 
+#define TBB_PREVIEW_FLOW_GRAPH_FEATURES 1
 #include <tbb/task_scheduler_init.h>
 #include <tbb/flow_graph.h>
 namespace tf = tbb::flow;
@@ -441,7 +442,7 @@ int real_main(int argc, char** argv) {
     last_node = node;
 
     int count = 0;
-    tf::function_node<tray, tf::continue_msg>
+    tf::function_node<tray, tf::continue_msg, tf::lightweight>
         sink(g, 1, [&](tray t) -> tf::continue_msg {
                 count++;
                 t.destroy();
