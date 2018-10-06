@@ -88,7 +88,7 @@ assert_exit_success
 end_test
 
 begin_test "Align from ARB->ARB"
-capture_stdouterr "./src/sina -i $T/extracted.arb -o $T/aligned.arb --db $T/extracted.arb"
+capture_stdouterr "./src/sina -i $T/extracted.arb -o $T/aligned.arb --realign --db $T/extracted.arb"
 assert_output_contains "align 12 sequences"
 assert_exit_success
 end_test
