@@ -151,6 +151,7 @@ struct options {
     bool inorder;
     unsigned int threads;
     unsigned int num_pt_servers;
+    unsigned int max_trays;
     string has_cli_vers;
 };
 
@@ -159,6 +160,9 @@ static options opts;
 // define hidden options
 void get_options_description(po::options_description& main,
                              po::options_description& adv) {
+    int tbb_threads = tbb::task_scheduler_init::default_num_threads();
+    unsigned int tbb_automatic = tbb::task_scheduler_init::automatic;
+
     adv.add_options()
         ("show-conf", "show effective configuration")
         ("intype",
@@ -169,13 +173,14 @@ void get_options_description(po::options_description& main,
          "override output file type")
         ("preserve-order", po::bool_switch(&opts.inorder),
          "maintain order of sequences")
-
+        ("max-in-flight", po::value<unsigned int>(&opts.max_trays)
+         ->default_value(tbb_threads*2),
+         "max number of sequences processed at a time")
         ("has-cli-vers", po::value<string>(&opts.has_cli_vers), "verify support of cli version")
         ("no-align", po::bool_switch(&opts.noalign),
          "disable alignment stage (same as prealigned)")
         ;
 
-    unsigned int threads = tbb::task_scheduler_init::automatic;
     main.add_options()
         ("help,h", "show short help")
         ("help-all,H", "show full help (long)")
@@ -185,7 +190,7 @@ void get_options_description(po::options_description& main,
          "output file (arb or fasta)")
         ("search,S", po::bool_switch(&opts.do_search), "enable search stage")
         ("prealigned,P", po::bool_switch(&opts.skip_align), "skip alignment stage")
-        ("threads,p", po::value<unsigned int>(&opts.threads)->default_value(threads, ""),
+        ("threads,p", po::value<unsigned int>(&opts.threads)->default_value(tbb_automatic, ""),
          "limit number of threads (automatic)")
         ("num-pts", po::value<unsigned int>(&opts.num_pt_servers)->default_value(1, ""),
          "number of PT servers to start (1)")
@@ -320,7 +325,6 @@ int real_main(int argc, char** argv) {
     }
 
     tbb::task_scheduler_init init(vm["threads"].as<unsigned int>());
-    int max_trays = 100;
 
     tf::graph g;  // Main data flow graph (pipeline)
     std::vector<std::unique_ptr<tf::graph_node>> nodes; // Nodes (for cleanup)
@@ -347,7 +351,7 @@ int real_main(int argc, char** argv) {
     last_node = source;
 
     // Make node limiting in-flight sequence trays
-    limiter_node *limiter = new limiter_node(g, max_trays);
+    limiter_node *limiter = new limiter_node(g, opts.max_trays);
     tf::make_edge(*last_node, *limiter);
     nodes.emplace_back(limiter);
     last_node = limiter;
