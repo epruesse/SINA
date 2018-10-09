@@ -108,7 +108,6 @@ using boost::lambda::bind;
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/progress.hpp>
-#include <boost/foreach.hpp>
 
 using namespace sina;
 
@@ -687,9 +686,8 @@ query_arb::putCseq(const cseq& seq) {
 
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data.gbmain);
-    pair<string,cseq::variant> ap;
     GBDATA* gbspec = data.getGBDATA(seq.getName());
-    BOOST_FOREACH(ap, seq.get_attrs()) {
+    for (auto& ap: seq.get_attrs()) {
         storeKey(data.gbmain, gbspec, ap.first, ap.second);
     }
 }
@@ -1006,7 +1004,7 @@ void
 query_arb::printErrors(std::ostream& stream){
     if(hasErrors()) {
         stream << "Following errors occurred while querying arb:" << std::endl;
-        BOOST_FOREACH(std::string msg,data.write_errors) {
+        for (auto& msg: data.write_errors) {
             stream << msg.substr(0,70) << std::endl;
         }
     }
