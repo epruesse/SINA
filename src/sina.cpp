@@ -145,6 +145,7 @@ struct options {
     SEQUENCE_DB_TYPE outtype;
     fs::path in;
     fs::path out;
+    unsigned int copy_relatives;
     bool noalign;
     bool skip_align;
     bool do_search;
@@ -188,6 +189,8 @@ void get_options_description(po::options_description& main,
          "input file (arb or fasta)")
         ("out,o", po::value<fs::path>(&opts.out)->default_value("-"),
          "output file (arb or fasta)")
+        ("add-relatives", po::value<unsigned int>(&opts.copy_relatives)->default_value(0, ""),
+         "add the ARG nearest relatives for each sequence to output")
         ("search,S", po::bool_switch(&opts.do_search), "enable search stage")
         ("prealigned,P", po::bool_switch(&opts.skip_align), "skip alignment stage")
         ("threads,p", po::value<unsigned int>(&opts.threads)->default_value(tbb_automatic, ""),
@@ -428,10 +431,10 @@ int real_main(int argc, char** argv) {
     // Make node writing sequences
     switch(opts.outtype) {
     case SEQUENCE_DB_ARB:
-        node = new filter_node(g, 1, rw_arb::writer(opts.out));
+        node = new filter_node(g, 1, rw_arb::writer(opts.out, opts.copy_relatives));
         break;
     case SEQUENCE_DB_FASTA:
-        node = new filter_node(g, 1, rw_fasta::writer(opts.out));
+        node = new filter_node(g, 1, rw_fasta::writer(opts.out, opts.copy_relatives));
         break;
     default:
         throw logic_error("input type undefined");

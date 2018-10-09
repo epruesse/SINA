@@ -228,6 +228,14 @@ rw_arb::reader::operator()(tray& t) {
 struct rw_arb::writer::priv_data {
     query_arb *arb;
     fs::path arb_fname;
+    unsigned long copy_relatives;
+    unsigned int relatives;
+    priv_data(fs::path& arb_fname_,
+              unsigned long copy_relatives_) :
+        arb_fname(arb_fname_),
+        copy_relatives(copy_relatives_)
+    {
+    }
     ~priv_data() {
         logger->info("Saving...");
         if (arb_fname.native() != ":") {
@@ -244,10 +252,9 @@ rw_arb::writer& rw_arb::writer::operator=(const writer& o) {
     return *this;
 }
 
-rw_arb::writer::writer(fs::path outfile)
-    :  data(new priv_data)
+rw_arb::writer::writer(fs::path outfile, unsigned int copy_relatives)
+    :  data(new priv_data(outfile, copy_relatives))
 {
-    data->arb_fname = outfile;
     data->arb = query_arb::getARBDB(outfile.c_str());
     data->arb->setProtectionLevel(opts->prot_lvl);
 }
@@ -257,6 +264,18 @@ tray
 rw_arb::writer::operator()(tray t) {
     if (t.aligned_sequence) {
         data->arb->putCseq(*t.aligned_sequence);
+    }
+    if (data->copy_relatives) {
+        std::vector<cseq> *relatives = t.search_result;
+        if (!t.search_result && t.alignment_reference) {
+            relatives = t.alignment_reference;
+        }
+        if (relatives){
+            for (int i = 0; i < std::min(relatives->size(), data->copy_relatives); ++i) {
+                cseq &c = relatives->operator[](i);
+                data->arb->putCseq(c);
+            }
+        }
     }
     return t;
 }

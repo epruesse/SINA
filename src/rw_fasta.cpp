@@ -32,6 +32,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <vector>
 #include <iostream>
 #include <map>
+#include <unordered_set>
 #include <string>
 #include <sstream>
 
@@ -311,14 +312,20 @@ struct rw_fasta::writer::priv_data {
     std::ofstream out_csv;
     int count;
     int excluded;
-    priv_data() : count(0), excluded(0) {}
+    std::unordered_set<string> relatives_written;
+    unsigned long copy_relatives;
+    priv_data(unsigned int copy_relatives_)
+        : count(0), excluded(0), copy_relatives(copy_relatives_)
+    {}
     ~priv_data() {
-        logger->info("wrote {} sequences ({} excluded)", count, excluded);
+        logger->info("wrote {} sequences ({} excluded, {} relatives)",
+                     count, excluded, relatives_written.size());
     }
+    void write(cseq& c);
 };
 
-rw_fasta::writer::writer(const fs::path& outfile)
-    : data(new priv_data)
+rw_fasta::writer::writer(const fs::path& outfile, unsigned int copy_relatives)
+    : data(new priv_data(copy_relatives))
 {
     if (outfile == "-") {
         data->file.open(STDOUT_FILENO, bi::never_close_handle);
@@ -397,70 +404,95 @@ rw_fasta::writer::operator()(tray t) {
     }
     cseq &c = *t.aligned_sequence;
 
-    const std::map<string,cseq::variant>& attrs = c.get_attrs();
+    data->write(c);
 
-    data->out << ">" << c.getName();
+    if (data->copy_relatives) {
+        std::vector<cseq> *relatives = t.search_result;
+        if (!t.search_result && t.alignment_reference) {
+            relatives = t.alignment_reference;
+        }
+        if (relatives) {
+            for (int i = 0; i < std::min(relatives->size(), data->copy_relatives); ++i) {
+                c = relatives->operator[](i);
+                if (data->relatives_written.insert(c.getName()).second) {
+                    data->write(c);
+                }
+            }
+        }
+    }
+
+    return t;
+}
+
+void
+rw_fasta::writer::priv_data::write(cseq& c) {
+    const auto& attrs = c.get_attrs();
+
+    out << ">" << c.getName();
     string fname = c.get_attr<string>(query_arb::fn_fullname);
     if (!fname.empty()) {
-        data->out << " " << fname;
+        out << " " << fname;
     }
 
     switch (opts->fastameta) {
     case FASTA_META_NONE:
-        data->out << std::endl;
+        out << std::endl;
         break;
     case FASTA_META_HEADER:
         for (auto& ap: attrs) {
-            if (ap.first != query_arb::fn_family
-                && ap.first != query_arb::fn_fullname) {
-                data->out << " [" << ap.first << "="
-                     << boost::apply_visitor(lexical_cast_visitor<string>(),
-                                            ap.second)
-                     << "]";
+            if (ap.first == query_arb::fn_family || ap.first == query_arb::fn_fullname) {
+                continue;
             }
+            out << " [" << ap.first << "="
+                << boost::apply_visitor(lexical_cast_visitor<string>(),
+                                        ap.second)
+                << "]";
         }
-        data->out << std::endl;
+        out << std::endl;
         break;
     case FASTA_META_COMMENT:
-        data->out << std::endl;
+        out << std::endl;
 
         for (auto& ap: attrs) {
-            if (ap.first != query_arb::fn_family) {
-                data->out << "; " << ap.first << "="
-                          << boost::apply_visitor(lexical_cast_visitor<string>(),
-                                            ap.second)
-                          << std::endl;
+            if (ap.first == query_arb::fn_family) {
+                continue;
             }
+            out << "; " << ap.first << "="
+                << boost::apply_visitor(lexical_cast_visitor<string>(),
+                                        ap.second)
+                << std::endl;
         }
         break;
     case FASTA_META_CSV:
-        data->out << std::endl;
+        out << std::endl;
 
         // print header
-        if (data->count == 0) {
-            data->out_csv << "name";
+        if (count == 0) {
+            out_csv << "name";
             for (auto& ap: attrs) {
-              if (ap.first != query_arb::fn_family) {
-                  data->out_csv << "," << escape_string(ap.first);
+              if (ap.first == query_arb::fn_family) {
+                  continue;
               }
+              out_csv << "," << escape_string(ap.first);
             }
-            data->out_csv << "\r\n";
+            out_csv << "\r\n";
         }
 
-        data->out_csv << c.getName();
+        out_csv << c.getName();
         for (auto& ap: attrs) {
-            if (ap.first != query_arb::fn_family) {
-                data->out_csv << ","
-                         << escape_string(
-                             boost::apply_visitor(
-                                 lexical_cast_visitor<string>(),
-                                 ap.second
-                                 )
-                             );
+            if (ap.first == query_arb::fn_family) {
+                continue;
             }
+            out_csv << ","
+                    << escape_string(
+                        boost::apply_visitor(
+                            lexical_cast_visitor<string>(),
+                            ap.second
+                            )
+                        );
         }
 
-        data->out_csv << "\r\n";
+        out_csv << "\r\n";
         break;
     default:
         throw std::runtime_error("Unknown meta-fmt output option");
@@ -470,14 +502,12 @@ rw_fasta::writer::operator()(tray t) {
     int len = seq.size();
     if (opts->line_length > 0) {
         for (int i=0; i<len; i+=opts->line_length) {
-            data->out << seq.substr(i, opts->line_length) << std::endl;
+            out << seq.substr(i, opts->line_length) << std::endl;
         }
     } else {
-        data->out << seq << std::endl;
+        out << seq << std::endl;
     }
-    data->count++;
-
-    return t;
+    count++;
 }
 
 } // namespace sina
