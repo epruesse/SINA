@@ -184,7 +184,7 @@ fi
 
 AX_LIB_TBB_MALLOC
 
-AX_BOOST_BASE([1.48])
+AX_BOOST_BASE([1.62])
 AX_BOOST_THREAD
 if test x"$BOOST_THREAD_LIB" = x""; then
   missing_libs="$missing_libs

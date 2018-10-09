@@ -76,8 +76,6 @@ public:
     managed_pt_server(string portname, string dbname);
     managed_pt_server(const managed_pt_server&);
     ~managed_pt_server();
-
-    static const char* get_arbhome();
 };
 
 
@@ -94,15 +92,15 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
     }
 
     // Make sure ARBHOME is set; guess if possible
-    const char* ARBHOME = getenv("ARBHOME");
-    if (ARBHOME == NULL || strlen(ARBHOME) == 0) {
-        ARBHOME = get_arbhome();
-        if (ARBHOME != NULL && strlen(ARBHOME) != 0) {
-            logger->info("Setting ARBHOME={}", ARBHOME);
-            setenv("ARBHOME", ARBHOME, 1);
-        } else {
-            logger->warn("Warning: Unable to determine ARBHOME.");
-            logger->warn("Expect PT server to fail below.");
+    fs::path ARBHOME = std::getenv("ARBHOME");
+    if (ARBHOME.empty()) {
+        ARBHOME = boost::dll::symbol_location(GB_open).parent_path().parent_path();
+        logger->info("Setting ARBHOME={}", ARBHOME);
+        setenv("ARBHOME", ARBHOME.c_str(), 1);  // no setenv in C++/STL
+    } else {
+        logger->warn("Warning: Unable to determine ARBHOME.");
+        logger->warn("Expect PT server to fail below.");
+    }
         }
     }
 
@@ -169,26 +167,6 @@ managed_pt_server::~managed_pt_server() {
     logger->info("Terminating PT server...");
     process->rdbuf()->kill();
 }
-
-/* Locate ARBHOME based on the libARBDB loaded for us
- *
- * GB_open must point to memory part of the libARBDB DLL. Using
- * dladdr() we can determine the name of the file, which we assume
- * sits in the lib folder inside of ARBHOME.
- */
-const char*
-managed_pt_server::get_arbhome() {
-    Dl_info info;
-    if (dladdr((const void*)GB_open, &info)) {
-        string libarbdb_path(info.dli_fname);
-        int pos = libarbdb_path.find("/lib/libARBDB");
-        if (pos != string::npos) {
-            return strdup(libarbdb_path.substr(0, pos).c_str());
-        }
-    }
-    return NULL;
-}
-
 
 struct query_pt::options {
 };
