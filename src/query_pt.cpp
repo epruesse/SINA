@@ -79,14 +79,18 @@ static auto pt_logger = Log::create_logger("ARB_PT_SERVER");
 
 class managed_pt_server {
     redi::ipstream* process;
+    string dbname;
+    string portname;
 public:
-    managed_pt_server(string portname, string dbname);
+    managed_pt_server(const string& dbname, const string& portname);
     managed_pt_server(const managed_pt_server&);
     ~managed_pt_server();
 };
 
 
-managed_pt_server::managed_pt_server(string dbname, string portname) {
+managed_pt_server::managed_pt_server(const string& dbname_, const string& portname_)
+    : dbname(dbname_), portname(portname_)
+{
     // Check that database specified and file accessible
     if (dbname.empty()) {
         throw query_pt_exception("Missing reference database");
@@ -133,9 +137,9 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
     if (stat(ptindex.c_str(), &ptindex_stat) 
         || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
         if (arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-            logger->info("PT server index missing. Building... ");
+            logger->info("PT server index missing for {}. Building:", dbname);
         } else {
-            logger->info("PT server index out of date. Rebuilding...");
+            logger->info("PT server index out of date for {}. Rebuilding:", dbname);
         }
 
         vector<string> cmds;
@@ -143,9 +147,9 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
         cmds.push_back(arb_pt_server_path.native() + " -build_clean -D" + dbname + ".index.arb");
         cmds.push_back(arb_pt_server_path.native() + " -build -D" + dbname + ".index.arb");
         for (auto& cmd :  cmds) {
-            logger->info("Executing '{}'", cmd);
+            logger->debug("Executing '{}'", cmd);
             system(cmd.c_str());
-            logger->info("Command finished");
+            logger->debug("Command finished");
         }
 
         if (stat(ptindex.c_str(), &ptindex_stat) 
@@ -167,8 +171,8 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
 
     // Actually launch the server now:
     string cmd = arb_pt_server_path.native() + " -D" + dbname + " -T" + portname;
-    logger->info("Launching background PT server process...");
-    logger->info("Executing '{}'", cmd);
+    logger->info("Launching background PT server for {} on {}", dbname, portname);
+    logger->debug("Executing '{}'", cmd);
     process = new redi::ipstream(cmd, redi::pstreams::pstdout|redi::pstreams::pstderr);
 
     // read the pt server output. once it says "ok"
@@ -177,17 +181,17 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
     // FIXME: abort if waiting for too long
     string line;
     while (std::getline(*process, line)) {
-        pt_logger->info(line);
+        pt_logger->debug(line);
         if (line == "ok, server is running.") {
             break;
         }
     }
 
-    logger->info("Launched PT server.");
+    logger->info("Launched PT server ({} on {}).", dbname, portname);
 }
 
 managed_pt_server::~managed_pt_server() {
-    logger->info("Terminating PT server...");
+    logger->info("Terminating PT server ({} on {})", dbname, portname);
     process->rdbuf()->kill();
 }
 
