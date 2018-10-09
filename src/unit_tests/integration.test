@@ -39,7 +39,7 @@ end_test
 
 begin_test "Asserts CLI 3 unsupported"
 capture_stderr ./src/sina --has-cli-vers 3
-assert_exit_fail
+assert_exit_failure
 end_test
 
 begin_test "Copy ARB to FASTA"
