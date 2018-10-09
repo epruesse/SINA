@@ -173,6 +173,7 @@ struct query_arb::priv_data {
                                boost::hash<string>
                                > gbdata_cache_type;
 
+    boost::mutex sequence_cache_access;
     sequence_cache_type sequence_cache;
     gbdata_cache_type gbdata_cache;
     error_list_type write_errors;
@@ -224,6 +225,7 @@ string
 query_arb::priv_data::getSequence(const char *name, const char *ali) {
     // if there is a preloaded cache, just hand out sequence
     if (have_cache) {
+        boost::mutex::scoped_lock lock(sequence_cache_access);
         return sequence_cache[name].getAligned();
     }
 
@@ -341,8 +343,8 @@ static arb_handlers arb_log_handlers = {
 
 query_arb*
 query_arb::getARBDB(std::string file_name) {
-    boost::mutex::scoped_lock lock(arb_db_access);
     if (not query_arb::priv_data::the_arb_shell) {
+        boost::mutex::scoped_lock lock(arb_db_access);
         query_arb::priv_data::the_arb_shell = new GB_shell();
 
         ARB_install_handlers(arb_log_handlers);
@@ -511,8 +513,10 @@ query_arb::loadCache(std::vector<std::string>& keys) {
 
     const char *ali = data.default_alignment;
 
+    boost::mutex::scoped_lock lock_cache(data.sequence_cache_access);
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data.gbmain);
+
     GB_set_cache_size(data.gbmain, 0);
 
     data.loadCache();
@@ -627,6 +631,7 @@ query_arb::loadCache(std::vector<std::string>& keys) {
 vector<cseq*>
 query_arb::getCacheContents() {
     vector<cseq*> tmp;
+    boost::mutex::scoped_lock lock_cache(data.sequence_cache_access);
     tmp.reserve(data.sequence_cache.size());
     for (priv_data::sequence_cache_type::iterator it = data.sequence_cache.begin();
          it != data.sequence_cache.end(); ++it) {
@@ -654,9 +659,10 @@ query_arb::getSequenceNames() {
 cseq&
 query_arb::getCseq(string name) {
     // if there is a preloaded cache, just hand out sequence
+    boost::mutex::scoped_lock lock_cache(data.sequence_cache_access);
     if (data.have_cache)
         return data.sequence_cache[name];
-
+    
     // if not, check whether we already loaded it
     priv_data::sequence_cache_type::iterator it = data.sequence_cache.find(name);
     if (it != data.sequence_cache.end())
