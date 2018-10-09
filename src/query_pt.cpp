@@ -170,9 +170,9 @@ managed_pt_server::managed_pt_server(const string& dbname_, const string& portna
     }
 
     // Actually launch the server now:
-    string cmd = arb_pt_server_path.native() + " -D" + dbname + " -T" + portname;
+    vector<string> cmd{arb_pt_server_path.native(), "-D"+dbname, "-T"+portname};
     logger->info("Launching background PT server for {} on {}", dbname, portname);
-    logger->debug("Executing '{}'", cmd);
+    logger->debug("Executing ['{}']", fmt::join(cmd, "', '"));
     process = new redi::ipstream(cmd, redi::pstreams::pstdout|redi::pstreams::pstderr);
 
     // read the pt server output. once it says "ok"
