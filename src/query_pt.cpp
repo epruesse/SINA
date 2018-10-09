@@ -70,111 +70,15 @@ static auto logger = Log::create_logger("ARB search");
 static auto pt_logger = Log::create_logger("ARB_PT_SERVER");
 
 
-/* Locate ARBHOME based on the libARBDB loaded for us
- *
- * GB_open must point to memory part of the libARBDB DLL. Using
- * dladdr() we can determine the name of the file, which we assume
- * sits in the lib folder inside of ARBHOME.
- */
-const char* get_arbhome() {
-    Dl_info info;
-    if (dladdr((const void*)GB_open, &info)) {
-        string libarbdb_path(info.dli_fname);
-        int pos = libarbdb_path.find("/lib/libARBDB");
-        if (pos != string::npos) {
-            return strdup(libarbdb_path.substr(0, pos).c_str());
-        }
-    } 
-    return NULL;
-}
-
-
-struct query_pt::options {
-};
-struct query_pt::options *query_pt::opts;
-
-void
-query_pt::get_options_description(po::options_description& /*main*/,
-                                  po::options_description& /*adv*/) {
-}
-
-void
-query_pt::validate_vm(po::variables_map& /* vm */,
-                      po::options_description& /*desc*/) {
-}
-
 class managed_pt_server {
     redi::ipstream* process;
 public:
     managed_pt_server(string portname, string dbname);
     managed_pt_server(const managed_pt_server&);
     ~managed_pt_server();
+
+    static const char* get_arbhome();
 };
-
-
-struct query_pt::priv_data {
-    priv_data()
-        : link(0L),
-          range_begin(-1),
-          range_end(-1),
-          find_type_fast(false)
-    {}
-    aisc_com         *link;
-    T_PT_MAIN         com;
-    T_PT_LOCS         locs;
-    T_PT_FAMILYFINDER ffinder;
-
-    boost::mutex arb_pt_access;
-
-    int  range_begin;
-    int  range_end;
-    bool find_type_fast;
-    int  kmer_len;
-    int  num_mismatch;
-    bool relative_sort;
-
-    static std::map<string, std::weak_ptr<managed_pt_server>> servers;
-    std::shared_ptr<managed_pt_server> server;
-
-    bool            connect_server(string portname);
-    void            disconnect_server();
-};
-
-
-bool
-query_pt::priv_data::connect_server(string portname) {
-    boost::mutex::scoped_lock lock(arb_pt_access);
-    GB_ERROR error = NULL;
-    link = aisc_open(portname.c_str(), com, AISC_MAGIC_NUMBER, &error);
-    if (error) {
-        throw query_pt_exception(error);
-    }
-    if (!link) {
-        return false;
-    }
-
-    if (aisc_create(link,
-                    PT_MAIN, com,
-                    MAIN_LOCS, PT_LOCS, locs,
-                    NULL)) {
-        throw query_pt_exception("Unable to connect to PT server! (code 02)");
-    }
-
-    if (aisc_create(link,
-                    PT_LOCS, locs,
-                    LOCS_FFINDER, PT_FAMILYFINDER, ffinder,
-                    NULL)) {
-        throw query_pt_exception("Unable to connect to PT server! (code 03)");
-    }
-
-    return true;
-}
-
-void
-query_pt::priv_data::disconnect_server() {
-    boost::mutex::scoped_lock lock(arb_pt_access);
-    aisc_close(link, com);
-}
 
 
 managed_pt_server::managed_pt_server(string dbname, string portname) {
@@ -265,6 +169,106 @@ managed_pt_server::~managed_pt_server() {
     logger->info("Terminating PT server...");
     process->rdbuf()->kill();
 }
+
+/* Locate ARBHOME based on the libARBDB loaded for us
+ *
+ * GB_open must point to memory part of the libARBDB DLL. Using
+ * dladdr() we can determine the name of the file, which we assume
+ * sits in the lib folder inside of ARBHOME.
+ */
+const char*
+managed_pt_server::get_arbhome() {
+    Dl_info info;
+    if (dladdr((const void*)GB_open, &info)) {
+        string libarbdb_path(info.dli_fname);
+        int pos = libarbdb_path.find("/lib/libARBDB");
+        if (pos != string::npos) {
+            return strdup(libarbdb_path.substr(0, pos).c_str());
+        }
+    }
+    return NULL;
+}
+
+
+struct query_pt::options {
+};
+struct query_pt::options *query_pt::opts;
+
+void
+query_pt::get_options_description(po::options_description& /*main*/,
+                                  po::options_description& /*adv*/) {
+}
+
+void
+query_pt::validate_vm(po::variables_map& /* vm */,
+                      po::options_description& /*desc*/) {
+}
+
+
+struct query_pt::priv_data {
+    priv_data()
+        : link(0L),
+          range_begin(-1),
+          range_end(-1),
+          find_type_fast(false)
+    {}
+    aisc_com         *link;
+    T_PT_MAIN         com;
+    T_PT_LOCS         locs;
+    T_PT_FAMILYFINDER ffinder;
+
+    boost::mutex arb_pt_access;
+
+    int  range_begin;
+    int  range_end;
+    bool find_type_fast;
+    int  kmer_len;
+    int  num_mismatch;
+    bool relative_sort;
+
+    static std::map<string, std::weak_ptr<managed_pt_server>> servers;
+    std::shared_ptr<managed_pt_server> server;
+
+    bool            connect_server(string portname);
+    void            disconnect_server();
+};
+
+
+bool
+query_pt::priv_data::connect_server(string portname) {
+    boost::mutex::scoped_lock lock(arb_pt_access);
+    GB_ERROR error = NULL;
+    link = aisc_open(portname.c_str(), com, AISC_MAGIC_NUMBER, &error);
+    if (error) {
+        throw query_pt_exception(error);
+    }
+    if (!link) {
+        return false;
+    }
+
+    if (aisc_create(link,
+                    PT_MAIN, com,
+                    MAIN_LOCS, PT_LOCS, locs,
+                    NULL)) {
+        throw query_pt_exception("Unable to connect to PT server! (code 02)");
+    }
+
+    if (aisc_create(link,
+                    PT_LOCS, locs,
+                    LOCS_FFINDER, PT_FAMILYFINDER, ffinder,
+                    NULL)) {
+        throw query_pt_exception("Unable to connect to PT server! (code 03)");
+    }
+
+    return true;
+}
+
+void
+query_pt::priv_data::disconnect_server() {
+    boost::mutex::scoped_lock lock(arb_pt_access);
+    aisc_close(link, com);
+}
+
 
 
 std::map<string, std::weak_ptr<managed_pt_server>> query_pt::priv_data::servers;
