@@ -213,6 +213,7 @@ Log::validate_vm(po::variables_map& vm,
     // update sinks of pre-existing loggers
     spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) {
             l->sinks() = sinks;
+            l->set_level(spdlog::level::trace);
         });
 
     // database for computing distance to test case

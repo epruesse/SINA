@@ -59,10 +59,17 @@ using std::vector;
 #include <client.h>
 #include <boost/thread/mutex.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/dll.hpp>
 #include <pstream.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
+
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
+#include <boost/system/error_code.hpp>
+namespace sys = boost::system;
 
 namespace sina {
 
@@ -70,24 +77,123 @@ static auto logger = Log::create_logger("ARB search");
 static auto pt_logger = Log::create_logger("ARB_PT_SERVER");
 
 
-/* Locate ARBHOME based on the libARBDB loaded for us
- *
- * GB_open must point to memory part of the libARBDB DLL. Using
- * dladdr() we can determine the name of the file, which we assume
- * sits in the lib folder inside of ARBHOME.
- */
-const char* get_arbhome() {
-    Dl_info info;
-    if (dladdr((const void*)GB_open, &info)) {
-        string libarbdb_path(info.dli_fname);
-        int pos = libarbdb_path.find("/lib/libARBDB");
-        if (pos != string::npos) {
-            return strdup(libarbdb_path.substr(0, pos).c_str());
+class managed_pt_server {
+    redi::ipstream* process;
+    string dbname;
+    string portname;
+public:
+    managed_pt_server(const string& dbname, const string& portname);
+    managed_pt_server(const managed_pt_server&);
+    ~managed_pt_server();
+};
+
+
+managed_pt_server::managed_pt_server(const string& dbname_, const string& portname_)
+    : dbname(dbname_), portname(portname_)
+{
+    // Check that database specified and file accessible
+    if (dbname.empty()) {
+        throw query_pt_exception("Missing reference database");
+    }
+
+    struct stat arbdb_stat;
+    if (stat(dbname.c_str(), &arbdb_stat)) {
+        perror("Error accessing ARB database file");
+        throw query_pt_exception("Failed to launch PT server.");
+    }
+
+    // Make sure ARBHOME is set; guess if possible
+    fs::path ARBHOME = std::getenv("ARBHOME");
+    if (ARBHOME.empty()) {
+        ARBHOME = boost::dll::symbol_location(GB_open).parent_path().parent_path();
+        logger->info("Setting ARBHOME={}", ARBHOME);
+        setenv("ARBHOME", ARBHOME.c_str(), 1);  // no setenv in C++/STL
+    } else {
+        logger->warn("Warning: Unable to determine ARBHOME.");
+        logger->warn("Expect PT server to fail below.");
+    }
+
+    // Locate PT server binary
+    fs::path arb_pt_server("arb_pt_server");
+    fs::path arb_pt_server_path = fs::system_complete(arb_pt_server);
+    if (!fs::exists(arb_pt_server_path)) { // not in PATH
+        logger->debug("{} not found in PATH", arb_pt_server);
+        arb_pt_server_path = ARBHOME / "bin" / arb_pt_server;
+        if (!fs::exists(arb_pt_server_path)) { // not in ARBHOME
+            logger->debug("{} not found in ARBHOME", arb_pt_server);
+            // 3. Next to us
+            fs::path self_dir = boost::dll::program_location().parent_path();
+            arb_pt_server_path = self_dir / arb_pt_server;
+            if (!fs::exists(arb_pt_server_path)) { // not next to us either?
+                logger->debug("{} not found in {}", arb_pt_server, self_dir);
+                throw query_pt_exception("Failed to locate 'arb_pt_server'");
+            }
         }
-    } 
-    return NULL;
+    }
+
+    // (Re)build index if missing or older than database
+    struct stat ptindex_stat;
+    string ptindex = dbname + ".index.arb.pt";
+    if (stat(ptindex.c_str(), &ptindex_stat) 
+        || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
+        if (arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
+            logger->info("PT server index missing for {}. Building:", dbname);
+        } else {
+            logger->info("PT server index out of date for {}. Rebuilding:", dbname);
+        }
+
+        vector<string> cmds;
+        cmds.push_back(string("cp ") + dbname + " " + dbname + ".index.arb");
+        cmds.push_back(arb_pt_server_path.native() + " -build_clean -D" + dbname + ".index.arb");
+        cmds.push_back(arb_pt_server_path.native() + " -build -D" + dbname + ".index.arb");
+        for (auto& cmd :  cmds) {
+            logger->debug("Executing '{}'", cmd);
+            system(cmd.c_str());
+            logger->debug("Command finished");
+        }
+
+        if (stat(ptindex.c_str(), &ptindex_stat) 
+            || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
+            throw query_pt_exception("Failed to (re)build PT server index! (out of memory?)");
+        }
+    }
+
+    // Reset database name to the index version created during build
+    dbname = dbname + ".index.arb";
+
+    // Check portname: allowed are localhost:PORT, :PORT and :SOCKETFILE
+    int split = portname.find(":");
+    string host = portname.substr(0, split);
+    string port = portname.substr(split+1);
+    if (!host.empty() && host != "localhost") {
+        throw query_pt_exception("Starting a PT server on hosts other than localhost not supported");
+    }
+
+    // Actually launch the server now:
+    vector<string> cmd{arb_pt_server_path.native(), "-D"+dbname, "-T"+portname};
+    logger->info("Launching background PT server for {} on {}", dbname, portname);
+    logger->debug("Executing ['{}']", fmt::join(cmd, "', '"));
+    process = new redi::ipstream(cmd, redi::pstreams::pstdout|redi::pstreams::pstderr);
+
+    // read the pt server output. once it says "ok"
+    // we can be sure that it's ready for connections
+    // (connecting at wrong time causes lockup)
+    // FIXME: abort if waiting for too long
+    string line;
+    while (std::getline(*process, line)) {
+        pt_logger->debug(line);
+        if (line == "ok, server is running.") {
+            break;
+        }
+    }
+
+    logger->info("Launched PT server ({} on {}).", dbname, portname);
 }
 
+managed_pt_server::~managed_pt_server() {
+    logger->info("Terminating PT server ({} on {})", dbname, portname);
+    process->rdbuf()->kill();
+}
 
 struct query_pt::options {
 };
@@ -102,14 +208,6 @@ void
 query_pt::validate_vm(po::variables_map& /* vm */,
                       po::options_description& /*desc*/) {
 }
-
-class managed_pt_server {
-    redi::ipstream* process;
-public:
-    managed_pt_server(string portname, string dbname);
-    managed_pt_server(const managed_pt_server&);
-    ~managed_pt_server();
-};
 
 
 struct query_pt::priv_data {
@@ -176,95 +274,6 @@ query_pt::priv_data::disconnect_server() {
     aisc_close(link, com);
 }
 
-
-managed_pt_server::managed_pt_server(string dbname, string portname) {
-    // Check that database specified and file accessible
-    if (dbname.empty()) {
-        throw query_pt_exception("Missing reference database");
-    }
-
-    struct stat arbdb_stat;
-    if (stat(dbname.c_str(), &arbdb_stat)) {
-        perror("Error accessing ARB database file");
-        throw query_pt_exception("Failed to launch PT server.");
-    }
-
-    // Make sure ARBHOME is set; guess if possible
-    const char* ARBHOME = getenv("ARBHOME");
-    if (ARBHOME == NULL || strlen(ARBHOME) == 0) {
-        ARBHOME = get_arbhome();
-        if (ARBHOME != NULL && strlen(ARBHOME) != 0) {
-            logger->info("Setting ARBHOME={}", ARBHOME);
-            setenv("ARBHOME", ARBHOME, 1);
-        } else {
-            logger->warn("Warning: Unable to determine ARBHOME.");
-            logger->warn("Expect PT server to fail below.");
-        }
-    }
-
-    // (Re)build index if missing or older than database
-    struct stat ptindex_stat;
-    string ptindex = dbname + ".index.arb.pt";
-    if (stat(ptindex.c_str(), &ptindex_stat) 
-        || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-        if (arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-            logger->info("PT server index missing. Building... ");
-        } else {
-            logger->info("PT server index out of date. Rebuilding...");
-        }
-
-        vector<string> cmds;
-        cmds.push_back(string("cp ") + dbname + " " + dbname + ".index.arb");
-        cmds.push_back(string("arb_pt_server -build_clean -D") + dbname + ".index.arb");
-        cmds.push_back(string("arb_pt_server -build -D") + dbname + ".index.arb");
-        for (auto& cmd :  cmds) {
-            logger->info("Executing '{}'", cmd);
-            system(cmd.c_str());
-            logger->info("Command finished");
-        }
-
-        if (stat(ptindex.c_str(), &ptindex_stat) 
-            || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-            throw query_pt_exception("Failed to (re)build PT server index! (out of memory?)");
-        }
-    }
-
-    // Reset database name to the index version created during build
-    dbname = dbname + ".index.arb";
-
-    // Check portname: allowed are localhost:PORT, :PORT and :SOCKETFILE
-    int split = portname.find(":");
-    string host = portname.substr(0, split);
-    string port = portname.substr(split+1);
-    if (!host.empty() && host != "localhost") {
-        throw query_pt_exception("Starting a PT server on hosts other than localhost not supported");
-    }
-
-    // Actually launch the server now:
-    string cmd = string("arb_pt_server -D") + dbname + " -T" + portname;
-    logger->info("Launching background PT server process...");
-    logger->info("Executing '{}'", cmd);
-    process = new redi::ipstream(cmd, redi::pstreams::pstdout|redi::pstreams::pstderr);
-
-    // read the pt server output. once it says "ok"
-    // we can be sure that it's ready for connections
-    // (connecting at wrong time causes lockup)
-    // FIXME: abort if waiting for too long
-    string line;
-    while (std::getline(*process, line)) {
-        pt_logger->info(line);
-        if (line == "ok, server is running.") {
-            break;
-        }
-    }
-
-    logger->info("Launched PT server.");
-}
-
-managed_pt_server::~managed_pt_server() {
-    logger->info("Terminating PT server...");
-    process->rdbuf()->kill();
-}
 
 
 std::map<string, std::weak_ptr<managed_pt_server>> query_pt::priv_data::servers;

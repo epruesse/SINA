@@ -39,7 +39,7 @@ end_test
 
 begin_test "Asserts CLI 3 unsupported"
 capture_stderr ./src/sina --has-cli-vers 3
-assert_exit_fail
+assert_exit_failure
 end_test
 
 begin_test "Copy ARB to FASTA"
@@ -88,8 +88,15 @@ assert_exit_success
 end_test
 
 begin_test "Align from ARB->ARB"
-capture_stdouterr "./src/sina -i $T/extracted.arb -o $T/aligned.arb --db $T/extracted.arb"
+capture_stdouterr "./src/sina -i $T/extracted.arb -o $T/aligned.arb --realign --db $T/extracted.arb"
 assert_output_contains "align 12 sequences"
 assert_exit_success
 end_test
 
+begin_test "Check no PT servers left running"
+capture_stdout "ps ax | grep '[a]rb_pt_server'"
+assert_exit_failure
+end_test
+
+begin_test "end of integration tests"
+end_test
