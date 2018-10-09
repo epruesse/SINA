@@ -93,3 +93,10 @@ assert_output_contains "align 12 sequences"
 assert_exit_success
 end_test
 
+begin_test "Check no PT servers left running"
+capture_stdout "ps ax | grep '[a]rb_pt_server'"
+assert_exit_failure
+end_test
+
+begin_test "end of integration tests"
+end_test
