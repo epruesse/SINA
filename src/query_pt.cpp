@@ -59,10 +59,17 @@ using std::vector;
 #include <client.h>
 #include <boost/thread/mutex.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/dll.hpp>
 #include <pstream.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
+
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
+#include <boost/system/error_code.hpp>
+namespace sys = boost::system;
 
 namespace sina {
 
@@ -101,6 +108,22 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
         logger->warn("Warning: Unable to determine ARBHOME.");
         logger->warn("Expect PT server to fail below.");
     }
+
+    // Locate PT server binary
+    fs::path arb_pt_server("arb_pt_server");
+    fs::path arb_pt_server_path = fs::system_complete(arb_pt_server);
+    if (!fs::exists(arb_pt_server_path)) { // not in PATH
+        logger->debug("{} not found in PATH", arb_pt_server);
+        arb_pt_server_path = ARBHOME / "bin" / arb_pt_server;
+        if (!fs::exists(arb_pt_server_path)) { // not in ARBHOME
+            logger->debug("{} not found in ARBHOME", arb_pt_server);
+            // 3. Next to us
+            fs::path self_dir = boost::dll::program_location().parent_path();
+            arb_pt_server_path = self_dir / arb_pt_server;
+            if (!fs::exists(arb_pt_server_path)) { // not next to us either?
+                logger->debug("{} not found in {}", arb_pt_server, self_dir);
+                throw query_pt_exception("Failed to locate 'arb_pt_server'");
+            }
         }
     }
 
@@ -117,8 +140,8 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
 
         vector<string> cmds;
         cmds.push_back(string("cp ") + dbname + " " + dbname + ".index.arb");
-        cmds.push_back(string("arb_pt_server -build_clean -D") + dbname + ".index.arb");
-        cmds.push_back(string("arb_pt_server -build -D") + dbname + ".index.arb");
+        cmds.push_back(arb_pt_server_path.native() + " -build_clean -D" + dbname + ".index.arb");
+        cmds.push_back(arb_pt_server_path.native() + " -build -D" + dbname + ".index.arb");
         for (auto& cmd :  cmds) {
             logger->info("Executing '{}'", cmd);
             system(cmd.c_str());
@@ -143,7 +166,7 @@ managed_pt_server::managed_pt_server(string dbname, string portname) {
     }
 
     // Actually launch the server now:
-    string cmd = string("arb_pt_server -D") + dbname + " -T" + portname;
+    string cmd = arb_pt_server_path.native() + " -D" + dbname + " -T" + portname;
     logger->info("Launching background PT server process...");
     logger->info("Executing '{}'", cmd);
     process = new redi::ipstream(cmd, redi::pstreams::pstdout|redi::pstreams::pstderr);
