@@ -234,7 +234,11 @@ void validate_vm(po::variables_map& vm, po::options_description all_od) {
         }
     }
 
-    // Pick suitable output if no output given
+    if (opts.intype == SEQUENCE_DB_NONE) {
+        throw logic_error("Input type NONE invalid - need something to process");
+    }
+
+    // If infile is ARB, default to writing into same DB
     if (opts.out == "-" && opts.intype == SEQUENCE_DB_ARB) {
         opts.out = opts.in;
     }
@@ -243,6 +247,8 @@ void validate_vm(po::variables_map& vm, po::options_description all_od) {
     if (opts.outtype == SEQUENCE_DB_AUTO) {
         if (opts.out.extension() == ".arb" || opts.out.native() == ":") {
             opts.outtype = SEQUENCE_DB_ARB;
+        } else if (opts.out == "/dev/null") {
+            opts.outtype = SEQUENCE_DB_NONE;
         } else {
             opts.outtype = SEQUENCE_DB_FASTA;
         }
@@ -436,12 +442,17 @@ int real_main(int argc, char** argv) {
     case SEQUENCE_DB_FASTA:
         node = new filter_node(g, 1, rw_fasta::writer(opts.out, opts.copy_relatives));
         break;
+    case SEQUENCE_DB_NONE:
+        node = NULL;
+        break;
     default:
-        throw logic_error("input type undefined");
+        throw logic_error("output type undefined");
     }
-    tf::make_edge(*last_node, *node);
-    nodes.emplace_back(node);
-    last_node = node;
+    if (node) {
+        tf::make_edge(*last_node, *node);
+        nodes.emplace_back(node);
+        last_node = node;
+    }
 
     node = new filter_node(g, 1, Log::printer());
     tf::make_edge(*last_node, *node);
@@ -473,7 +484,7 @@ int main(int argc, char** argv) {
     try {
         return real_main(argc, argv);
     } catch (std::exception &e) {
-        logger->critical("uncaught exception: {}", e.what());
+        logger->critical("Error during program execution: {}", e.what());
         return EXIT_FAILURE;
     }
 }
