@@ -46,6 +46,8 @@ using std::vector;
 #include <map>
 using std::map;
 
+#include <unordered_set>
+
 #include <boost/thread/thread.hpp>
 using boost::thread;
 
@@ -228,16 +230,21 @@ rw_arb::reader::operator()(tray& t) {
 struct rw_arb::writer::priv_data {
     query_arb *arb;
     fs::path arb_fname;
+    int count;
+    int excluded;
+    std::unordered_set<string> relatives_written;
     unsigned long copy_relatives;
-    unsigned int relatives;
     priv_data(fs::path& arb_fname_,
-              unsigned long copy_relatives_) :
-        arb_fname(arb_fname_),
-        copy_relatives(copy_relatives_)
+              unsigned long copy_relatives_)
+        : arb_fname(arb_fname_),
+          count(0),
+          excluded(0),
+          copy_relatives(copy_relatives_)
     {
     }
     ~priv_data() {
-        logger->info("Saving...");
+        logger->info("wrote {} sequences ({} excluded, {} relatives)",
+                     count, excluded, relatives_written.size());
         if (arb_fname.native() != ":") {
             arb->save();
         }
@@ -262,9 +269,16 @@ rw_arb::writer::writer(fs::path outfile, unsigned int copy_relatives)
 
 tray
 rw_arb::writer::operator()(tray t) {
-    if (t.aligned_sequence) {
-        data->arb->putCseq(*t.aligned_sequence);
+    if (t.aligned_sequence == 0) {
+        logger->info("Not writing sequence {} (>{}): not aligned",
+                     t.seqno, t.input_sequence->getName());
+        ++data->excluded;
+        return t;
     }
+    cseq &c = *t.aligned_sequence;
+
+    data->arb->putCseq(c);
+
     if (data->copy_relatives) {
         std::vector<cseq> *relatives = t.search_result;
         if (!t.search_result && t.alignment_reference) {
@@ -273,10 +287,14 @@ rw_arb::writer::operator()(tray t) {
         if (relatives){
             for (int i = 0; i < std::min(relatives->size(), data->copy_relatives); ++i) {
                 cseq &c = relatives->operator[](i);
-                data->arb->putCseq(c);
+                if (data->relatives_written.insert(c.getName()).second) {
+                    data->arb->putCseq(c);
+                    data->count++;
+                }
             }
         }
     }
+    data->count++;
     return t;
 }
 
