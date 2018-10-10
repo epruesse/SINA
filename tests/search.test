@@ -1,0 +1,22 @@
+#!/bin/bash
+. $(dirname $0)/test_helper.sh
+
+TEST_ARB=$TEST_ARGS
+T=$(maketmpdir)
+
+SINA="./src/sina"
+
+begin_test "PREP"
+capture_stdouterr "$SINA -i $TEST_ARB -o $T/extracted.fasta --select-step 1000 --prealigned"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+capture_stdouterr "$SINA -i $TEST_ARB -o $T/extracted.arb --select-step 1000 --prealigned"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+end_test
+
+begin_test "Search"
+capture_stdouterr "$SINA -i $T/extracted.fasta -o $T/aligned.fasta --add-relatives 2 --db $TEST_ARB --prealigned --search -v"
+assert_output_contains aligned
+end_test
+
