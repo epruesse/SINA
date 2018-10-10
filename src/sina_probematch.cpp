@@ -35,6 +35,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/find_iterator.hpp>
 #include <boost/range/iterator_range.hpp>
+#include <boost/filesystem.hpp>
 
 using sina::cseq;
 using sina::query_arb;
@@ -54,7 +55,7 @@ struct iupac_compare {
 };
 
 int main(int argc, const char **argv) {
-  const char *arbdb = 0;
+  boost::filesystem::path arbdb;
   const char *probe_seq = 0;
   bool reverse = false;
   bool complement = false;
@@ -64,7 +65,7 @@ int main(int argc, const char **argv) {
     } else if (equals(argv[i], "--complement")) {
       complement = true;
     } else {
-      if (!arbdb) {
+      if (arbdb.empty()) {
 	arbdb = argv[i];
       } else {
 	probe_seq = argv[i];

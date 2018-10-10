@@ -49,6 +49,7 @@ using std::pair;
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/options_description.hpp>
+#include <boost/filesystem.hpp>
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -60,6 +61,7 @@ using std::pair;
 
 using namespace sina;
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 using spdlog::level::level_enum;
 
 static auto logger = Log::create_logger("log");
@@ -148,8 +150,8 @@ struct Log::options {
     bool show_diff;
     bool show_dist;
     bool colors;
-    string origdb;
-    string logfile;
+    fs::path origdb;
+    fs::path logfile;
 };
 
 std::unique_ptr<Log::options> Log::opts;
@@ -170,14 +172,14 @@ Log::get_options_description(po::options_description& main,
     main.add_options()
         ("verbose,v", counter<int>(&opts->verbose_count), "increase verbosity")
         ("quiet,q", counter<int>(&opts->quiet_count), "decrease verbosity")
-        ("log-file", po::value<string>(&opts->logfile), "file to write log to")
+        ("log-file", po::value<fs::path>(&opts->logfile), "file to write log to")
         ;
 
     po::options_description od("Logging");
     od.add_options()
         ("show-diff", po::bool_switch(&opts->show_diff), "show difference to original alignment")
         ("show-dist", po::bool_switch(&opts->show_dist), "show distance to original alignment")
-        ("orig-db", po::value<string>(&opts->origdb), "ARB DB containing original alignment")
+        ("orig-db", po::value<fs::path>(&opts->origdb), "ARB DB containing original alignment")
         ("colors", po::bool_switch(&opts->colors), "distinguish printed bases using colors")
         ;
 
@@ -205,7 +207,7 @@ Log::validate_vm(po::variables_map& vm,
 
     if (vm.count("log-file")) {
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-            vm["log-file"].as<string>(), true);
+            opts->logfile.native(), true);
         file_sink->set_level(std::min(spdlog::level::info, opts->verbosity));
         sinks.push_back(file_sink);
     }
@@ -219,7 +221,7 @@ Log::validate_vm(po::variables_map& vm,
     // database for computing distance to test case
     if (vm["orig-db"].empty()) {
         if (!vm["db"].empty()) {
-            opts->origdb = vm["db"].as<string>();
+            opts->origdb = vm["db"].as<fs::path>();
         }
     }
 }

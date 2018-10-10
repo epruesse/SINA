@@ -108,6 +108,9 @@ using boost::lambda::bind;
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/progress.hpp>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 using namespace sina;
 
@@ -138,7 +141,7 @@ const char* query_arb::fn_fullname   = "full_name";
 static boost::mutex arb_db_access;
 
 // List of opened ARB databases
-map<string, query_arb*> query_arb::open_arb_dbs;
+map<fs::path, query_arb*> query_arb::open_arb_dbs;
 
 static auto arb_logger = Log::create_logger("libARBDB");
 static auto logger = Log::create_logger("ARB I/O");
@@ -179,7 +182,7 @@ struct query_arb::priv_data {
     bool have_cache;
     const char* default_alignment;
     int alignment_length;
-    string filename;
+    fs::path filename;
     GBDATA *gbmain, *gblast, *gbspec;
     int count;
 
@@ -248,7 +251,7 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
     }
 }
 
-query_arb::query_arb(std::string arbfile)
+query_arb::query_arb(fs::path& arbfile)
     : data(* new(priv_data)) {
     if (arbfile == "") {
         throw runtime_error("NULL passed to query_arb::init!");
@@ -256,7 +259,7 @@ query_arb::query_arb(std::string arbfile)
 
     data.gbmain = GB_open(arbfile.c_str(), "rwc");
     if (not data.gbmain) {
-        throw runtime_error("Unable to open ARB database \"" + arbfile + "\".");
+        throw runtime_error(fmt::format("Unable to open ARB database {}.", arbfile));
     }
 
     setProtectionLevel(6); // drop privileges
@@ -313,14 +316,12 @@ query_arb::setProtectionLevel(int p) {
 
 void
 query_arb::closeOpenARBDBs() {
-    for (std::map<string, query_arb*>::iterator it = open_arb_dbs.begin();
-         it != open_arb_dbs.end(); ++it) {
-
-        if(it->second->hasErrors()){
-            it->second->printErrors(std::cerr);
+    for (auto& it: open_arb_dbs) {
+        if(it.second->hasErrors()){
+            it.second->printErrors(std::cerr);
         }
 
-        delete it->second;
+        delete it.second;
     }
 }
 
@@ -341,7 +342,7 @@ static arb_handlers arb_log_handlers = {
 
 
 query_arb*
-query_arb::getARBDB(std::string file_name) {
+query_arb::getARBDB(fs::path& file_name) {
     if (not query_arb::priv_data::the_arb_shell) {
         boost::mutex::scoped_lock lock(arb_db_access);
         query_arb::priv_data::the_arb_shell = new GB_shell();
@@ -360,16 +361,16 @@ query_arb::getARBDB(std::string file_name) {
 
 void
 query_arb::save() {
-    saveAs(data.filename.c_str());
+    saveAs(data.filename);
 }
 
-std::string
+const fs::path&
 query_arb::getFileName() const {
     return data.filename;
 }
 
 void
-query_arb::saveAs(const char* fname, const char* type) {
+query_arb::saveAs(const fs::path& fname, const char* type) {
     logger->info("Saving database {}", fname);
     {
         GB_transaction trans(data.gbmain);
@@ -380,7 +381,7 @@ query_arb::saveAs(const char* fname, const char* type) {
         }
     }
 
-    if (GB_ERROR err = GB_save_as(data.gbmain, fname, type)) {
+    if (GB_ERROR err = GB_save_as(data.gbmain, fname.c_str(), type)) {
         logger->error("Error '{}' while trying to save {}", err, fname);
     }
 }

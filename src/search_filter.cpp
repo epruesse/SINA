@@ -141,19 +141,14 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
     if (opts->pt_database.empty()) {
         if (vm.count("db") && !vm["db"].as<fs::path>().empty()) {
             opts->pt_database = vm["db"].as<fs::path>();
+            if (vm["search-port"].defaulted()) {
+                opts->pt_port = vm["ptport"].as<string>();
+            }
         } else {
           throw std::logic_error("need search-db to search");
         }
     }
 
-    // search-port defaults to ptport if search-db==db
-    if (vm["search-port"].defaulted() && 
-        opts->pt_database == vm["search-db"].as<fs::path>()) {
-        std::vector<string> cmd(2);
-        cmd[0]="--search-port";
-        cmd[1]=vm["ptport"].as<string>();
-        po::store(po::command_line_parser(cmd).options(desc).run(), vm);
-    }
 
     opts->comparator = cseq_comparator::make_from_variables_map(vm, "search-");
 
@@ -183,7 +178,7 @@ struct search_filter::priv_data {
 search_filter::search_filter()
     :  data(new priv_data)
 {
-    data->arb = query_arb::getARBDB(opts->pt_database.c_str());
+    data->arb = query_arb::getARBDB(opts->pt_database);
 
     if (opts->search_all) {
         logger->info("Caching Sequencences...");

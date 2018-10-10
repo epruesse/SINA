@@ -161,7 +161,7 @@ rw_arb::reader& rw_arb::reader::operator=(const reader& o) {
 rw_arb::reader::reader(fs::path infile)
     : data(new priv_data())
 {
-    data->arb = query_arb::getARBDB(infile.c_str());
+    data->arb = query_arb::getARBDB(infile);
 
     if (opts->select_file ==  "-") {
         data->in = &std::cin;
@@ -262,7 +262,7 @@ rw_arb::writer& rw_arb::writer::operator=(const writer& o) {
 rw_arb::writer::writer(fs::path outfile, unsigned int copy_relatives)
     :  data(new priv_data(outfile, copy_relatives))
 {
-    data->arb = query_arb::getARBDB(outfile.c_str());
+    data->arb = query_arb::getARBDB(outfile);
     data->arb->setProtectionLevel(opts->prot_lvl);
 }
 

@@ -30,6 +30,8 @@ for the parts of ARB used as well as that of the covered work.
 #define _KMER_SEARCH_H_
 
 #include <map>
+#include <boost/filesystem.hpp>
+
 #include "search.h"
 
 namespace sina {
@@ -38,7 +40,7 @@ class kmer_search : public search {
 public:
     class result_iterator;
 
-    static kmer_search* get_kmer_search(std::string filename, int k=10);
+    static kmer_search* get_kmer_search(boost::filesystem::path& filename, int k=10);
 
     /**
      * match runs a word search using the PT server
