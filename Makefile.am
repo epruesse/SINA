@@ -283,3 +283,4 @@ clean-local: clean-local-check
 .PHONY: clean-local-check
 clean-local-check:
 	rm -f test.*.xml
+	rm -f test_data/ltp_reduced.arb.*
