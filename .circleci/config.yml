@@ -57,8 +57,10 @@ jobs:
       - run:
           name: Running Unit Tests
           command: |
-            make -C ~/build check
+            make -C /root/build check
             ls -la $JUNIT_REPORT_PATH
+            mkdir -p /tmp/artifacts/tests
+            find /root/build -name \*.log -exec cp {} /tmp/artifacts/test \;
       - store_test_results:
           path: /root/reports
       - run:
