@@ -428,7 +428,10 @@ int real_main(int argc, char** argv) {
 
     if (opts.inorder) {
         typedef tf::sequencer_node<tray> sequencer_node;
-        sequencer_node *node = new sequencer_node(g, [](const tray& t) -> int {return t.seqno;});
+        sequencer_node *node = new sequencer_node(
+            g, [](const tray& t) -> int {
+                return t.seqno - 1;
+            });
         tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
         last_node = node;
