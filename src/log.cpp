@@ -201,7 +201,7 @@ Log::validate_vm(po::variables_map& vm,
     // create logging sinks
     auto console_sink = sinks[0];
     console_sink->set_level(opts->verbosity);
-    console_sink->set_pattern("%C-%m-%d %T [%n] %^%v%$");
+    console_sink->set_pattern("%T [%n] %^%v%$");
 
     logger->info("Loglevel set to {}", opts->verbosity);
 
