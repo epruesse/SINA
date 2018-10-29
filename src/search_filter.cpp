@@ -170,7 +170,7 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
 using namespace sina;
 
 struct search_filter::priv_data {
-    search *index;
+    std::unique_ptr<search> index;
     query_arb *arb;
     vector<cseq*> sequences;
 };
@@ -189,11 +189,13 @@ search_filter::search_filter()
             ++p;
         }
     } else {
-        data->index = new query_pt(opts->pt_port.c_str(), opts->pt_database.c_str(),
-                                   not opts->fs_no_fast,
-                                   opts->fs_kmer_len,
-                                   opts->fs_kmer_mm,
-                                   opts->fs_kmer_norel);
+        data->index = std::unique_ptr<search>(
+            new query_pt(opts->pt_port.c_str(), opts->pt_database.c_str(),
+                         not opts->fs_no_fast,
+                         opts->fs_kmer_len,
+                         opts->fs_kmer_mm,
+                         opts->fs_kmer_norel)
+            );
     }
 }
 
