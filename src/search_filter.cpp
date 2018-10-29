@@ -325,7 +325,7 @@ search_filter::operator()(tray t) {
         vc.erase(it, vc.end());
     }
 
-    stringstream result;
+    fmt::memory_buffer nearest;
     map<string, vector<vector<string> > > group_names_map;
     for (cseq &r: vc) {
         data->arb->loadKey(r, "acc");
@@ -344,12 +344,14 @@ search_filter::operator()(tray t) {
             }
             group_names_map[s].push_back(group_names);
         }
-        result << r.get_attr<string>("acc")
-               << "." << r.get_attr<string>("version")
-               << "." << r.get_attr<string>("start")
-               << "." << r.get_attr<string>("stop")
-               << "~" << r.getScore()
-               << " ";
+
+        fmt::format_to(nearest,
+                       "{}.{}.{}.{}~{:.3f} ",
+                       r.get_attr<string>("acc"),
+                       r.get_attr<string>("version"),
+                       r.get_attr<string>("start"),
+                       r.get_attr<string>("stop"),
+                       r.getScore());
 
         string acc = r.get_attr<string>("acc");
         for (string& s: opts->v_copy_fields) {
@@ -358,7 +360,7 @@ search_filter::operator()(tray t) {
             c->set_attr<string>(string("copy_")+acc+string("_")+s, v);
         }
     }
-    c->set_attr<string>("nearest_slv", result.str());
+    c->set_attr<string>("nearest_slv", fmt::to_string(nearest));
 
     for (string& s: opts->v_lca_fields) {
         stringstream result;
