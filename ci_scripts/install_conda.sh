@@ -7,10 +7,16 @@
 # - updates packages with every run
 # - needs BASH_ENV to point to the bashrc
 # - needs MINICONDA to point to the miniconda install path
-
+set -x
 
 CONDA_PACKAGES="autoconf automake libtool toolchain pkg-config boost arb-bio-devel"
 CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib libiconv"
+
+CONDA_BASEURL=https://repo.continuum.io/miniconda
+
+# expand '~' in MINICONDA path (alternatives to eval are too long)
+eval MINICONDA=$MINICONDA
+export MINICONDA
 
 case "$(uname)" in
     Linux)
@@ -23,60 +29,39 @@ case "$(uname)" in
 	;;
 esac
 
-# Make sure we have conda in the PATH always
+# Setup PATH
 if test -n "$BASH_ENV"; then
     echo "Prepending $MINICONDA/bin to PATH in $BASH_ENV"
     echo export PATH="$MINICONDA/bin:$PATH" >> $BASH_ENV
 fi
 export PATH="$MINICONDA/bin:$PATH" >> $BASH_ENV
 
-# Homemade restore_cache
-if test -e "LOCAL"; then
-    echo "Running locally"
-    if test -e conda.tgz; then
-	echo -n "Unpacking local conda cache... "
-	tar -C / -xzf conda.tgz
-	echo "done"
-    fi
-fi
-
 # Install Miniconda if missing
 if test -d $MINICONDA; then
     echo "Found conda install"
 else
-
-    CONDA_BASEURL=https://repo.continuum.io/miniconda
     curl $CONDA_BASEURL/Miniconda3-latest-$CONDA_OSNAME-x86_64.sh -o miniconda.sh
-
     bash miniconda.sh -b -p $MINICONDA
     hash -r
 
     conda config --system --set always_yes yes --set changeps1 no
-    conda update -q conda
-    for channel in defaults bioconda conda-forge; do
-	conda config --system --add channels $channel
-    done
+    conda config --system --add channels defaults
+    conda config --system --add channels bioconda
+    conda config --system --add channels conda-forge
     conda update -q conda
 fi
 
 # Install/update package
-# (Hope that "install" suffices)
 conda install -q conda $CONDA_PACKAGES
 conda update -q conda $CONDA_PACKAGES
 conda info
+conda clean --yes --all
 
-# Homemade save_cache
-# Clean out tarballs, update cache if there were any (=> something was installed)
-if test -e "LOCAL"; then
-    if conda clean --yes --tarballs | grep Removed; then
-	echo -n "Packing local conda cache..."
-	tar -C / -czf conda.tgz $MINICONDA
-	echo "done"
-    fi
-else
-    conda clean --yes --all
-    (conda info; conda list) >> conda_state.txt
-fi
+# Dump status
+mkdir -p conda
+conda info > conda/info.txt
+conda list > conda/root.txt
+ls -1 $MINICONDA/pkgs > conda/pkgs.txt
 
 ## Fix for as yet incomplete removal of .la files by conda-forge
 find $MINICONDA/lib -name \*.la -delete
