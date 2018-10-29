@@ -224,7 +224,7 @@ rw_fasta::reader::~reader() {
 
 bool
 rw_fasta::reader::operator()(tray& t) {
-    t.seqno = data->seqno;
+    t.seqno = ++data->seqno;
     t.input_sequence = new cseq();
     cseq &c = *t.input_sequence;
     if (data->in.fail()) {
@@ -298,7 +298,6 @@ rw_fasta::reader::operator()(tray& t) {
         return (*this)(t); // FIXME: stack size?
     }
 
-    ++data->seqno;
     logger->debug("loaded sequence {}", t.input_sequence->getName());
     return true;
 }
