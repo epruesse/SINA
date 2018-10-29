@@ -405,16 +405,17 @@ rw_fasta::writer::operator()(tray t) {
 
     data->write(c);
 
-    if (data->copy_relatives) {
-        std::vector<cseq> *relatives = t.search_result;
-        if (!t.search_result && t.alignment_reference) {
-            relatives = t.alignment_reference;
-        }
+    if (data->copy_relatives || false) {
+        std::vector<cseq> *relatives =
+            t.search_result ? t.search_result : t.alignment_reference;
         if (relatives) {
-            for (int i = 0; i < std::min(relatives->size(), data->copy_relatives); ++i) {
-                c = relatives->operator[](i);
-                if (data->relatives_written.insert(c.getName()).second) {
-                    data->write(c);
+            int i = data->copy_relatives;
+            for (auto& seq : *relatives) {
+                if (data->relatives_written.insert(seq.getName()).second) {
+                    data->write(seq);
+                }
+                if (--i == 0) {
+                    break;
                 }
             }
         }

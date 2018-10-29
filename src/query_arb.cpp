@@ -253,8 +253,9 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
 
 query_arb::query_arb(fs::path& arbfile)
     : data(* new(priv_data)) {
+    data.filename = arbfile;
     if (arbfile == "") {
-        throw runtime_error("NULL passed to query_arb::init!");
+        throw runtime_error("Empty ARB database name?!");
     }
 
     data.gbmain = GB_open(arbfile.c_str(), "rwc");
@@ -278,13 +279,15 @@ query_arb::query_arb(fs::path& arbfile)
     data.alignment_length =  GBT_get_alignment_len(data.gbmain,
                                                    data.default_alignment);
     if (data.alignment_length < 0) {
-        throw runtime_error(string("Width of default alignment \"") +
-                            data.default_alignment +
-                            "\" is smaller than zero.");
+        throw runtime_error(
+            fmt::format(
+                "Width of default alignment \"{}\" in {} is <0",
+                data.default_alignment, data.filename
+                )
+            );
     }
 
     data.gbspec = GB_search(data.gbmain, "species_data", GB_CREATE_CONTAINER);
-    data.filename = arbfile;
 
     int spec_count = 0;
     for ( GBDATA *gbspec = GBT_first_species(data.gbmain);
@@ -316,6 +319,7 @@ query_arb::setProtectionLevel(int p) {
 
 void
 query_arb::closeOpenARBDBs() {
+    // atexit registered method
     for (auto& it: open_arb_dbs) {
         if(it.second->hasErrors()){
             it.second->printErrors(std::cerr);
@@ -343,8 +347,8 @@ static arb_handlers arb_log_handlers = {
 
 query_arb*
 query_arb::getARBDB(fs::path& file_name) {
+    boost::mutex::scoped_lock lock(arb_db_access);
     if (not query_arb::priv_data::the_arb_shell) {
-        boost::mutex::scoped_lock lock(arb_db_access);
         query_arb::priv_data::the_arb_shell = new GB_shell();
 
         ARB_install_handlers(arb_log_handlers);

@@ -235,13 +235,17 @@ struct rw_arb::writer::priv_data {
     unsigned long copy_relatives;
     priv_data(fs::path& arb_fname_,
               unsigned long copy_relatives_)
-        : arb_fname(arb_fname_),
+        : arb(0),
+          arb_fname(arb_fname_),
           count(0),
           excluded(0),
           copy_relatives(copy_relatives_)
     {
     }
     ~priv_data() {
+        if (!arb) { // might never have been initialized
+            return;
+        }
         logger->info("wrote {} sequences ({} excluded, {} relatives)",
                      count, excluded, relatives_written.size());
         if (arb_fname.native() != ":") {
@@ -261,7 +265,7 @@ rw_arb::writer& rw_arb::writer::operator=(const writer& o) {
 rw_arb::writer::writer(fs::path outfile, unsigned int copy_relatives)
     :  data(new priv_data(outfile, copy_relatives))
 {
-    data->arb = query_arb::getARBDB(outfile);
+    data->arb = query_arb::getARBDB(outfile); // might throw
     data->arb->setProtectionLevel(opts->prot_lvl);
 }
 
@@ -279,16 +283,17 @@ rw_arb::writer::operator()(tray t) {
     data->arb->putCseq(c);
 
     if (data->copy_relatives) {
-        std::vector<cseq> *relatives = t.search_result;
-        if (!t.search_result && t.alignment_reference) {
-            relatives = t.alignment_reference;
-        }
-        if (relatives){
-            for (int i = 0; i < std::min(relatives->size(), data->copy_relatives); ++i) {
-                cseq &c = relatives->operator[](i);
-                if (data->relatives_written.insert(c.getName()).second) {
-                    data->arb->putCseq(c);
+        // FIXME: we should copy if reference is an arb database
+        auto* relatives = t.search_result ? t.search_result : t.alignment_reference;
+        if (relatives) {
+            int i = data->copy_relatives;
+            for (auto& seq : *relatives) {
+                if (data->relatives_written.insert(seq.getName()).second) {
+                    data->arb->putCseq(seq);
                     data->count++;
+                }
+                if (--i == 0) {
+                    break;
                 }
             }
         }
