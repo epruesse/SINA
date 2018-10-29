@@ -92,7 +92,7 @@ public:
                          const cseq& sequence,
                          int min_match,
                          int max_match,
-                         float min_score) {
+                         float min_score) override {
         return match(family, sequence, min_match, max_match, min_score, 2.0,
                      NULL, false, 0, 0, 0, 0, false);
     };
