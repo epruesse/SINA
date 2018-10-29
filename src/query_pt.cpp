@@ -103,13 +103,14 @@ managed_pt_server::managed_pt_server(const string& dbname_, const string& portna
     }
 
     // Make sure ARBHOME is set; guess if possible
-    fs::path ARBHOME = std::getenv("ARBHOME");
-    if (ARBHOME.empty()) {
+    fs::path ARBHOME;
+    if (const char* arbhome = std::getenv("ARBHOME")) {
+        ARBHOME = arbhome;
+        logger->info("Using ARBHOME={}", ARBHOME);
+    } else {
         ARBHOME = boost::dll::symbol_location(GB_open).parent_path().parent_path();
         logger->info("Setting ARBHOME={}", ARBHOME);
         setenv("ARBHOME", ARBHOME.c_str(), 1);  // no setenv in C++/STL
-    } else {
-        logger->info("Using ARBHOME={}", ARBHOME);
     }
 
     // Locate PT server binary
