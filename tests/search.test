@@ -4,25 +4,27 @@
 TEST_ARB=$TEST_ARGS
 T=$(maketmpdir)
 
+cp $TEST_ARB $T/ref.arb
+
 SINA="./src/sina"
 
 begin_test "PREP"
-capture_stdouterr "$SINA -i $TEST_ARB -o $T/extracted.fasta --select-step 1000 --prealigned"
+capture_stdouterr "$SINA -i $T/ref.arb -o $T/extracted.fasta --select-step 1000 --prealigned"
 assert_exit_success
 assert_output_contains "align 12 sequences"
-capture_stdouterr "$SINA -i $TEST_ARB -o $T/extracted.arb --select-step 1000 --prealigned"
+capture_stdouterr "$SINA -i $T/ref.arb -o $T/extracted.arb --select-step 1000 --prealigned"
 assert_exit_success
 assert_output_contains "align 12 sequences"
 end_test
 
 begin_test "Search"
-capture_stdouterr "$SINA -i $T/extracted.fasta -o $T/aligned.fasta --db $TEST_ARB --prealigned --search -v"
+capture_stdouterr "$SINA -i $T/extracted.fasta -o $T/aligned.fasta --db $T/ref.arb --prealigned --search -v"
 assert_output_not_contains aligned
 assert_output_count "nearest_slv: \w" -eq 12
 end_test
 
 begin_test "Search - add relatives"
-capture_stdouterr "$SINA -i $T/extracted.fasta -o $T/aligned.fasta --db $TEST_ARB --prealigned --search -v --add-relatives 2"
+capture_stdouterr "$SINA -i $T/extracted.fasta -o $T/aligned.fasta --db $T/ref.arb --prealigned --search -v --add-relatives 2"
 assert_output_not_contains aligned
 assert_output_count "nearest_slv: \w" -eq 12
 assert_output_contains "24 relatives"
