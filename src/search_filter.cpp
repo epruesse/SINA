@@ -232,15 +232,6 @@ struct dereference {
     F _f;
 };
 
-struct icontains {
-    typedef bool result_type;
-    const string bases;
-    explicit icontains(const string& _bases) : bases(_bases) {}
-    bool operator()(const cseq& c) {
-        return boost::algorithm::icontains(c.getBases(), bases);
-    }
-};
-
 struct iupac_contains {
     struct iupac_compare {
         typedef bool result_type;
@@ -303,8 +294,9 @@ search_filter::operator()(tray t) {
         data->index->match(vc, *c, 1, opts->kmer_candidates, 0.3, 2.0, data->arb,
                            false, 50, 0, 0, 0,false);
         if (opts->ignore_super) {
-            vector<cseq>::iterator it;
-            it = partition(vc.begin(), vc.end(), iupac_contains(*c));
+            iupac_contains contains(*c);
+            auto it = partition(vc.begin(), vc.end(),
+                                [&](cseq& c) {return not contains(c);});
             vc.erase(it, vc.end());
         }
 
@@ -312,16 +304,20 @@ search_filter::operator()(tray t) {
             r.setScore(opts->comparator(*c,r));
         }
 
-        vector<cseq>::iterator 
-            it=vc.begin(), 
-            middle = vc.begin() + opts->max_result,
-            end=vc.end();
+        auto it = vc.begin();
+        auto middle = vc.begin() + opts->max_result;
+        auto end=vc.end();
 
-        if (middle>end) middle=end;
+        if (middle > end) {
+            middle = end;
+        }
 
         partial_sort(it, middle, end, std::greater<cseq>());
 
-        while (it != middle && it->getScore() > opts->min_sim) ++it;
+        while (it != middle && it->getScore() > opts->min_sim) {
+            ++it;
+        }
+
         vc.erase(it, vc.end());
     }
 
