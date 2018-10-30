@@ -94,7 +94,7 @@ assert_exit_failure() {
 }
 
 assert_output_contains() {
-    if echo "$output" | grep -q "$1"; then
+    if echo "$output" | grep "$1" >/dev/null; then
 	:
     else
 	test_err="${test_err}# command output did not include '$1'
@@ -106,7 +106,7 @@ OUTPUT_END
 }
 
 assert_output_not_contains() {
-    if echo "$output" | grep -q "$1"; then
+    if echo "$output" | grep "$1" >/dev/null; then
 	test_err="${test_err}# command should not have included '$1'
 OUTPUT_BEGIN
 $output
