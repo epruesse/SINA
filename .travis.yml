@@ -8,6 +8,7 @@ cache: ccache
 branches:
   only:
     - master
+    - /v\d.*/
 
 env:
   global:
