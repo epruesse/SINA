@@ -60,6 +60,9 @@ using std::logic_error;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 #include <boost/algorithm/string/predicate.hpp>
 using boost::algorithm::istarts_with;
 using boost::algorithm::iequals;
@@ -100,10 +103,10 @@ struct famfinder::options {
     int   fs_kmer_mm;
     bool  fs_kmer_norel;
     int   fs_min_len;
+    int   fs_cover_gene;
 
-    int    fs_cover_gene;
-    string database;
-    string pt_port;
+    fs::path database;
+    string   pt_port;
 };
 struct famfinder::options *famfinder::opts;
 
@@ -156,7 +159,7 @@ famfinder::get_options_description(po::options_description& main,
     opts = new struct famfinder::options();
 
     main.add_options()
-        ("db,r", po::value<string>(&opts->database), "reference database")
+        ("db,r", po::value<fs::path>(&opts->database), "reference database")
         ("turn,t", po::value<TURN_TYPE>(&opts->turn_which)
          ->default_value(TURN_NONE, "")
          ->implicit_value(TURN_REVCOMP, ""),
@@ -193,7 +196,7 @@ famfinder::get_options_description(po::options_description& main,
 
     po::options_description od("Advanced Reference Selection");
     od.add_options()
-        ("ptdb", po::value<string>(&opts->database),
+        ("ptdb", po::value<fs::path>(&opts->database),
          "PT server database (old name)")
         ("ptport", po::value<string>(&opts->pt_port)
          ->default_value(fmt::format(":/tmp/sina_pt_{}", getpid()), ""),

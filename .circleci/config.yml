@@ -1,72 +1,83 @@
 version: 2
 
 references:
+  environment: &environment
+    environment:
+      MINICONDA: ~/miniconda
+      JUNIT_REPORT_PATH: /tmp/reports/ # trailing slash required
+      ARTIFACT_PATH: /tmp/artifacts/
+      MAKEFLAGS: -j2
+
   configure: &configure
     name: Running Configure
     command: |
+      eval MINICONDA=$MINICONDA
       cd ~/build
-      /root/sina/configure \
+      ~/project/configure \
       --disable-docs \
-      --prefix=/root/install \
-      --with-boost=/root/miniconda  \
-      --with-boost-libdir=/root/miniconda/lib \
-      --with-arbhome=/root/miniconda/lib/arb \
+      --prefix=$HOME/install \
+      --with-boost=$MINICONDA  \
+      --with-boost-libdir=$MINICONDA/lib \
+      --with-arbhome=$MINICONDA/lib/arb \
       $EXTRA_CONFIG_ARGS \
-      LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,/root/miniconda/lib" \
+      LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,$MINICONDA/lib" \
       || (cat config.log; false)
 
-jobs:
-  build:
+  macos: &macos
+    macos:
+      xcode: "9.0"
+  linux: &linux
     docker:
       - image: condaforge/linux-anvil
         environment:
-          MINICONDA: /root/miniconda
-          JUNIT_REPORT_PATH: /root/reports/ # trailing slash required
-          MAKEFLAGS: -j2
+          LC_ALL: C.UTF-8
+          LANG: C.UTF-8
 
-    working_directory: /root/sina
+jobs:
+  build:
+    <<: *environment
+    <<: *linux
+    docker:
+      - image: condaforge/linux-anvil
+        environment:
     steps:
       - checkout
-
       - restore_cache:
           keys:
-            - conda
+            - conda-{{arch}}
       - run:
           name: Preparing Conda Environment
           command: ./ci_scripts/install_conda.sh
       - save_cache:
-          key: conda-{{ checksum "conda_state.txt" }}
-          paths: /root/miniconda
-
+          key: conda-{{arch}}-{{checksum "conda/info.txt" }}-{{checksum "conda/root.txt"}}-{{checksum "conda/pkgs.txt"}}
+          paths: ~/miniconda
       - run:
           name: Checking out submodules
           command: git submodule update --init --recursive --remote
-
       - run:
           name: Preparing Directory Structure
-          command: mkdir ~/build $JUNIT_REPORT_PATH
-
+          command: mkdir ~/build $JUNIT_REPORT_PATH $ARTIFACT_PATH
       - run:
           name: Boostrapping Configure
           command: ./autogen.sh
       - run:
           <<: *configure
       - run:
-          name: Running Make
+          name: Building
           command: make -C ~/build
       - run:
           name: Running Unit Tests
+          command: make -C ~/build check
+      - run:
+          name: Copying logs
+          when: always
           command: |
-            make -C ~/build check
             ls -la $JUNIT_REPORT_PATH
-      - store_test_results:
-          path: /root/reports
+            mkdir -p $ARTIFACT_PATH/tests
+            find ~/build -name \*.log -exec cp {} $ARTIFACT_PATH/tests \;
       - run:
           name: Installing
           command: make -C ~/build install
-      - run:
-          name: Running Integration Tests
-          command: ~/install/bin/sina --help
       - run:
           name: Building Source Package
           command: make -C ~/build dist-bzip2
@@ -78,14 +89,13 @@ jobs:
           environment:
             EXTRA_CONFIG_ARGS: --enable-fat-tar
       - run:
-          name: Running Make
-          command: make -C ~/build
-      - run:
           name: Building Binary Package
           command: make -C ~/build bindist-bzip2
       - run:
           name: Copy tarballs
-          command: mkdir -p /tmp/artifacts; cp ~/build/*.tar.* /tmp/artifacts
+          command: cp ~/build/*.tar.* $ARTIFACT_PATH
+      - store_test_results:
+          path: /tmp/reports
       - store_artifacts:
           path: /tmp/artifacts
 

@@ -49,7 +49,7 @@ public:
         std::shared_ptr<priv_data> data;
     public:
         reader();
-        reader(boost::filesystem::path infile);
+        explicit reader(boost::filesystem::path infile);
         reader(const reader& o);
         reader& operator=(const reader& o);
         ~reader();
@@ -62,7 +62,7 @@ public:
         std::shared_ptr<priv_data> data;
     public:
         writer();
-        writer(boost::filesystem::path outfile);
+        writer(boost::filesystem::path outfile, unsigned int copy_relatives);
         writer(const writer& o);
         writer& operator=(const writer& o);
         ~writer();

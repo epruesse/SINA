@@ -141,19 +141,14 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
     if (opts->pt_database.empty()) {
         if (vm.count("db") && !vm["db"].as<fs::path>().empty()) {
             opts->pt_database = vm["db"].as<fs::path>();
+            if (vm["search-port"].defaulted()) {
+                opts->pt_port = vm["ptport"].as<string>();
+            }
         } else {
           throw std::logic_error("need search-db to search");
         }
     }
 
-    // search-port defaults to ptport if search-db==db
-    if (vm["search-port"].defaulted() && 
-        opts->pt_database == vm["search-db"].as<fs::path>()) {
-        std::vector<string> cmd(2);
-        cmd[0]="--search-port";
-        cmd[1]=vm["ptport"].as<string>();
-        po::store(po::command_line_parser(cmd).options(desc).run(), vm);
-    }
 
     opts->comparator = cseq_comparator::make_from_variables_map(vm, "search-");
 
@@ -175,7 +170,7 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
 using namespace sina;
 
 struct search_filter::priv_data {
-    search *index;
+    std::unique_ptr<search> index;
     query_arb *arb;
     vector<cseq*> sequences;
 };
@@ -183,7 +178,7 @@ struct search_filter::priv_data {
 search_filter::search_filter()
     :  data(new priv_data)
 {
-    data->arb = query_arb::getARBDB(opts->pt_database.c_str());
+    data->arb = query_arb::getARBDB(opts->pt_database);
 
     if (opts->search_all) {
         logger->info("Caching Sequencences...");
@@ -194,11 +189,13 @@ search_filter::search_filter()
             ++p;
         }
     } else {
-        data->index = new query_pt(opts->pt_port.c_str(), opts->pt_database.c_str(),
-                                   not opts->fs_no_fast,
-                                   opts->fs_kmer_len,
-                                   opts->fs_kmer_mm,
-                                   opts->fs_kmer_norel);
+        data->index = std::unique_ptr<search>(
+            new query_pt(opts->pt_port.c_str(), opts->pt_database.c_str(),
+                         not opts->fs_no_fast,
+                         opts->fs_kmer_len,
+                         opts->fs_kmer_mm,
+                         opts->fs_kmer_norel)
+            );
     }
 }
 
@@ -233,15 +230,6 @@ struct dereference {
         return _f(*a);
     }
     F _f;
-};
-
-struct icontains {
-    typedef bool result_type;
-    const string bases;
-    explicit icontains(const string& _bases) : bases(_bases) {}
-    bool operator()(const cseq& c) {
-        return boost::algorithm::icontains(c.getBases(), bases);
-    }
 };
 
 struct iupac_contains {
@@ -306,8 +294,9 @@ search_filter::operator()(tray t) {
         data->index->match(vc, *c, 1, opts->kmer_candidates, 0.3, 2.0, data->arb,
                            false, 50, 0, 0, 0,false);
         if (opts->ignore_super) {
-            vector<cseq>::iterator it;
-            it = partition(vc.begin(), vc.end(), iupac_contains(*c));
+            iupac_contains contains(*c);
+            auto it = partition(vc.begin(), vc.end(),
+                                [&](cseq& c) {return not contains(c);});
             vc.erase(it, vc.end());
         }
 
@@ -315,20 +304,24 @@ search_filter::operator()(tray t) {
             r.setScore(opts->comparator(*c,r));
         }
 
-        vector<cseq>::iterator 
-            it=vc.begin(), 
-            middle = vc.begin() + opts->max_result,
-            end=vc.end();
+        auto it = vc.begin();
+        auto middle = vc.begin() + opts->max_result;
+        auto end=vc.end();
 
-        if (middle>end) middle=end;
+        if (middle > end) {
+            middle = end;
+        }
 
         partial_sort(it, middle, end, std::greater<cseq>());
 
-        while (it != middle && it->getScore() > opts->min_sim) ++it;
+        while (it != middle && it->getScore() > opts->min_sim) {
+            ++it;
+        }
+
         vc.erase(it, vc.end());
     }
 
-    stringstream result;
+    fmt::memory_buffer nearest;
     map<string, vector<vector<string> > > group_names_map;
     for (cseq &r: vc) {
         data->arb->loadKey(r, "acc");
@@ -347,12 +340,14 @@ search_filter::operator()(tray t) {
             }
             group_names_map[s].push_back(group_names);
         }
-        result << r.get_attr<string>("acc")
-               << "." << r.get_attr<string>("version")
-               << "." << r.get_attr<string>("start")
-               << "." << r.get_attr<string>("stop")
-               << "~" << r.getScore()
-               << " ";
+
+        fmt::format_to(nearest,
+                       "{}.{}.{}.{}~{:.3f} ",
+                       r.get_attr<string>("acc"),
+                       r.get_attr<string>("version"),
+                       r.get_attr<string>("start"),
+                       r.get_attr<string>("stop"),
+                       r.getScore());
 
         string acc = r.get_attr<string>("acc");
         for (string& s: opts->v_copy_fields) {
@@ -361,7 +356,7 @@ search_filter::operator()(tray t) {
             c->set_attr<string>(string("copy_")+acc+string("_")+s, v);
         }
     }
-    c->set_attr<string>("nearest_slv", result.str());
+    c->set_attr<string>("nearest_slv", fmt::to_string(nearest));
 
     for (string& s: opts->v_lca_fields) {
         stringstream result;

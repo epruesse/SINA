@@ -1,0 +1,67 @@
+#!/bin/bash
+. $(dirname $0)/test_helper.sh
+
+TEST_ARB=$TEST_ARGS
+T=$(maketmpdir)
+
+cp $TEST_ARB $T/ref.arb
+
+SINA="./src/sina --prealigned"
+
+
+begin_test "Copy ARB to FASTA (TEST_ARB->test.fasta)"
+capture_stdouterr "$SINA -i $T/ref.arb -o $T/test.fasta --select-step 1000"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+end_test
+
+begin_test "Copy ARB to FASTA.gz (TEST_ARB->test.fasta.gz)"
+capture_stdouterr "$SINA -i $T/ref.arb -o $T/test.fasta.gz --select-step 1000"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+capture_stderr "gunzip -c $T/test.fasta.gz | cmp - $T/test.fasta"
+assert_exit_success
+end_test
+
+begin_test "Copy ARB to ARB (TEST_ARB->test.arb)"
+capture_stdouterr "$SINA -i $T/ref.arb -o $T/test.arb --select-step 1000"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+end_test
+
+begin_test "Copy FASTA to ARB (test.fasta->test2.arb)"
+capture_stdouterr "$SINA -i $T/test.fasta -o $T/test2.arb"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+capture_stdouterr "cmp $T/test.arb $T/test2.arb"
+assert_exit_success
+end_test
+
+begin_test "Copy FASTA.gz to ARB (test.fasta->test2.arb)"
+capture_stdouterr "$SINA -i $T/test.fasta.gz -o $T/test2.arb"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+capture_stdouterr "cmp $T/test.arb $T/test2.arb"
+assert_exit_success
+end_test
+
+begin_test "Copy ARB into ARB (TEST_ARB->test2.arb)"
+capture_stdouterr "$SINA -i $T/ref.arb -o $T/test2.arb --select-step 1001"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+capture_stdouterr "cmp $T/test.arb $T/test2.arb"
+assert_exit_failure
+end_test
+
+begin_test "Copy ARB to NULL (outtype=NONE)"
+capture_stdouterr "$SINA -i $T/test2.arb --outtype NONE"
+assert_exit_success
+assert_output_contains "align 23 sequences"
+end_test
+
+begin_test "Copy FASTA to NULL (test.fasta->/dev/null)"
+capture_stdouterr "$SINA -i $T/test.fasta -o /dev/null"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+end_test
+

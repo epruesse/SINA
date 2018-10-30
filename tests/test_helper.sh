@@ -94,10 +94,32 @@ assert_exit_failure() {
 }
 
 assert_output_contains() {
-    if echo $output | grep -q "$1"; then
+    if echo "$output" | grep "$1" >/dev/null; then
 	:
     else
 	test_err="${test_err}# command output did not include '$1'
+OUTPUT_BEGIN
+$output
+OUTPUT_END
+"
+    fi
+}
+
+assert_output_not_contains() {
+    if echo "$output" | grep "$1" >/dev/null; then
+	test_err="${test_err}# command should not have included '$1'
+OUTPUT_BEGIN
+$output
+OUTPUT_END
+"
+    fi
+}
+
+assert_output_count() {
+    if test $(echo "$output" | grep -c "$1") $2 $3; then
+	:
+    else
+	test_err="${test_err}# command output did not match $@
 "
     fi
 }

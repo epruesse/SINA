@@ -29,6 +29,8 @@ for the parts of ARB used as well as that of the covered work.
 #ifndef _SCORING_SCHEMES_H_
 #define _SCORING_SCHEMES_H_
 
+#include <vector>
+
 namespace sina {
 
 
@@ -247,7 +249,7 @@ public:
 
   scoring_scheme_matrix(value_type _gp, value_type _gpe,
                         std::vector<value_type>& _weights,
-                        matrix_type _matrix)
+                        const matrix_type& _matrix)
     : gap_penalty(_gp),
       gap_extension_penalty(_gpe),
       weights(_weights),
@@ -304,8 +306,8 @@ public:
 private:
   const value_type gap_penalty;
   const value_type gap_extension_penalty;
-  std::vector<value_type>& weights;
-  matrix_type& matrix;
+  const std::vector<value_type>& weights;
+  const matrix_type& matrix;
 };
 
 

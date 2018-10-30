@@ -45,7 +45,8 @@ EXTRA_DIST = \
     autogen.sh \
     tools \
     test_data/ltp_reduced.arb.xz \
-    include
+    include \
+    tests
 
 CLEANFILES =
 
@@ -236,16 +237,6 @@ test_libs = \
     $(BOOST_UNIT_TEST_FRAMEWORK_LIB) \
     $(BOOST_SYSTEM_LIB)
 
-test_scripts = \
-    src/unit_tests/integration.test
-
-$(test_scripts): $(bin_PROGRAMS)
-
-EXTRA_DIST += $(test_scripts) src/unit_tests/test_helper.sh
-
-TESTS =  $(check_PROGRAMS) $(test_scripts)
-
-export ARBHOME
 LOG_COMPILER = $(top_srcdir)/tools/test_driver.sh
 
 TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) \
@@ -258,16 +249,6 @@ check_PROGRAMS = \
     src/unit_tests/kmer_test \
     src/unit_tests/kmer_search_test
 
-check_DATA = test_data/ltp_reduced.arb
-
-
-TEST_ARGS := $(check_DATA) $(TEST_EXTRA_ARGS)
-export TEST_ARGS
-
-test_data/%: test_data/%.xz
-	mkdir -p $$(dirname $@)
-	unxz -c $< > $@
-
 src_unit_tests_cseq_test_LDADD = $(test_libs)
 src_unit_tests_cseq_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_cseq_comparator_test_LDADD = $(test_libs)
@@ -279,7 +260,32 @@ src_unit_tests_kmer_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_kmer_search_test_LDADD = $(test_libs)
 src_unit_tests_kmer_search_test_LDFLAGS = $(ARB_LDFLAGS)
 
+test_scripts = \
+    tests/readwrite.test \
+    tests/align.test \
+    tests/search.test \
+    tests/infocommands.test		
+
+
+check_DATA = test_data/ltp_reduced.arb
+
+TESTS = $(check_PROGRAMS) $(test_scripts)
+
+TEST_ARGS := $(check_DATA) $(TEST_EXTRA_ARGS)
+export TEST_ARGS
+
+$(test_scripts): $(bin_PROGRAMS) $(check_DATA)
+
+test_data/%: test_data/%.xz
+	mkdir -p $$(dirname $@)
+	unxz -c $< > $@
+
 clean-local: clean-local-check
-.PHONY: clean-local-check
+
 clean-local-check:
 	rm -f test.*.xml
+	rm -f test_data/ltp_reduced.arb.*
+
+.PHONY: clean-local-check
+
+

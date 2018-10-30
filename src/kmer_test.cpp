@@ -36,8 +36,7 @@ for the parts of ARB used as well as that of the covered work.
 
 #include <vector>
 #include <string>
-#include <boost/foreach.hpp>
-#define foreach BOOST_FOREACH
+#include <boost/filesystem.hpp>
 
 #ifdef HAVE_TBB
 #include <tbb/task_scheduler_init.h>
@@ -57,6 +56,7 @@ int main(int argc, const char** argv) {
       logger->critical("need arb db as argument");
       exit(1);
   }
+  boost::filesystem::path database(argv[1]);
 
 #ifdef HAVE_TBB
   int n_threads = tbb::task_scheduler_init::default_num_threads();
@@ -64,7 +64,7 @@ int main(int argc, const char** argv) {
 #endif
 
   t.start();
-  query_arb* arbdb = query_arb::getARBDB(argv[1]);
+  query_arb* arbdb = query_arb::getARBDB(database);
   t.stop();
   /*
   query_pt pt("localhost:4040", argv[1]);
@@ -78,7 +78,7 @@ int main(int argc, const char** argv) {
     //cseq target = arbdb->getCseq(seqNames[i]);
   }
   t.stop();
-  kmer_search* search_index=kmer_search::get_kmer_search(argv[1], 10);
+  kmer_search* search_index=kmer_search::get_kmer_search(database, 10);
 
   t.stop();
   std::vector<cseq> family;

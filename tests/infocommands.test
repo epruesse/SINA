@@ -1,0 +1,39 @@
+#!/bin/bash
+. $(dirname $0)/test_helper.sh
+
+TEST_ARB=$TEST_ARGS
+T=$(maketmpdir)
+
+SINA="./src/sina"
+
+
+begin_test "Show help"
+capture_stderr $SINA --help
+assert_exit_success
+assert_output_contains "Usage:"
+assert_output_contains "Options:"
+end_test
+
+begin_test "Show advanced help"
+capture_stderr $SINA --help-all
+assert_exit_success
+assert_output_contains "Usage:"
+assert_output_contains "Options:"
+assert_output_contains "Advanced Options:"
+end_test
+
+begin_test "Show version"
+capture_stderr $SINA --version
+assert_exit_success
+assert_output_contains "SINA 1"
+end_test
+
+begin_test "Asserts CLI 2 supported"
+capture_stderr $SINA --has-cli-vers 2
+assert_exit_success
+end_test
+
+begin_test "Asserts CLI 3 unsupported"
+capture_stderr $SINA --has-cli-vers 3
+assert_exit_failure
+end_test

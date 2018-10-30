@@ -34,6 +34,9 @@
 #include <boost/test/data/test_case.hpp>
 namespace bdata = boost::unit_test::data;
 
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 #include <random>
 #include <set>
 #include <algorithm>
@@ -66,10 +69,11 @@ BOOST_AUTO_TEST_CASE(simple, *boost::unit_test::tolerance(0.0001)) {
     char** argv = boost::unit_test::framework::master_test_suite().argv;
 
     BOOST_REQUIRE(argc>1);
-    std::cerr << "Using database " << argv[1] << "for testing" << std::endl;
-    kmer_search *search_index = kmer_search::get_kmer_search(argv[1]);
+    fs::path database = argv[1];
+    std::cerr << "Using database " << database << "for testing" << std::endl;
+    kmer_search *search_index = kmer_search::get_kmer_search(database);
     
-    query_arb *arbdb = query_arb::getARBDB(argv[1]);
+    query_arb *arbdb = query_arb::getARBDB(database);
     std::vector<std::string> ids = arbdb->getSequenceNames();
     BOOST_REQUIRE(ids.size() > N);
     shuffle_n(ids.begin(), ids.end(), N);

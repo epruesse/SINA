@@ -52,11 +52,11 @@ using std::hex;
 #include <unordered_map>
 #include <unordered_set>
 
-#include <boost/foreach.hpp>
-#define foreach BOOST_FOREACH
-
 #include <boost/progress.hpp>
 using progress = boost::progress_display;
+
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
 
 #include <boost/thread/mutex.hpp>
 
@@ -74,7 +74,7 @@ std::map<string, kmer_search*> kmer_search::indices;
 static boost::mutex indices_access;
 
 kmer_search*
-kmer_search::get_kmer_search(std::string filename, int k) {
+kmer_search::get_kmer_search(fs::path& filename, int k) {
     boost::mutex::scoped_lock lock(indices_access);
     std::stringstream str;
     str << filename << "%%k=" << k;

@@ -65,7 +65,7 @@ public:
         struct priv_data;
         std::shared_ptr<priv_data> data;
     public:
-        explicit writer(const boost::filesystem::path&);
+        writer(const boost::filesystem::path& out, unsigned int copy_relatives);
         writer(const writer&);
         writer& operator=(const writer&);
         ~writer();

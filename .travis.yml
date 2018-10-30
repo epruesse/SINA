@@ -1,10 +1,13 @@
 language: cpp
-
 os:
   - linux
   - osx
-
+sudo: false
 cache: ccache
+
+branches:
+  only:
+    - master
 
 env:
   global:

@@ -73,7 +73,7 @@ namespace sys = boost::system;
 
 namespace sina {
 
-static auto logger = Log::create_logger("ARB search");
+static auto logger = Log::create_logger("Search (ARB PT)");
 static auto pt_logger = Log::create_logger("ARB_PT_SERVER");
 
 
@@ -103,14 +103,14 @@ managed_pt_server::managed_pt_server(const string& dbname_, const string& portna
     }
 
     // Make sure ARBHOME is set; guess if possible
-    fs::path ARBHOME = std::getenv("ARBHOME");
-    if (ARBHOME.empty()) {
+    fs::path ARBHOME;
+    if (const char* arbhome = std::getenv("ARBHOME")) {
+        ARBHOME = arbhome;
+        logger->info("Using ARBHOME={}", ARBHOME);
+    } else {
         ARBHOME = boost::dll::symbol_location(GB_open).parent_path().parent_path();
         logger->info("Setting ARBHOME={}", ARBHOME);
         setenv("ARBHOME", ARBHOME.c_str(), 1);  // no setenv in C++/STL
-    } else {
-        logger->warn("Warning: Unable to determine ARBHOME.");
-        logger->warn("Expect PT server to fail below.");
     }
 
     // Locate PT server binary
@@ -602,7 +602,10 @@ match_retry:
     if (skipped_max_score || skipped_broken || skipped_min_len || skipped_noid) {
         logger->warn("Skipped {} sequences ({} id < {}, {} broken, {} len < {}, {} noid)",
                      skipped_max_score + skipped_broken + skipped_min_len + skipped_noid,
-                     skipped_max_score, skipped_broken, skipped_min_len, skipped_noid);
+                     skipped_max_score, max_score,
+                     skipped_broken,
+                     skipped_min_len, min_len,
+                     skipped_noid);
     }
 
     return f_relscore;

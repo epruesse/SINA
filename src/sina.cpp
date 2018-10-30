@@ -145,6 +145,7 @@ struct options {
     SEQUENCE_DB_TYPE outtype;
     fs::path in;
     fs::path out;
+    unsigned int copy_relatives;
     bool noalign;
     bool skip_align;
     bool do_search;
@@ -188,6 +189,8 @@ void get_options_description(po::options_description& main,
          "input file (arb or fasta)")
         ("out,o", po::value<fs::path>(&opts.out)->default_value("-"),
          "output file (arb or fasta)")
+        ("add-relatives", po::value<unsigned int>(&opts.copy_relatives)->default_value(0, ""),
+         "add the ARG nearest relatives for each sequence to output")
         ("search,S", po::bool_switch(&opts.do_search), "enable search stage")
         ("prealigned,P", po::bool_switch(&opts.skip_align), "skip alignment stage")
         ("threads,p", po::value<unsigned int>(&opts.threads)->default_value(tbb_automatic, ""),
@@ -231,7 +234,11 @@ void validate_vm(po::variables_map& vm, po::options_description all_od) {
         }
     }
 
-    // Pick suitable output if no output given
+    if (opts.intype == SEQUENCE_DB_NONE) {
+        throw logic_error("Input type NONE invalid - need something to process");
+    }
+
+    // If infile is ARB, default to writing into same DB
     if (opts.out == "-" && opts.intype == SEQUENCE_DB_ARB) {
         opts.out = opts.in;
     }
@@ -240,6 +247,8 @@ void validate_vm(po::variables_map& vm, po::options_description all_od) {
     if (opts.outtype == SEQUENCE_DB_AUTO) {
         if (opts.out.extension() == ".arb" || opts.out.native() == ":") {
             opts.outtype = SEQUENCE_DB_ARB;
+        } else if (opts.out == "/dev/null") {
+            opts.outtype = SEQUENCE_DB_NONE;
         } else {
             opts.outtype = SEQUENCE_DB_FASTA;
         }
@@ -419,7 +428,10 @@ int real_main(int argc, char** argv) {
 
     if (opts.inorder) {
         typedef tf::sequencer_node<tray> sequencer_node;
-        sequencer_node *node = new sequencer_node(g, [](const tray& t) -> int {return t.seqno;});
+        sequencer_node *node = new sequencer_node(
+            g, [](const tray& t) -> int {
+                return t.seqno - 1;
+            });
         tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
         last_node = node;
@@ -428,17 +440,22 @@ int real_main(int argc, char** argv) {
     // Make node writing sequences
     switch(opts.outtype) {
     case SEQUENCE_DB_ARB:
-        node = new filter_node(g, 1, rw_arb::writer(opts.out));
+        node = new filter_node(g, 1, rw_arb::writer(opts.out, opts.copy_relatives));
         break;
     case SEQUENCE_DB_FASTA:
-        node = new filter_node(g, 1, rw_fasta::writer(opts.out));
+        node = new filter_node(g, 1, rw_fasta::writer(opts.out, opts.copy_relatives));
+        break;
+    case SEQUENCE_DB_NONE:
+        node = NULL;
         break;
     default:
-        throw logic_error("input type undefined");
+        throw logic_error("output type undefined");
     }
-    tf::make_edge(*last_node, *node);
-    nodes.emplace_back(node);
-    last_node = node;
+    if (node) {
+        tf::make_edge(*last_node, *node);
+        nodes.emplace_back(node);
+        last_node = node;
+    }
 
     node = new filter_node(g, 1, Log::printer());
     tf::make_edge(*last_node, *node);
@@ -470,7 +487,7 @@ int main(int argc, char** argv) {
     try {
         return real_main(argc, argv);
     } catch (std::exception &e) {
-        logger->critical("uncaught exception: {}", e.what());
+        logger->critical("Error during program execution: {}", e.what());
         return EXIT_FAILURE;
     }
 }

@@ -46,6 +46,8 @@ using std::vector;
 #include <map>
 using std::map;
 
+#include <unordered_set>
+
 #include <boost/thread/thread.hpp>
 using boost::thread;
 
@@ -159,7 +161,7 @@ rw_arb::reader& rw_arb::reader::operator=(const reader& o) {
 rw_arb::reader::reader(fs::path infile)
     : data(new priv_data())
 {
-    data->arb = query_arb::getARBDB(infile.c_str());
+    data->arb = query_arb::getARBDB(infile);
 
     if (opts->select_file ==  "-") {
         data->in = &std::cin;
@@ -186,7 +188,7 @@ rw_arb::reader::reader(fs::path infile)
 bool
 rw_arb::reader::operator()(tray& t) {
     string name;
-    t.seqno = data->seqno;
+    t.seqno = ++data->seqno;
     t.input_sequence = 0; // we may get initialized tray
 
     while (not t.input_sequence) {
@@ -217,7 +219,6 @@ rw_arb::reader::operator()(tray& t) {
         }
     }
 
-    ++data->seqno;
     logger->debug("loaded sequence {}", t.input_sequence->getName());
     return true;
 }
@@ -228,8 +229,25 @@ rw_arb::reader::operator()(tray& t) {
 struct rw_arb::writer::priv_data {
     query_arb *arb;
     fs::path arb_fname;
+    int count;
+    int excluded;
+    std::unordered_set<string> relatives_written;
+    unsigned long copy_relatives;
+    priv_data(fs::path& arb_fname_,
+              unsigned long copy_relatives_)
+        : arb(0),
+          arb_fname(arb_fname_),
+          count(0),
+          excluded(0),
+          copy_relatives(copy_relatives_)
+    {
+    }
     ~priv_data() {
-        logger->info("Saving...");
+        if (!arb) { // might never have been initialized
+            return;
+        }
+        logger->info("wrote {} sequences ({} excluded, {} relatives)",
+                     count, excluded, relatives_written.size());
         if (arb_fname.native() != ":") {
             arb->save();
         }
@@ -244,20 +262,43 @@ rw_arb::writer& rw_arb::writer::operator=(const writer& o) {
     return *this;
 }
 
-rw_arb::writer::writer(fs::path outfile)
-    :  data(new priv_data)
+rw_arb::writer::writer(fs::path outfile, unsigned int copy_relatives)
+    :  data(new priv_data(outfile, copy_relatives))
 {
-    data->arb_fname = outfile;
-    data->arb = query_arb::getARBDB(outfile.c_str());
+    data->arb = query_arb::getARBDB(outfile); // might throw
     data->arb->setProtectionLevel(opts->prot_lvl);
 }
 
 
 tray
 rw_arb::writer::operator()(tray t) {
-    if (t.aligned_sequence) {
-        data->arb->putCseq(*t.aligned_sequence);
+    if (t.aligned_sequence == 0) {
+        logger->info("Not writing sequence {} (>{}): not aligned",
+                     t.seqno, t.input_sequence->getName());
+        ++data->excluded;
+        return t;
     }
+    cseq &c = *t.aligned_sequence;
+
+    data->arb->putCseq(c);
+
+    if (data->copy_relatives) {
+        // FIXME: we should copy if reference is an arb database
+        auto* relatives = t.search_result ? t.search_result : t.alignment_reference;
+        if (relatives) {
+            int i = data->copy_relatives;
+            for (auto& seq : *relatives) {
+                if (data->relatives_written.insert(seq.getName()).second) {
+                    data->arb->putCseq(seq);
+                    data->count++;
+                }
+                if (--i == 0) {
+                    break;
+                }
+            }
+        }
+    }
+    data->count++;
     return t;
 }
 

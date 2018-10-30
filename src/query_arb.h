@@ -32,6 +32,9 @@ for the parts of ARB used as well as that of the covered work.
 #include <string>
 #include <vector>
 #include <list>
+
+#include <boost/filesystem.hpp>
+
 #include "cseq.h"
 #include "alignment_stats.h"
 
@@ -58,7 +61,7 @@ private:
 
 
 class query_arb{
-    query_arb(std::string);
+    query_arb(boost::filesystem::path&);
     ~query_arb();
 
  public:
@@ -67,7 +70,7 @@ class query_arb{
      * @param file_name ...
      * @returns one instance per database file. If the method is called multiple times on the same file the same instance is returned.
      */
-    static query_arb* getARBDB(std::string file_name);
+    static query_arb* getARBDB(boost::filesystem::path& file_name);
 
     static const char* fn_turn;
     static const char* fn_acc;
@@ -110,12 +113,12 @@ class query_arb{
      *        * 'S' save to stdout (for debugging)
      *        @note Either 'a' or 'b' must be defined.
      */
-    void saveAs(const char* fname, const char* type="b");
+    void saveAs(const boost::filesystem::path& fname, const char* type="b");
 
     /**
      * Returns filename of underlying ARB database file
      */
-    std::string getFileName() const;
+    const boost::filesystem::path& getFileName() const;
 
     void setProtectionLevel(int);
 
@@ -197,7 +200,7 @@ private:
     priv_data& data;
     struct storeKey_visitor;
     struct putKeyVal_visitor;
-    static std::map<std::string, query_arb*> open_arb_dbs;
+    static std::map<boost::filesystem::path, query_arb*> open_arb_dbs;
 
 };
 
