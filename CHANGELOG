@@ -3,6 +3,7 @@ Version 1.4.0:
  - add support for gzipped read/write (#20)
  - add support for "-" to read/write using pipes
  - remove internal pipeline in favor of TBB
+ - add --add-relatives adding search result to output (#19)
 
 Version 1.3.5:
  - report number of references discarded due to configured constraints
