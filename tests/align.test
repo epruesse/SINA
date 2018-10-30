@@ -4,13 +4,15 @@
 TEST_ARB=$TEST_ARGS
 T=$(maketmpdir)
 
+cp $TEST_ARB ref.arb
+
 SINA="./src/sina"
 
 begin_test "PREP"
-capture_stdouterr "$SINA -i $TEST_ARB -o $T/extracted.fasta --select-step 1000 --prealigned"
+capture_stdouterr "$SINA -i ref.arb -o $T/extracted.fasta --select-step 1000 --prealigned"
 assert_exit_success
 assert_output_contains "align 12 sequences"
-capture_stdouterr "$SINA -i $TEST_ARB -o $T/extracted.arb --select-step 1000 --prealigned"
+capture_stdouterr "$SINA -i ref.arb -o $T/extracted.arb --select-step 1000 --prealigned"
 assert_exit_success
 assert_output_contains "align 12 sequences"
 end_test
@@ -42,13 +44,13 @@ assert_exit_success
 end_test
 
 begin_test "Add relatives FASTA->FASTA"
-capture_stdouterr "$SINA -i $T/extracted.fasta -o $T/aligned.fasta --add-relatives 2 --db $TEST_ARB -v"
+capture_stdouterr "$SINA -i $T/extracted.fasta -o $T/aligned.fasta --add-relatives 2 --db ref.arb -v"
 assert_output_contains "align 12 sequences"
 assert_output_contains "wrote 36 sequences (0 excluded, 24 relatives)"
 end_test
 
 begin_test "Add relatives FASTA->ARB"
-capture_stdouterr "$SINA -i $T/extracted.fasta -o $T/aligned.arb --add-relatives 2 --db $TEST_ARB -v"
+capture_stdouterr "$SINA -i $T/extracted.fasta -o $T/aligned.arb --add-relatives 2 --db ref.arb -v"
 assert_output_contains "align 12 sequences"
 assert_output_contains "wrote 36 sequences (0 excluded, 24 relatives)"
 end_test
