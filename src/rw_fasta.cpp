@@ -384,10 +384,10 @@ string escape_string(const string& in) {
 
 tray
 rw_fasta::writer::operator()(tray t) {
-    if (t.input_sequence == 0) {
+    if (t.input_sequence == nullptr) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
-    if (t.aligned_sequence == 0) {
+    if (t.aligned_sequence == nullptr) {
         logger->info("Not writing sequence {} (>{}): not aligned",
                      t.seqno, t.input_sequence->getName());
         ++data->excluded;

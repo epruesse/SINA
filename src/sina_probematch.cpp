@@ -56,7 +56,7 @@ struct iupac_compare {
 
 int main(int argc, const char **argv) {
   boost::filesystem::path arbdb;
-  const char *probe_seq = 0;
+  const char *probe_seq = nullptr;
   bool reverse = false;
   bool complement = false;
   for (int i=1; i<argc; i++) {

@@ -143,7 +143,7 @@ struct rw_arb::reader::priv_data {
     istream *in;
     int seqno;
 
-    priv_data() : arb(NULL), in(NULL), seqno(0) {}
+    priv_data() : arb(nullptr), in(nullptr), seqno(0) {}
     ~priv_data() {
         logger->info("read {} sequences", seqno);
     }
@@ -189,7 +189,7 @@ bool
 rw_arb::reader::operator()(tray& t) {
     string name;
     t.seqno = ++data->seqno;
-    t.input_sequence = 0; // we may get initialized tray
+    t.input_sequence = nullptr; // we may get initialized tray
 
     while (not t.input_sequence) {
         if (data->in->bad()) {
@@ -235,7 +235,7 @@ struct rw_arb::writer::priv_data {
     unsigned long copy_relatives;
     priv_data(fs::path& arb_fname_,
               unsigned long copy_relatives_)
-        : arb(0),
+        : arb(nullptr),
           arb_fname(arb_fname_),
           count(0),
           excluded(0),
@@ -272,7 +272,7 @@ rw_arb::writer::writer(fs::path outfile, unsigned int copy_relatives)
 
 tray
 rw_arb::writer::operator()(tray t) {
-    if (t.aligned_sequence == 0) {
+    if (t.aligned_sequence == nullptr) {
         logger->info("Not writing sequence {} (>{}): not aligned",
                      t.seqno, t.input_sequence->getName());
         ++data->excluded;

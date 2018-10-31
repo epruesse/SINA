@@ -112,7 +112,7 @@ public:
         n_kmers(1<<(k_*2)),
         n_sequences(0),
         sequence_names(),
-        kmer_idx(1<<(k_*2), NULL),
+        kmer_idx(1<<(k_*2), nullptr),
         arbdb(arbdb_),
         timeit()
     {

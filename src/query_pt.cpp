@@ -212,7 +212,7 @@ query_pt::validate_vm(po::variables_map& /* vm */,
 
 struct query_pt::priv_data {
     priv_data()
-        : link(0L),
+        : link(nullptr),
           range_begin(-1),
           range_end(-1),
           find_type_fast(false)
@@ -242,7 +242,7 @@ struct query_pt::priv_data {
 bool
 query_pt::priv_data::connect_server(string portname) {
     boost::mutex::scoped_lock lock(arb_pt_access);
-    GB_ERROR error = NULL;
+    GB_ERROR error = nullptr;
     link = aisc_open(portname.c_str(), com, AISC_MAGIC_NUMBER, &error);
     if (error) {
         throw query_pt_exception(error);

@@ -422,7 +422,7 @@ famfinder::_famfinder::turn_check(const cseq& query, bool all) {
 
 void
 famfinder::_famfinder::select_astats(tray& t) {
-    alignment_stats *astats = 0;
+    alignment_stats *astats = nullptr;
 
     // load default as per --filter
     if (opts->posvar_filter != "") {
@@ -446,7 +446,7 @@ famfinder::_famfinder::select_astats(tray& t) {
         vector<cseq> &vc = *t.alignment_reference;
         int best_count = 0;
         typedef pair<string, alignment_stats> vastats_t;
-        alignment_stats *best=0;
+        alignment_stats *best = nullptr;
         for (alignment_stats& p: vastats) {
             string filter_name = p.getName();
             int n = 0;
@@ -470,7 +470,7 @@ famfinder::_famfinder::select_astats(tray& t) {
         }
     }
 
-    if (astats ==  0) {
+    if (astats == nullptr) {
         astats = new alignment_stats();
     }
 
@@ -530,7 +530,7 @@ famfinder::_famfinder::operator()(tray t) {
     if (vc.size() < opts->fs_req) {
         t.log << "unable to align: too few relatives (" << vc.size() << ");";
         delete t.alignment_reference;
-        t.alignment_reference = 0;
+        t.alignment_reference = nullptr;
         return t;
     } 
 

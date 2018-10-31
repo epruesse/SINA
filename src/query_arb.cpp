@@ -149,11 +149,11 @@ static auto logger = Log::create_logger("ARB I/O");
 struct query_arb::priv_data {
     priv_data() :
         have_cache(false),
-        default_alignment(0L),
+        default_alignment(nullptr),
         alignment_length(0),
-        gbmain(0L),
-        gblast(0L),
-        gbspec(0L),
+        gbmain(nullptr),
+        gblast(nullptr),
+        gbspec(nullptr),
         count(0)
     {}
 
@@ -194,7 +194,7 @@ struct query_arb::priv_data {
                             const char *name, const char *ali) ;
 };
 
-GB_shell *query_arb::priv_data::the_arb_shell = NULL;
+GB_shell *query_arb::priv_data::the_arb_shell = nullptr;
 
 GBDATA*
 query_arb::priv_data::getGBDATA(string name) {
@@ -448,7 +448,7 @@ struct query_arb::storeKey_visitor
         GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
         if (gbd && GB_read_type(gbd) != GB_INT) {
             GB_delete(gbd);
-            gbd = 0;
+            gbd = nullptr;
         }
 
         if (not gbd) {
@@ -469,7 +469,7 @@ struct query_arb::storeKey_visitor
         GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
         if (gbd && GB_read_type(gbd) != GB_FLOAT) {
             GB_delete(gbd);
-            gbd = 0;
+            gbd = nullptr;
         }
         if (not gbd) {
             gbd = GB_create(_gbspec, _key.c_str(), GB_FLOAT);
@@ -482,7 +482,7 @@ struct query_arb::storeKey_visitor
         GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
         if (gbd && GB_read_type(gbd) != GB_STRING) {
             GB_delete(gbd);
-            gbd = 0;
+            gbd = nullptr;
         }
         if (not gbd) {
             gbd = GB_create(_gbspec, _key.c_str(), GB_STRING);
@@ -583,7 +583,7 @@ query_arb::loadCache(std::vector<std::string>& keys) {
             {
                 arb.start();
                 const char* name_str;
-                GBDATA *gb_sequence = NULL;
+                GBDATA *gb_sequence = nullptr;
                 while (gbspec && not gb_sequence) {
                     name_str = GBT_read_name(gbspec);
                     gb_sequence = GBT_find_sequence(gbspec, ali);
@@ -773,7 +773,7 @@ query_arb::copySequence(query_arb& other, std::string name, bool mark) {
         logger->error("Error while copying species \"{}\".", name);
     }
 
-    data.gblast = 0;
+    data.gblast = nullptr;
 }
 
 void
@@ -795,7 +795,7 @@ query_arb::setMark(const std::string& name) {
         data.gblast = gbdata;
     } else {
         logger->error("Failed to mark species {} - name not found", name);
-        data.gblast = 0;
+        data.gblast = nullptr;
     }
 }
 
@@ -840,7 +840,7 @@ query_arb::getAlignmentStats() {
     // What ARB calls "Transitions" is really "Mutations"
     // Actual transitions could be computed by subtracting transversions
     const char *pvp_names[] =
-        { "NA", "NC", "NG", "NU", "TRANSITIONS", "TRANSVERSIONS", 0L };
+        { "NA", "NC", "NG", "NU", "TRANSITIONS", "TRANSVERSIONS", nullptr };
     enum {
         NA = 0, NC = 1, NG = 2, NU = 3, TRNS = 4, TRVRS = 5
     };

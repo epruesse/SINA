@@ -247,7 +247,7 @@ struct Log::printer::priv_data {
     priv_data() : sequence_num(0),
                   total_sps(0), total_error(0), total_cpm(0),
                   total_idty(0), total_bps(0), total_score(0),
-                  arb(0)
+                  arb(nullptr)
     {}
     ~priv_data();
 
@@ -335,7 +335,7 @@ Log::printer::operator()(tray t) {
 /*
     c.set_attr(fn_qual, std::min(100, std::max(0, (int)(-100 * c.getScore()))));
 */
-    if (t.input_sequence == 0) {
+    if (t.input_sequence == nullptr) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
 

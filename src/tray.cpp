@@ -41,11 +41,11 @@ namespace sina {
 
 tray::tray()
     : seqno(0),
-      input_sequence(0),
-      aligned_sequence(0),
-      alignment_reference(0),
-      search_result(0),
-      astats(0)
+      input_sequence(nullptr),
+      aligned_sequence(nullptr),
+      alignment_reference(nullptr),
+      search_result(nullptr),
+      astats(nullptr)
 {
     DBG("Construct");
 }

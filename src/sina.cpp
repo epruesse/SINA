@@ -256,7 +256,7 @@ void validate_vm(po::variables_map& vm, po::options_description all_od) {
 }
 
 void show_help(po::options_description* od,
-               po::options_description* adv = NULL) {
+               po::options_description* adv = nullptr) {
     std::cerr << "Usage:" << std::endl
               << " sina -i input [-o output] [--prealigned|--db reference] [--search] "
               << "[--search-db search.arb] [options]"
@@ -446,7 +446,7 @@ int real_main(int argc, char** argv) {
         node = new filter_node(g, 1, rw_fasta::writer(opts.out, opts.copy_relatives));
         break;
     case SEQUENCE_DB_NONE:
-        node = NULL;
+        node = nullptr;
         break;
     default:
         throw logic_error("output type undefined");
