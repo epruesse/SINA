@@ -111,7 +111,7 @@ public:
     }
 
     /* Same here, need turn any(int) to any(counting<int>) before notify */
-    void notify(const boost::any& value_store) const {
+    void notify(const boost::any& value_store) const override {
         const T* value = boost::any_cast<T>(&value_store);
         if (value) {
             boost::any vs(*reinterpret_cast<const counting_type<T>*>(value));
