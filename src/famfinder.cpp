@@ -234,7 +234,7 @@ famfinder::get_options_description(po::options_description& main,
 }
 
 void famfinder::validate_vm(po::variables_map& vm,
-                            po::options_description& desc) {
+                            po::options_description&  /*desc*/) {
     if (vm["db"].empty() && vm["ptdb"].empty()) {
         throw logic_error("Family Finder: PT server database not set");
     }

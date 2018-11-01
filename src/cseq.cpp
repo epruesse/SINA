@@ -344,7 +344,7 @@ cseq::upperCaseAll() {
 
 template<typename RandIt, typename StrictWeakOrdering>
 RandIt group_by(RandIt& a, RandIt& b,
-                StrictWeakOrdering &cmp) {
+                StrictWeakOrdering & /*cmp*/) {
     sort(a,b);
     RandIt end = unique(a,b);
     return end;

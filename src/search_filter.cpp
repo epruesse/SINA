@@ -133,7 +133,7 @@ search_filter::get_options_description(po::options_description& main,
 
 void
 search_filter::validate_vm(boost::program_options::variables_map& vm,
-                           po::options_description& desc) {
+                           po::options_description&  /*desc*/) {
     if (opts == nullptr) {
         throw std::logic_error("search options not parsed?!");
     }

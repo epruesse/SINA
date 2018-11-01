@@ -195,17 +195,17 @@ struct score {
 double
 kmer_search::match(std::vector<cseq>& results,
                    const cseq& query,
-                   int min_match,
+                   int  /*min_match*/,
                    int max_match,
-                   float min_score,
-                   float max_score,
-                   query_arb* arb,
-                   bool noid,
-                   int min_len,
-                   int num_full,
-                   int full_min_len,
-                   int range_cover,
-                   bool leave_query_out) {
+                   float  /*min_score*/,
+                   float  /*max_score*/,
+                   query_arb*  /*arb*/,
+                   bool  /*noid*/,
+                   int  /*min_len*/,
+                   int  /*num_full*/,
+                   int  /*full_min_len*/,
+                   int  /*range_cover*/,
+                   bool  /*leave_query_out*/) {
     find(query, results, max_match);
     if (results.empty()) {
         return 0;

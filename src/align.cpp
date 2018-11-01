@@ -227,7 +227,7 @@ std::ostream& operator<<(std::ostream& out, const INSERTION_TYPE& t) {
 
 
 void
-aligner::get_options_description(po::options_description& main,
+aligner::get_options_description(po::options_description&  /*main*/,
                                  po::options_description& adv) {
     opts = new struct aligner::options();
 
@@ -338,7 +338,7 @@ struct iequals_cmp {
 aligner::aligner() = default;
 aligner::~aligner() = default;
 aligner::aligner(const aligner&) = default;
-aligner& aligner::operator=(const aligner& a) = default;
+aligner& aligner::operator=(const aligner&  /*a*/) = default;
 
 
 tray

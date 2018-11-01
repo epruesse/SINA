@@ -132,7 +132,7 @@ alignment_stats::alignment_stats(
 }
 
 const aligned_base::matrix_type 
-alignment_stats::getSubstMatrix(double identity) const {
+alignment_stats::getSubstMatrix(double  /*identity*/) const {
     aligned_base::matrix_type m;
     int total_bases = global_freqs.num_a + global_freqs.num_c + 
         global_freqs.num_g + global_freqs.num_u;
