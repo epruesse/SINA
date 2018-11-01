@@ -321,8 +321,8 @@ search_filter::operator()(tray t) {
         data->arb->loadKey(r, "stop");
 
         for (string& s: opts->v_lca_fields) {
-            data->arb->loadKey(r, s.c_str());
-            string tax_path = r.get_attr<string>(s.c_str());
+            data->arb->loadKey(r, s);
+            string tax_path = r.get_attr<string>(s);
             if (tax_path == "Unclassified;") continue;
             vector<string> group_names;
             boost::split(group_names, tax_path, boost::is_any_of(";"));

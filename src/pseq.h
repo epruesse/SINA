@@ -166,7 +166,7 @@ class pseq::iterator
 public:
   iterator(std::vector<aligned_base_profile>::iterator it)
     : std::vector<aligned_base_profile>::iterator(it) {}
-  iterator() : std::vector<aligned_base_profile>::iterator() {}
+  iterator() = default;
 
   using pn_iterator = iterator;
   iterator prev_begin() const { iterator n(*this); return --n; }
@@ -181,7 +181,7 @@ class pseq::const_iterator
 public:
   const_iterator(std::vector<aligned_base_profile>::const_iterator it)
     : std::vector<aligned_base_profile>::const_iterator(it) {}
-  const_iterator() : std::vector<aligned_base_profile>::const_iterator() {}
+  const_iterator() = default;
 
   using const_pn_iterator = const_iterator;
   const_iterator prev_begin() const { const_iterator n(*this); return --n; }

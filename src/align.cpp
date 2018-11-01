@@ -129,15 +129,6 @@ struct aligner::options {
     bool write_used_rels;
 
     bool use_subst_matrix;
-
-    template<typename SCORING_SCHEME, typename MASTER>
-    friend
-    void choose_transition(cseq&, cseq&, MASTER&, SCORING_SCHEME&, ostream&);
-
-    template<typename transition, typename MASTER>
-    friend
-    void do_align(cseq&, cseq&, MASTER&, transition&, ostream&);
-
 };
 struct aligner::options *aligner::opts;
 

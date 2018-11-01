@@ -98,7 +98,7 @@ class kmer_search::index {
     friend class kmer_search;
     int k;
     int n_kmers;
-    int n_sequences;
+    int n_sequences{0};
 
     std::vector<std::string> sequence_names;
     std::vector<idset*> kmer_idx;
@@ -107,16 +107,12 @@ class kmer_search::index {
     timer timeit;
 
 public:
-    index(int k_, query_arb* arbdb_) :
-        k(k_),
-        n_kmers(1<<(k_*2)),
-        n_sequences(0),
-        sequence_names(),
-        kmer_idx(1<<(k_*2), nullptr),
-        arbdb(arbdb_),
-        timeit()
-    {
-    }
+    index(int k_, query_arb* arbdb_)
+        : k(k_),
+          n_kmers(1<<(k_*2)),
+          kmer_idx(1<<(k_*2), nullptr),
+          arbdb(arbdb_)
+    {}
     ~index() {
         logger->info("Timings for Kmer Search: {}", timeit);
     }

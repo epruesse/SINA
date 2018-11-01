@@ -246,13 +246,13 @@ FIXTURE_CASE(test_compress_aligned, compression_data) {
 FIXTURE_CASE(test_decompress_unaligned, compression_data) {
     cseq c;
     c.assignFromCompressed(c_unalig_compr, sizeof(c_unalig_compr));
-    test_data(c, "", 0, rna.c_str());
+    test_data(c, "", 0, rna);
 }
 
 FIXTURE_CASE(test_decompress_aligned, compression_data) {
     cseq c;
     c.assignFromCompressed(c_alig_compr, sizeof(c_alig_compr));
-    test_data(c, "", 0, rna_aligned.c_str());
+    test_data(c, "", 0, rna_aligned);
 }
 
 

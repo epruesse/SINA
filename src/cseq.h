@@ -194,7 +194,7 @@ class cseq::iterator
 public:
     iterator(std::vector<aligned_base>::iterator it)
         : std::vector<aligned_base>::iterator(it) {}
-    iterator() : std::vector<aligned_base>::iterator() {}
+    iterator() = default;
 
     using pn_iterator = iterator;
     iterator prev_begin() const { iterator n(*this); return --n; }
@@ -213,7 +213,7 @@ class cseq::const_iterator
  public:
     const_iterator(std::vector<aligned_base>::const_iterator it)
         : std::vector<aligned_base>::const_iterator(it) {}
-    const_iterator() : std::vector<aligned_base>::const_iterator() {}
+    const_iterator() = default;
 
     using const_pn_iterator = const_iterator;
     const_iterator prev_begin() const {
@@ -235,7 +235,7 @@ class cseq::const_reverse_iterator
  public:
     const_reverse_iterator(std::vector<aligned_base>::const_reverse_iterator it)
       : std::vector<aligned_base>::const_reverse_iterator(it) {}
-    const_reverse_iterator() : std::vector<aligned_base>::const_reverse_iterator() {}
+    const_reverse_iterator() = default;
 
   /*
     typedef const_iterator const_pn_iterator;

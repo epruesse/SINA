@@ -41,9 +41,7 @@ float jukes_cantor(float in) {
     return -3.0/4 * log( 1.0 - 4.0/3*in);
 }
 
-alignment_stats::alignment_stats() 
-    : global_freqs()
-{
+alignment_stats::alignment_stats() {
 
     global_freqs.num_a=1000;
     global_freqs.num_g=1000;
@@ -61,7 +59,7 @@ alignment_stats::alignment_stats(
     std::vector<int>  _pairs
     ) 
     : name(std::move(_name)),
-      num_taxa(ntaxa), width(alen), global_freqs(), 
+      num_taxa(ntaxa), width(alen),
       pairs(std::move(_pairs)),
       minweight(9999999)
 {
