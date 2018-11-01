@@ -32,16 +32,12 @@ for the parts of ARB used as well as that of the covered work.
 #include <utility>
 #include <vector>
 #include <iostream>
-#include <map>
 #include <unordered_set>
 #include <string>
 #include <sstream>
 
 #include <functional>
 
-#include <boost/thread/thread.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -52,15 +48,8 @@ for the parts of ARB used as well as that of the covered work.
 
 using std::stringstream;
 using std::vector;
-using std::map;
 using std::string;
-using std::pair;
-using boost::thread;
-using boost::shared_ptr;
-using boost::bind;
-using boost::split;
 using boost::algorithm::iequals;
-using boost::algorithm::ends_with;
 
 namespace bi = boost::iostreams;
 namespace po = boost::program_options;

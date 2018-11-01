@@ -36,15 +36,11 @@ for the parts of ARB used as well as that of the covered work.
 #include <vector>
 #include <list>
 #include <map>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
 #include <functional>
 #include <cmath>
 #include <zlib.h>
 
 using namespace std;
-using boost::lambda::bind;
-
 using namespace sina;
 
 static auto logger = Log::create_logger("cseq");

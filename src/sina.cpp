@@ -46,9 +46,7 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 #include <boost/algorithm/string/predicate.hpp>
-using boost::algorithm::iends_with;
 using boost::algorithm::iequals;
-using boost::algorithm::equals;
 
 using std::exception;
 using std::logic_error;

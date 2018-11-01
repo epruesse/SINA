@@ -93,12 +93,6 @@ inline GBDATA* GBT_find_sequence(GBDATA* gbd, const char* ali) {
 }
 #endif
 
-#include <boost/lambda/lambda.hpp>
-using boost::lambda::_1;
-
-#include <boost/lambda/bind.hpp>
-using boost::lambda::bind;
-
 #include <boost/thread/mutex.hpp>
 #include <boost/functional/hash/hash.hpp>
 

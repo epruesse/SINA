@@ -40,14 +40,7 @@ using std::vector;
 #include <string>
 using std::string;
 
-#include <algorithm>
-using std::sort;
-
 #include <iostream>
-#include <iomanip>
-using std::endl;
-using std::uppercase;
-using std::hex;
 
 #include <unordered_map>
 #include <unordered_set>

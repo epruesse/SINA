@@ -39,7 +39,6 @@ for the parts of ARB used as well as that of the covered work.
 #include <sys/stat.h>
 #include <unistd.h>
 
-using std::endl;
 using std::stringstream;
 using std::string;
 using std::vector;
@@ -68,9 +67,7 @@ namespace po = boost::program_options;
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
-#include <boost/system/error_code.hpp>
 #include <utility>
-namespace sys = boost::system;
 
 namespace sina {
 

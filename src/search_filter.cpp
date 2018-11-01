@@ -54,8 +54,8 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 #include <boost/progress.hpp>
+
 #include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
 
 #include "alignment_stats.h"
 #include "cseq_comparator.h"

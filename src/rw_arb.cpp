@@ -48,16 +48,6 @@ using std::map;
 
 #include <unordered_set>
 
-#include <boost/thread/thread.hpp>
-using boost::thread;
-
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
-
-#include <boost/bind.hpp>
-using boost::bind;
-using boost::ref;
-
 #include <boost/algorithm/string.hpp>
 using boost::split;
 using boost::is_any_of;

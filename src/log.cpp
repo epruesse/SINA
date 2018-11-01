@@ -42,7 +42,6 @@ using std::endl;
 
 #include <map>
 using std::map;
-using std::pair;
 
 #include <fstream>
 #include <memory>

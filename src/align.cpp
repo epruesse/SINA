@@ -71,14 +71,7 @@ using boost::bind;
 #include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
 
-#include <boost/thread.hpp>
-using boost::thread;
-
-#include <boost/lexical_cast.hpp>
-using boost::lexical_cast;
-
 #include <boost/algorithm/string/predicate.hpp>
-using boost::algorithm::istarts_with;
 using boost::algorithm::iequals;
 
 #include <boost/assert.hpp>

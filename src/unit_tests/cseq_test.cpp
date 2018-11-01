@@ -61,7 +61,7 @@ const float score = 15.f;
 #define test_empty(cs)                         \
     EQUAL((cs).size(), 0);                     \
     EQUAL((cs).getWidth(), 0);                 \
-    EQUAL((cs).getBases(), String());          \
+    EQUAL((cs).getBases(), string());          \
     EQUAL((cs).getAlignedNoDots(), string());  \
     EQUAL((cs).end() - c.begin(), 0);          \
     EQUAL((cs).rend() - c.rbegin(), 0);        \

@@ -48,12 +48,9 @@ using std::string;
 #include <vector>
 using std::vector;
 
-#include <list>
-using std::list;
 using std::pair;
 
 #include <exception>
-using std::exception;
 using std::logic_error;
 
 

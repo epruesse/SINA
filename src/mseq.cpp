@@ -33,16 +33,12 @@ static auto logger = sina::Log::create_logger(module_name);
 #include "mseq.h"
 #include "timer.h"
 #include "log.h"
-#include <set>
 #include <algorithm>
 #include <limits>
 #include <cmath>
 
 using std::vector;
-using std::list;
-using std::set;
 using std::min;
-
 
 using namespace sina;
 
