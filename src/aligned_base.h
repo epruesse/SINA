@@ -54,7 +54,7 @@ enum base_types_bitmask {
 
 class base_iupac {
 public:
-    typedef unsigned char value_type;
+    using value_type = unsigned char;
     static const value_type iupac_char_to_bmask[256];
     static const unsigned char bmask_to_iupac_rna_char[32];
     static const unsigned char bmask_to_iupac_dna_char[32];
@@ -160,9 +160,9 @@ public:
       return !is_ambig() && (0xf & _data) == (0xf & rhs._data); 
     }
 
-    typedef struct {
+    struct matrix_type {
       float v[BASE_MAX*BASE_MAX];
-    } matrix_type;
+    };
 
     // this does an IUPAC aware comparison using the given scoring matrix
     float comp(const base_iupac& rhs, const matrix_type& m) const {
@@ -238,8 +238,8 @@ template<typename T>
 class aligned : public T
 {
 public:
-    typedef unsigned int idx_type;
-    typedef T base_type;
+    using idx_type = unsigned int;
+    using base_type = T;
 
     aligned(idx_type pos=0, base_type base='-')
         : T(base), _idx(pos) {}
@@ -270,7 +270,7 @@ struct aligned_base_reverse_position {
     }
 };
 
-typedef aligned<base_iupac> aligned_base;
+using aligned_base = aligned<base_iupac>;
 }// namespace sina
 
 namespace std {

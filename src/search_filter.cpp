@@ -218,7 +218,7 @@ template<typename F>
 struct dereference {
     explicit dereference(F f) : _f(std::move(f)){}
     dereference() : _f(){}
-    typedef typename F::result_type  result_type;
+    using result_type = typename F::result_type;
 
     template<typename A, typename B>
     result_type operator()(const A& a,
@@ -235,12 +235,12 @@ struct dereference {
 
 struct iupac_contains {
     struct iupac_compare {
-        typedef bool result_type;
+        using result_type = bool;
         bool operator()(const aligned_base& a, const aligned_base& b) const {
             return a.comp(b);
         }
     };
-    typedef bool result_type;
+    using result_type = bool;
     vector<aligned_base> ref;
     explicit iupac_contains(cseq& c) : ref(c.getAlignedBases()) {}
     bool operator()(cseq& c) {

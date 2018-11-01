@@ -330,7 +330,7 @@ calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c) {
 }
 
 struct not_icontains {
-    typedef bool result_type;
+    using result_type = bool;
     const string bases;
     explicit not_icontains(string  _bases) : bases(std::move(_bases)) {}
     bool operator()(const cseq& c) {
@@ -339,7 +339,7 @@ struct not_icontains {
 };
 
 struct iequals_cmp {
-    typedef bool result_type;
+    using result_type = bool;
     const string bases;
     explicit iequals_cmp(string  _bases) : bases(std::move(_bases)) {}
     bool operator()(const cseq& c) {
@@ -512,8 +512,8 @@ void
 sina::do_align(cseq& c, cseq& orig, MASTER &m,
                transition &tr, ostream& log) {
 
-    typedef compute_node_simple<transition> cnsts_type;
-    typedef typename cnsts_type::data_type data_type;
+    using cnsts_type = compute_node_simple<transition>;
+    using data_type = typename cnsts_type::data_type;
     cnsts_type cns(tr);
 
     // create the alignment "mesh" (not quite a matrix)

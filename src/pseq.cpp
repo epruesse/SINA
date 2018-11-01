@@ -59,7 +59,7 @@ pseq::pseq(std::vector<cseq>::iterator seqs_it,
         gap[i] = true;
     }
 
-    typedef aligned_base::idx_type idx_type;
+    using idx_type = aligned_base::idx_type;
 
     idx_type current_column = 0;
     while (current_column < width) {

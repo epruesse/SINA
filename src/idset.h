@@ -37,9 +37,9 @@ for the parts of ARB used as well as that of the covered work.
  */
 class idset {
 public:
-    typedef uint32_t value_type;
-    typedef std::vector<uint16_t> inc_t;
-    typedef std::vector<uint8_t> data_t;
+    using value_type = uint32_t;
+    using inc_t = std::vector<uint16_t>;
+    using data_t = std::vector<uint8_t>;
 
     /* virtual destructor */
     virtual ~idset() {}
@@ -72,7 +72,7 @@ protected:
 /** idset implementation as bitmap **/
 class bitmap : public idset {
 public:
-    typedef typename data_t::value_type block_type;
+    using block_type = typename data_t::value_type;
     const size_t bits_per_block = sizeof(block_type) * 8;
 
     bitmap(value_type maxid) {

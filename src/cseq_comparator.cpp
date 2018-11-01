@@ -65,7 +65,7 @@ cseq_comparator::cseq_comparator()
 template<typename FUNC> 
 void
 traverse(const cseq& A, const cseq& B, FUNC F) {
-    typedef std::vector<aligned_base>::const_iterator bases_it;
+    using bases_it = std::vector<aligned_base>::const_iterator;
     bases_it a = A.bases.begin();
     bases_it a_end = A.bases.end();
     bases_it b = B.bases.begin();
@@ -470,7 +470,7 @@ cseq_comparator::make_from_variables_map(po::variables_map& vm,
 template<typename T>
 boost::tuple<int,int,int>
 cseq::do_compare(const T& BASE_COMP, const cseq& rhs) const {
-    typedef std::vector<aligned_base>::const_iterator bases_it;
+    using bases_it = std::vector<aligned_base>::const_iterator;
     bases_it a = bases.begin();
     bases_it a_end = bases.end();
     bases_it b = rhs.bases.begin();
@@ -519,11 +519,11 @@ cseq::do_compare(const T& BASE_COMP, const cseq& rhs) const {
 }
 
 
-
 float
 cseq::compare(const cseq &seq_b, const vector<float> &weights, 
      float gap_open, float gap_ext) const {
-    typedef std::vector<aligned_base>::const_iterator bases_it;
+
+    using bases_it = std::vector<aligned_base>::const_iterator;
     bases_it a = bases.begin();
     bases_it a_end = bases.end();
     bases_it b = seq_b.begin();

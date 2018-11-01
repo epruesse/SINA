@@ -57,15 +57,15 @@ template<typename T> class lexical_cast_visitor;
    have positions */
 class cseq {
 public:
-    typedef unsigned int idx_type;
-    typedef aligned_base::idx_type vidx_type;
-    typedef aligned_base value_type;
+    using idx_type = unsigned int;
+    using vidx_type = aligned_base::idx_type;
+    using value_type = aligned_base;
     class iterator;
     class const_iterator;
     class const_reverse_iterator;
-    typedef iterator pn_iterator;
-    typedef const_iterator const_pn_iterator;
-    typedef boost::variant<std::string, char, int, float> variant;
+    using pn_iterator = iterator;
+    using const_pn_iterator = const_iterator;
+    using variant = boost::variant<std::string, char, int, float>;
 
     // Constructors / assignment operator
 
@@ -196,7 +196,7 @@ public:
         : std::vector<aligned_base>::iterator(it) {}
     iterator() : std::vector<aligned_base>::iterator() {}
 
-    typedef iterator pn_iterator;
+    using pn_iterator = iterator;
     iterator prev_begin() const { iterator n(*this); return --n; }
     iterator prev_end() const { return (*this); }
     iterator next_begin() const { iterator n(*this); return ++n; }
@@ -215,7 +215,7 @@ class cseq::const_iterator
         : std::vector<aligned_base>::const_iterator(it) {}
     const_iterator() : std::vector<aligned_base>::const_iterator() {}
 
-    typedef const_iterator const_pn_iterator;
+    using const_pn_iterator = const_iterator;
     const_iterator prev_begin() const {
         const_iterator n(*this); return --n; }
     const_iterator prev_end() const { return (*this); }

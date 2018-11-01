@@ -98,7 +98,7 @@ template<typename T>
 class counting_value : public po::typed_value<counting_type<T>, char> {
 public:
     /* The store is of type T, but typed_value doesn't know that. */
-    typedef po::typed_value<counting_type<T>, char> super;
+    using super = po::typed_value<counting_type<T>, char>;
     counting_value(T* store_to)
         : super(reinterpret_cast<counting_type<T>*>(store_to))
     {

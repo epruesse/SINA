@@ -339,9 +339,9 @@ int real_main(int argc, char** argv) {
     std::vector<std::unique_ptr<tf::graph_node>> nodes; // Nodes (for cleanup)
     tf::sender<tray> *last_node; // Last tray producing node
 
-    typedef tf::source_node<tray> source_node;
-    typedef tf::function_node<tray, tray> filter_node;
-    typedef tf::limiter_node<tray> limiter_node;
+    using source_node = tf::source_node<tray>;
+    using filter_node = tf::function_node<tray, tray>;
+    using limiter_node = tf::limiter_node<tray>;
     filter_node *node;
 
     // Make source node reading sequences
@@ -376,11 +376,11 @@ int real_main(int argc, char** argv) {
         last_node = node;
     } else {
         // Make node(s) finding reference set
-        typedef tuple<tray, famfinder::finder> tray_and_finder;
-        typedef tf::multifunction_node<tray_and_finder, tray_and_finder> finder_node;
-        typedef finder_node::output_ports_type finder_node_out;
-        typedef tf::buffer_node<famfinder::finder> finder_buffer_node;
-        typedef tf::join_node<tray_and_finder> tray_and_finder_join_node;
+        using tray_and_finder = tuple<tray, famfinder::finder>;
+        using finder_node = tf::multifunction_node<tray_and_finder, tray_and_finder>;
+        using finder_node_out = finder_node::output_ports_type;
+        using finder_buffer_node = tf::buffer_node<famfinder::finder>;
+        using tray_and_finder_join_node = tf::join_node<tray_and_finder>;
 
         finder_buffer_node *buffer = new finder_buffer_node(g);
         tray_and_finder_join_node *join = new tray_and_finder_join_node(g);
@@ -427,7 +427,7 @@ int real_main(int argc, char** argv) {
     }
 
     if (opts.inorder) {
-        typedef tf::sequencer_node<tray> sequencer_node;
+        using sequencer_node = tf::sequencer_node<tray>;
         sequencer_node *node = new sequencer_node(
             g, [](const tray& t) -> int {
                 return t.seqno - 1;

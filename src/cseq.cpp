@@ -258,7 +258,7 @@ struct compressed_data {
 void
 cseq::compressAligned(std::vector<unsigned char> &out) {
     vector<unsigned char> buf;
-    typedef unsigned int uint;
+    using uint = unsigned int;
 
     bases.push_back(aligned_base(alignment_width));
     const uint bas = bases.size();
@@ -296,7 +296,7 @@ cseq::compressAligned(std::vector<unsigned char> &out) {
 void
 cseq::assignFromCompressed(const void* data, size_t len) {
     vector<unsigned char> buf;
-    typedef unsigned int uint;
+    using uint = unsigned int;
     const compressed_data *cd = reinterpret_cast<const compressed_data*>(data);
     buf.resize(cd->size);
 
@@ -644,7 +644,7 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
 
 std::list<unsigned int>
 cseq::find_differing_parts(const cseq& right) const {
-    typedef std::vector<aligned_base>::const_iterator bases_it;
+    using bases_it = std::vector<aligned_base>::const_iterator;
     bases_it l_it = bases.begin(), l_end = bases.end();
     bases_it r_it = right.bases.begin(), r_end = right.bases.end();
     
@@ -785,7 +785,7 @@ struct counter {
 };
 
 struct iupac_compare {
-    typedef bool value_type;
+    using value_type = bool;
     bool operator()(const aligned_base& a, const aliged_base& b) const {
         return a.comp(b);
     }

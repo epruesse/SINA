@@ -48,15 +48,15 @@ public:
     class iterator;
     class pn_iterator;
 
-    typedef T value_type;
-    typedef T* pointer;
-    typedef T& reference;
+    using value_type = T;
+    using pointer = T *;
+    using reference = T &;
 
-    typedef dag_node<T> node_type;
-    typedef std::list<node_type> node_container;
-    typedef typename node_container::iterator node_ref;
-    typedef typename node_container::const_iterator const_node_ref;
-    typedef unsigned int idx_type;
+    using node_type = dag_node<T>;
+    using node_container = std::list<node_type>;
+    using node_ref = typename node_container::iterator;
+    using const_node_ref = typename node_container::const_iterator;
+    using idx_type = unsigned int;
 
     dag() : _nodes(),_nodes_size(0)
     {
@@ -117,9 +117,9 @@ template<typename T>
 class dag_node
 {
 public:
-    typedef typename dag<T>::node_type node_type;
-    typedef typename dag<T>::node_ref node_ref;
-    typedef std::list<node_ref> node_ref_container;
+    using node_type = typename dag<T>::node_type;
+    using node_ref = typename dag<T>::node_ref;
+    using node_ref_container = std::list<node_ref>;
 
     dag_node(T t, unsigned int id) : data(t),_id(id) {}
 
@@ -154,13 +154,13 @@ template<typename T>
 class dag<T>::pn_iterator
 {
 public:
-    typedef T& reference;
-    typedef T  value_type;
-    typedef T* pointer;
-    typedef dag<T> _container;
-    typedef typename dag<T>::pn_iterator _self;
+    using reference = T &;
+    using value_type = T;
+    using pointer = T *;
+    using _container = dag<T>;
+    using _self = typename dag<T>::pn_iterator;
 
-    typedef typename dag_node<T>::node_ref_container::iterator node_ref_it;
+    using node_ref_it = typename dag_node<T>::node_ref_container::iterator;
 
     pn_iterator(const node_ref_it& nri) : _iter(nri) {}
 
@@ -183,14 +183,14 @@ template<typename T>
 class dag<T>::iterator
 {
 public:
-    typedef T& reference;
-    typedef T  value_type;
-    typedef T* pointer;
-    typedef typename node_ref::iterator_category iterator_category;
-    typedef int difference_type;
+    using reference = T &;
+    using value_type = T;
+    using pointer = T *;
+    using iterator_category = typename node_ref::iterator_category;
+    using difference_type = int;
 
 
-    typedef dag<T> dag_t;
+    using dag_t = dag<T>;
     friend class dag<T>;
 
     iterator(node_ref idx) : _idx(idx), _isNull(false) {}
@@ -209,7 +209,7 @@ public:
     bool operator<(const iterator& i) { return _idx<i._idx; }
     bool isNull() { return _isNull; }
 
-    typedef typename dag<T>::pn_iterator pn_iterator;
+    using pn_iterator = typename dag<T>::pn_iterator;
 
     pn_iterator prev_begin() const {
         return pn_iterator(get_node()._previous.begin());
@@ -274,8 +274,8 @@ get_node_id(const dag<T>&, typename dag<T>::pn_iterator i) {
 template<typename S, typename T>
 S
 for_each_prev(T& git, S s) {
-    typedef typename T::dag_t::node_ref node_ref;
-    typedef typename std::list<node_ref>::iterator pn_iterator;
+    using node_ref = typename T::dag_t::node_ref;
+    using pn_iterator = typename std::list<node_ref>::iterator;
     pn_iterator it = git.get_node()._previous.begin();
     pn_iterator end = git.get_node()._previous.end();
     for(; it != end; ++it) s(*it);
@@ -362,8 +362,8 @@ dag<T>::print_graphviz(std::ostream& out, const char* name)
     out << "digraph " << name << " { " << std::endl;
     out << "rotate=90" << std::endl;
 
-    typedef typename dag<T>::node_container::iterator nlist_iterator;
-    typedef typename std::list<node_ref>::iterator nrlist_iterator;
+    using nlist_iterator = typename dag<T>::node_container::iterator;
+    using nrlist_iterator = typename std::list<node_ref>::iterator;
 
     nlist_iterator it   = _nodes.begin();
     nlist_iterator iend = _nodes.end();
@@ -401,7 +401,7 @@ template<typename F>
 struct dereference {
     dereference(F f) : _f(f){}
     dereference() : _f(){}
-    typedef typename F::result_type  result_type;
+    using result_type = typename F::result_type;
 
     template<typename A, typename B>
     result_type operator()(const A& a,
@@ -435,7 +435,7 @@ struct lookup {
 // fixes node_references of given node using lookup vector
 template<typename T>
 struct fix_idx {
-    typedef typename dag<T>::node_ref node_ref;
+    using node_ref = typename dag<T>::node_ref;
     fix_idx(std::vector<node_ref> &nrv) : _nrv(nrv) {}
     void operator()(dag_node<T>& dn) {
         // fix incoming edges
@@ -467,8 +467,8 @@ dag<T>::sort() {
 // reduce_edges() [ removes duplicate edges from nodes ]
 template<typename T>
 struct reduce_edge {
-  typedef typename dag<T>::node_type node_type;
-  typedef typename dag<T>::node_ref node_ref;
+  using node_type = typename dag<T>::node_type;
+  using node_ref = typename dag<T>::node_ref;
   void
   operator()(node_type& node) {
     node._previous.sort(dereference<std::less<node_type> >());

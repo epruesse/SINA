@@ -102,8 +102,8 @@ mesh_to_svg(MESH& mesh, unsigned int from, unsigned int to, std::ostream& out) {
       << "origin [style=invis]; " << std::endl
     ;
 
-  typedef typename MESH::master_idx_type midx_type;
-  typedef typename MESH::slave_idx_type sidx_type;
+  using midx_type = typename MESH::master_idx_type;
+  using sidx_type = typename MESH::slave_idx_type;
 
   typename MESH::master_type::iterator  mit, mit_end, mit_begin;
   draw_axis(mesh._master, mit_begin, mit_end, from, to, out, false);

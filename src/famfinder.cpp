@@ -445,7 +445,7 @@ famfinder::_famfinder::select_astats(tray& t) {
     if (opts->posvar_autofilter_field.length() > 0) {
         vector<cseq> &vc = *t.alignment_reference;
         int best_count = 0;
-        typedef pair<string, alignment_stats> vastats_t;
+        using vastats_t = pair<string, alignment_stats>;
         alignment_stats *best = nullptr;
         for (alignment_stats& p: vastats) {
             string filter_name = p.getName();
@@ -479,7 +479,7 @@ famfinder::_famfinder::select_astats(tray& t) {
 
 /* tests if cseq has less than n gaps before last base */
 struct has_max_n_gaps {
-    typedef bool result_type;
+    using result_type = bool;
     const int n_gaps;
     explicit has_max_n_gaps(int _n_gaps) : n_gaps(_n_gaps) {}
     bool operator()(const cseq& c) {

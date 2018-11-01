@@ -169,11 +169,10 @@ struct query_arb::priv_data {
 
     static GB_shell* the_arb_shell;
 
-    typedef unordered_map<std::string, cseq> sequence_cache_type;
-    typedef list<std::string> error_list_type;
-    typedef std::unordered_map<string, GBDATA*,
-                               boost::hash<string>
-                               > gbdata_cache_type;
+    using sequence_cache_type = unordered_map<std::string, cseq>;
+    using error_list_type = list<std::string>;
+    using gbdata_cache_type = std::unordered_map<string, GBDATA*,
+                                                 boost::hash<string>>;
 
     boost::mutex sequence_cache_access;
     sequence_cache_type sequence_cache;

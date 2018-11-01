@@ -125,15 +125,15 @@ public:
   float gapExtend;
 };
 
-typedef aligned<base_profile> aligned_base_profile;
+using aligned_base_profile = aligned<base_profile>;
 
 class pseq {
 public:
-  typedef unsigned int idx_type;
+  using idx_type = unsigned int;
   class iterator;
   class const_iterator;
-  typedef iterator pn_iterator;
-  typedef aligned_base_profile value_type;
+  using pn_iterator = iterator;
+  using value_type = aligned_base_profile;
 
   pseq(std::vector<cseq>::iterator, std::vector<cseq>::iterator);
 
@@ -168,7 +168,7 @@ public:
     : std::vector<aligned_base_profile>::iterator(it) {}
   iterator() : std::vector<aligned_base_profile>::iterator() {}
 
-  typedef iterator pn_iterator;
+  using pn_iterator = iterator;
   iterator prev_begin() const { iterator n(*this); return --n; }
   iterator prev_end() const { return (*this); }
   iterator next_begin() const { iterator n(*this); return ++n; }
@@ -183,7 +183,7 @@ public:
     : std::vector<aligned_base_profile>::const_iterator(it) {}
   const_iterator() : std::vector<aligned_base_profile>::const_iterator() {}
 
-  typedef const_iterator const_pn_iterator;
+  using const_pn_iterator = const_iterator;
   const_iterator prev_begin() const { const_iterator n(*this); return --n; }
   const_iterator prev_end() const { return (*this); }
   const_iterator next_begin() const { const_iterator n(*this); return ++n; }

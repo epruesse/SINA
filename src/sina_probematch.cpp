@@ -48,7 +48,7 @@ using boost::algorithm::equals;
 // predicate checking aligned_base objects for possible match
 // returns try if match is conceivable: N matches all
 struct iupac_compare {
-  typedef bool result_type;
+  using result_type = bool;
   bool operator()(const aligned_base& a, const aligned_base& b) const {
     return a.comp(b);
   }
@@ -99,7 +99,7 @@ int main(int argc, const char **argv) {
   for (auto & sequence : sequences) {
 
     // iterate over matches of probe
-    typedef find_iterator<cseq::iterator> cseq_find_iterator;
+    using cseq_find_iterator = find_iterator<cseq::iterator>;
     for (cseq_find_iterator jt =
 	   make_find_iterator(*sequence, first_finder(probe, iupac_compare()));
 	 jt != cseq_find_iterator(); ++jt) {
