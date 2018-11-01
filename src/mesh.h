@@ -636,7 +636,7 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
     }
 
     // calculate score
-    float rval = (float)mesh(m,s).value;
+    auto rval = (float)mesh(m,s).value;
 
     unsigned int pos=alig_width -1 -mesh._master.getById(m).getPosition();
     float sum_weight=0;

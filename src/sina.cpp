@@ -360,7 +360,7 @@ int real_main(int argc, char** argv) {
     last_node = source;
 
     // Make node limiting in-flight sequence trays
-    limiter_node *limiter = new limiter_node(g, opts.max_trays);
+    auto *limiter = new limiter_node(g, opts.max_trays);
     tf::make_edge(*last_node, *limiter);
     nodes.emplace_back(limiter);
     last_node = limiter;
@@ -382,8 +382,8 @@ int real_main(int argc, char** argv) {
         using finder_buffer_node = tf::buffer_node<famfinder::finder>;
         using tray_and_finder_join_node = tf::join_node<tray_and_finder>;
 
-        finder_buffer_node *buffer = new finder_buffer_node(g);
-        tray_and_finder_join_node *join = new tray_and_finder_join_node(g);
+        auto *buffer = new finder_buffer_node(g);
+        auto *join = new tray_and_finder_join_node(g);
 
         finder_node *family_find = new finder_node(
             g, opts.num_pt_servers,

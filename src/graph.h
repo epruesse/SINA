@@ -83,7 +83,7 @@ public:
     void reduce_edges();
 
     const T& getById(idx_type idx) const {
-        const_node_ref it=_nodes.begin(), end=_nodes.end();
+        auto it=_nodes.begin(), end=_nodes.end();
         while (it != end && it->_id != idx ) ++it;
 #ifdef DEBUG
         if (it == end) {
@@ -348,7 +348,7 @@ dag<T>::link(iterator a, iterator b)
 template<typename T>
 typename dag<T>::iterator
 dag<T>::insert(T a) {
-    node_ref it = _nodes.insert(_nodes.end(), node_type(a, _nodes_size++));
+    auto it = _nodes.insert(_nodes.end(), node_type(a, _nodes_size++));
     _nodes.begin()->_next.push_back(it);
     _nodes.begin()->_previous.push_back(it);
 
@@ -362,11 +362,8 @@ dag<T>::print_graphviz(std::ostream& out, const char* name)
     out << "digraph " << name << " { " << std::endl;
     out << "rotate=90" << std::endl;
 
-    using nlist_iterator = typename dag<T>::node_container::iterator;
-    using nrlist_iterator = typename std::list<node_ref>::iterator;
-
-    nlist_iterator it   = _nodes.begin();
-    nlist_iterator iend = _nodes.end();
+    auto it   = _nodes.begin();
+    auto iend = _nodes.end();
 
     for (;it != iend; ++it) {
         out << "n" << it->id() << " [ label = \""
@@ -374,8 +371,8 @@ dag<T>::print_graphviz(std::ostream& out, const char* name)
             << "\" ]; ";
 
         {
-            nrlist_iterator jt= it->_next.begin();
-            nrlist_iterator jend= it->_next.end();
+            auto jt   = it->_next.begin();
+            auto jend = it->_next.end();
             for (;  jt != it->_next.end(); ++jt) {
                 out << "n" << it->id() << " -> n" << (*jt)->id() << "; ";
             }
@@ -383,8 +380,8 @@ dag<T>::print_graphviz(std::ostream& out, const char* name)
         /*
         out << " // ";
         {
-            nrlist_iterator jt= it->_previous.begin();
-            nrlist_iterator jend= it->_previous.end();
+            auto jt   = it->_previous.begin();
+            auto jend = it->_previous.end();
             for (;  jt != it->_previous.end(); ++jt) {
                 out << "n" << it->id() << " -> n" << (*jt)->id() << "; ";
             }

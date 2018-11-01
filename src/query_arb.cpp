@@ -191,7 +191,7 @@ query_arb::priv_data::getGBDATA(string name) {
         return gbdata_cache[name];
     }
 
-    gbdata_cache_type::iterator it = gbdata_cache.find(name);
+    auto it = gbdata_cache.find(name);
     if (it != gbdata_cache.end()) {
         return it->second;
     }
@@ -654,7 +654,7 @@ query_arb::getCseq(string name) {
         return data.sequence_cache[name];
     
     // if not, check whether we already loaded it
-    priv_data::sequence_cache_type::iterator it = data.sequence_cache.find(name);
+    auto it = data.sequence_cache.find(name);
     if (it != data.sequence_cache.end())
         return it->second;
 

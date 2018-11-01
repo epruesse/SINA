@@ -112,7 +112,7 @@ public:
 
     /* Same here, need turn any(int) to any(counting<int>) before notify */
     void notify(const boost::any& value_store) const override {
-        const T* value = boost::any_cast<T>(&value_store);
+        const auto* value = boost::any_cast<T>(&value_store);
         if (value) {
             boost::any vs(*reinterpret_cast<const counting_type<T>*>(value));
             super::notify(vs);
@@ -182,7 +182,7 @@ void
 Log::validate_vm(po::variables_map& vm,
                  po::options_description& /*desc*/) {
     // calculate effective log level
-    int verbosity = static_cast<int>(opts->verbosity);
+    auto verbosity = static_cast<int>(opts->verbosity);
     verbosity += opts->quiet_count;
     verbosity -= opts->verbose_count;
     opts->verbosity = static_cast<level_enum>(verbosity);
@@ -436,8 +436,8 @@ Log::printer::operator()(tray t) {
         } 
         
         list<unsigned int> bad_parts = orig->find_differing_parts(*t.aligned_sequence);
-        list<unsigned int>::iterator it = bad_parts.begin();
-        list<unsigned int>::iterator it_end = bad_parts.end();
+        auto it = bad_parts.begin();
+        auto it_end = bad_parts.end();
         ref->push_back(*orig);
         ref->push_back(*t.aligned_sequence);
         while (it != it_end) {

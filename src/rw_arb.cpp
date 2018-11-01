@@ -167,7 +167,7 @@ rw_arb::reader::reader(fs::path infile)
     } else if (!opts->select_file.empty()) {
         data->in = new ifstream(opts->select_file.c_str());
     } else {
-        stringstream *tmp = new stringstream();
+        auto *tmp = new stringstream();
         vector<string> cache = data->arb->getSequenceNames();
         for (auto & it : cache) {
             *tmp << it << std::endl;

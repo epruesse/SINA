@@ -54,8 +54,7 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
     : num_seqs(seqs_end-seqs_begin), bases_width(seqs_begin->getWidth())
 {
     // Sanity check input
-    for (vector<cseq>::iterator it = seqs_begin;
-         it != seqs_end; ++it) {
+    for (auto it = seqs_begin; it != seqs_end; ++it) {
         if (bases_width != it->getWidth()) {
             logger->critical("Sequence {} ({}/{}): length = {} expected {}",
                              it->getName(), it-seqs_begin, seqs_end - seqs_begin,
@@ -70,8 +69,7 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
     citv.reserve(num_seqs);
     vector<cseq::iterator> citv_end;
     citv_end.reserve(num_seqs);
-    for (vector<cseq>::iterator seq_it = seqs_begin;
-         seq_it != seqs_end; ++seq_it) {
+    for (auto seq_it = seqs_begin; seq_it != seqs_end; ++seq_it) {
         citv.push_back(seq_it->begin());
         citv_end.push_back(seq_it->end());
     }

@@ -57,11 +57,10 @@ cseq_comparator::cseq_comparator() {}
 template<typename FUNC> 
 void
 traverse(const cseq& A, const cseq& B, FUNC F) {
-    using bases_it = std::vector<aligned_base>::const_iterator;
-    bases_it a = A.bases.begin();
-    bases_it a_end = A.bases.end();
-    bases_it b = B.bases.begin();
-    bases_it b_end = B.bases.end();
+    auto a = A.bases.begin();
+    auto a_end = A.bases.end();
+    auto b = B.bases.begin();
+    auto b_end = B.bases.end();
 
     // skip filtered bases at beginning
     while (a != a_end && F->filtered(*a)) ++a;
@@ -457,11 +456,10 @@ cseq_comparator::make_from_variables_map(po::variables_map& vm,
 template<typename T>
 boost::tuple<int,int,int>
 cseq::do_compare(const T& BASE_COMP, const cseq& rhs) const {
-    using bases_it = std::vector<aligned_base>::const_iterator;
-    bases_it a = bases.begin();
-    bases_it a_end = bases.end();
-    bases_it b = rhs.bases.begin();
-    bases_it b_end = rhs.bases.end();
+    auto a = bases.begin();
+    auto a_end = bases.end();
+    auto b = rhs.bases.begin();
+    auto b_end = rhs.bases.end();
 
     int mismatches = 0;
     int matches = 0;
@@ -508,13 +506,12 @@ cseq::do_compare(const T& BASE_COMP, const cseq& rhs) const {
 
 float
 cseq::compare(const cseq &seq_b, const vector<float> &weights, 
-     float gap_open, float gap_ext) const {
+              float gap_open, float gap_ext) const {
 
-    using bases_it = std::vector<aligned_base>::const_iterator;
-    bases_it a = bases.begin();
-    bases_it a_end = bases.end();
-    bases_it b = seq_b.begin();
-    bases_it b_end = seq_b.end();
+    auto a = bases.begin();
+    auto a_end = bases.end();
+    auto b = seq_b.begin();
+    auto b_end = seq_b.end();
 
     int columns = 0;
     double score = 0;

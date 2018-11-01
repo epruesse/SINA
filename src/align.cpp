@@ -372,15 +372,13 @@ aligner::operator()(tray t) {
     }
 
     // sort reference sequences containing candidate to end of family
-    vector<cseq>::iterator it;
-    it = partition(vc.begin(), vc.end(), not_icontains(bases));
+    auto it = partition(vc.begin(), vc.end(), not_icontains(bases));
 
     // if there are such sequences...
     if (it != vc.end()) {
         if (opts->realign) { // ...either realign (throw them out)
             t.log << "sequences ";
-            for (vector<cseq>::iterator it2 = it;
-                 it2 != vc.end(); ++it2) {
+            for (auto it2 = it; it2 != vc.end(); ++it2) {
                 t.log << it->get_attr<string>(query_arb::fn_acc) << " ";
             }
             t.log << "containing exact candidate removed from family;";
@@ -390,7 +388,7 @@ aligner::operator()(tray t) {
                 return t;
             }
         } else { // ...or steal their alignment
-            vector<cseq>::iterator exact_match = find_if(it,vc.end(),iequals_cmp(bases));
+            auto exact_match = find_if(it, vc.end(), iequals_cmp(bases));
             if (exact_match != vc.end()) {
                 c.setAlignedBases(exact_match->getAlignedBases());
                 t.log << "copied alignment from identical template sequence "
@@ -548,10 +546,9 @@ sina::do_align(cseq& c, cseq& orig, MASTER &m,
         m.print_graphviz(out,"reference");
 
         list<unsigned int> bad_parts = orig.find_differing_parts(c);
-        for (list<unsigned int>::iterator it=bad_parts.begin();
-             it!=bad_parts.end(); ++it) {
+        for (auto it = bad_parts.begin(); it != bad_parts.end(); ++it) {
             stringstream tmp;
-            list<unsigned int>::iterator begin=it++;
+            auto begin = it++;
             tmp << "mesh_" << c.getName() << "_" << *begin
                 << "_" << *it << ".dot";
             mesh_to_svg(A, *begin, *it, tmp.str().c_str());

@@ -189,9 +189,7 @@ cseq::getAligned(bool nodots, bool dna) const {
     char dot='.';
     if (nodots) dot='-';
 
-    vector<aligned_base>::const_iterator 
-        it = bases.begin(),
-        it_end = bases.end();
+    auto it = bases.begin(), it_end = bases.end();
 
     unsigned int cursor = 0;
     for (; it != it_end; ++it) {
@@ -200,7 +198,7 @@ cseq::getAligned(bool nodots, bool dna) const {
             stringstream recent;
             int i=0;
             int left = (it_end - it) - 1;
-            for (vector<aligned_base>::const_iterator jt = it + std::min(2,left); 
+            for (auto jt = it + std::min(2,left);
                  jt != bases.begin() && i<10; --jt, ++i) {
                 recent << " " << *jt;
             }
@@ -283,7 +281,7 @@ cseq::compressAligned(std::vector<unsigned char> &out) {
 
     unsigned long compr_size = compressBound(orig_size);
     out.resize(compr_size);
-    compressed_data *cd = reinterpret_cast<compressed_data*>(&out.front());
+    auto *cd = reinterpret_cast<compressed_data*>(&out.front());
 
     cd->id='#';
     cd->size=(unsigned short)orig_size;
@@ -297,7 +295,7 @@ void
 cseq::assignFromCompressed(const void* data, size_t len) {
     vector<unsigned char> buf;
     using uint = unsigned int;
-    const compressed_data *cd = reinterpret_cast<const compressed_data*>(data);
+    const auto *cd = reinterpret_cast<const compressed_data*>(data);
     buf.resize(cd->size);
 
     unsigned long compr_size = len - sizeof(compressed_data);
@@ -446,7 +444,7 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
     std::map<string,list<int> > mymap;
 
     size_t maxlen = 0;
-    for (vector<string>::iterator it = out.begin(); it != out.end(); ++it) {
+    for (auto it = out.begin(); it != out.end(); ++it) {
         maxlen = std::max(maxlen, it->size());
         mymap[*it].push_back(it-out.begin());
     }
@@ -463,8 +461,7 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
             }
             bool range=false, is_last=false, is_secondlast=false;
             int last=-2;
-            for (std::list<int>::iterator jt = it.second.begin();
-                 jt != it.second.end(); ++jt) {
+            for (auto jt = it.second.begin(); jt != it.second.end(); ++jt) {
                 if (range) {
                     if (*jt != last+1) {
                         ofs << last;
@@ -502,9 +499,9 @@ void
 cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
     idx_type total_inserts = 0, longest_insert = 0, orig_inserts = 0;
 
-    vector<aligned_base>::iterator last_it = bases.begin();
-    vector<aligned_base>::iterator bases_end = bases.end();
-    vector<aligned_base>::iterator curr_it = last_it+1;
+    auto last_it = bases.begin();
+    auto bases_end = bases.end();
+    auto curr_it = last_it+1;
     idx_type last_idx = last_it->getPosition();
 
 
@@ -556,8 +553,8 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
             while (range_end - range_begin < num_inserts) {
                 int next_left_gap;
                 int next_right_gap;
-                vector<aligned_base>::iterator left = last_it;
-                vector<aligned_base>::iterator right = curr_it;
+                auto left = last_it;
+                auto right = curr_it;
                 
                 // find first free gap to left of range
                 if (left == bases.begin()) {
@@ -645,8 +642,8 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
 std::list<unsigned int>
 cseq::find_differing_parts(const cseq& right) const {
     using bases_it = std::vector<aligned_base>::const_iterator;
-    bases_it l_it = bases.begin(), l_end = bases.end();
-    bases_it r_it = right.bases.begin(), r_end = right.bases.end();
+    auto l_it = bases.begin(), l_end = bases.end();
+    auto r_it = right.bases.begin(), r_end = right.bases.end();
     
     std::list<unsigned int> start_stops;
     int score = 0;

@@ -271,8 +271,8 @@ search_filter::operator()(tray t) {
         for (cseq *r: data->sequences) {
             r->setScore(opts->comparator(*c, *r));
         }
-        vector<cseq*>::iterator it = data->sequences.begin();
-        vector<cseq*>::iterator middle = it + opts->max_result;
+        auto it = data->sequences.begin();
+        auto middle = it + opts->max_result;
         const vector<cseq*>::iterator end = data->sequences.end();
 
         
@@ -367,7 +367,7 @@ search_filter::operator()(tray t) {
         }
         int outliers = vc.size() * (1 - opts->lca_quorum);
         while (outliers >= 0 && group_names.size() > 0) {
-            vector<vector<string> >::iterator it = group_names.begin();
+            auto it = group_names.begin();
             if (it->size() == 0) {
                 group_names.erase(it);
                 outliers--;

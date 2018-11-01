@@ -394,7 +394,7 @@ rw_fasta::writer::operator()(tray t) {
         ++data->excluded;
         return t;
     }
-    float idty = t.aligned_sequence->get_attr<float>(query_arb::fn_idty);
+    auto idty = t.aligned_sequence->get_attr<float>(query_arb::fn_idty);
     if (opts->min_idty > idty) {
         logger->info("Not writing sequence {} (>{}): below identity threshold ({}<={})",
                      t.seqno, t.input_sequence->getName(),
