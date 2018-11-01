@@ -54,8 +54,8 @@ alignment_stats::alignment_stats() {
 alignment_stats::alignment_stats(
     std::string  name_,
     unsigned int ntaxa, unsigned int alen,
-    unsigned int *na, unsigned int *nc, unsigned int *ng,
-    unsigned int *nu, unsigned int *nM, unsigned int *nT,
+    const unsigned int *na, const unsigned int *nc, const unsigned int *ng,
+    const unsigned int *nu, const unsigned int *nM, const unsigned int *nT,
     std::vector<int>  pairs_
     ) 
     : name(std::move(name_)),
