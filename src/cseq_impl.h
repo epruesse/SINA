@@ -65,9 +65,8 @@ inline cseq::iterator
 prev_begin(const cseq& c, const cseq::iterator& it) {
   if (c.begin() != it) {
     return it-1;
-  } else {
-    return it;
   }
+  return it;
 }
 inline cseq::iterator 
 prev_end(const cseq& /*c*/, const cseq::iterator& it) {
@@ -86,9 +85,8 @@ inline cseq::iterator
 next_end(const cseq& c, const cseq::iterator& it) {
   if (it+1 == c.end()) {
     return it + 1;
-  } else {
-    return it + 2;
   }
+  return it + 2;
 }
 inline bool
 has_next(const cseq& c, const cseq::iterator& it) {

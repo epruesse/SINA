@@ -235,9 +235,8 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
         ((gbdata = GBT_find_sequence(gbdata, ali)) != nullptr) &&
         ((res = GB_read_char_pntr(gbdata)) != nullptr)) {
         return res;
-    } else {
-        return "";
     }
+    return "";
 }
 
 query_arb::query_arb(fs::path& arbfile)
@@ -762,9 +761,8 @@ query_arb::copySequence(query_arb& other, std::string name, bool mark) {
             write_flag(gbdest, 1l);
         }
         return;
-    } else {
-        logger->error("Error while copying species \"{}\".", name);
     }
+    logger->error("Error while copying species \"{}\".", name);
 
     data.gblast = nullptr;
 }

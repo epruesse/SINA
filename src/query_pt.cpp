@@ -455,9 +455,9 @@ match_retry:
         if (--maxfail==0) {
             logger->error("No retries left; aborting.");
             return 0;
-        } else {
-            logger->error("Retrying...");
         }
+        logger->error("Retrying...");
+
         //FIXME restart();
         goto match_retry;
     }

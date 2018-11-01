@@ -244,9 +244,8 @@ inline pseq::iterator
 prev_begin(const pseq& p, const pseq::iterator& it) {
   if (p.begin() != it) {
     return it-1;
-  } else {
-    return it;
   }
+  return it;
 }
 inline pseq::iterator
 prev_end(const pseq& /*c*/, const pseq::iterator& it) {
@@ -260,9 +259,8 @@ inline pseq::iterator
 next_end(const pseq& p, const pseq::iterator& it) {
   if (it+1 == p.end()) {
     return it + 1;
-  } else {
-    return it + 2;
   }
+  return it + 2;
 }
 
 std::ostream& operator<<(std::ostream& out, const sina::aligned_base_profile& ab);

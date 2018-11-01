@@ -216,9 +216,8 @@ kmer_search::match(std::vector<cseq>& results,
     find(query, results, max_match);
     if (results.empty()) {
         return 0;
-    } else {
-        return results[0].getScore();
     }
+    return results[0].getScore();
 }
 
 void

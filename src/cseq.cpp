@@ -189,10 +189,11 @@ cseq::getAligned(bool nodots, bool dna) const {
             logger->error("broken sequence! C={} P={} L={} B={} P={}",
                           cursor, pos, left, *it, recent.str());
             throw runtime_error("Internal error");
-        } else {
-            aligned.append(pos - cursor, dot);
-            cursor = pos;
         }
+
+        aligned.append(pos - cursor, dot);
+        cursor = pos;
+
         dot = '-'; // (only the first "gap" is dots)
         if (dna) {
             aligned.append(1, it->getBase().iupac_dna());
@@ -314,9 +315,8 @@ cseq::operator[](cseq::vidx_type i) {
     vector<aligned_base>::const_iterator it = getIterator(i);
     if (it != bases.end() && i == it->getPosition()) {
         return it->getBase();
-    } else {
-        return '-';
     }
+    return '-';
 }
 
 
@@ -514,11 +514,10 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
             if (curr_it+1 != bases_end) {
                 // not at end of sequence -> da capo
                 continue;
-            } else {
-                // curr is the last base.
-                // move iterator to end and fall through to placement
-                ++curr_it;
             }
+            // curr is the last base.
+            // move iterator to end and fall through to placement
+            ++curr_it;
         }
         idx_type num_inserts = curr_it - last_it - 1;
         if (num_inserts == 0) {
