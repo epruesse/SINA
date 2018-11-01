@@ -29,7 +29,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "config.h"
 #include "query_pt.h"
 
-#include <string.h>
+#include <cstring>
 
 #include <iostream>
 #include <sstream>
@@ -52,7 +52,7 @@ using std::vector;
 #include "query_arb.h"
 
 #include <dlfcn.h>
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <arbdb.h>
 #include <PT_com.h>

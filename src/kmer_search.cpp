@@ -60,7 +60,7 @@ namespace fs = boost::filesystem;
 
 #include <boost/thread/mutex.hpp>
 
-#include <stdio.h>
+#include <cstdio>
 #include <sys/stat.h>
 
 #include "zlib.h"

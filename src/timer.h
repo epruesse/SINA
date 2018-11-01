@@ -27,7 +27,7 @@
 */
 
 #include <sys/time.h>
-#include <time.h>
+#include <ctime>
 #include <vector>
 #include <algorithm>
 #include <iomanip>

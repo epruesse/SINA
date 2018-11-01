@@ -66,7 +66,7 @@ using std::pair;
 #include <unordered_map>
 using std::unordered_map;
 
-#include <stdio.h>
+#include <cstdio>
 
 using std::runtime_error;
 
