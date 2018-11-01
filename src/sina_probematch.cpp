@@ -107,7 +107,9 @@ int main(int argc, const char **argv) {
       // count ambiguities in match
       int iupac_count = 0;
       for (cseq::iterator kt = jt->begin(); kt != jt->end(); ++kt) {
-	if (kt->is_ambig()) iupac_count ++;
+	if (kt->is_ambig()) {
+	  iupac_count ++;
+	}
       }
 
       // print match

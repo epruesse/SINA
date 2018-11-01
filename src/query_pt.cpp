@@ -527,14 +527,17 @@ match_retry:
 
                     family.push_back(seq);
 
-                    if (num_full && (long)seq.size() > full_min_len)
+                    if (num_full && (long)seq.size() > full_min_len) {
                         num_full--;
+                    }
                     if (range_cover_right &&
-                        seq.getById(seq.size()-1).getPosition() >= data->range_end)
+                        seq.getById(seq.size()-1).getPosition() >= data->range_end) {
                         range_cover_right--;
+                    }
                     if (range_cover_left &&
-                        seq.begin()->getPosition() <= data->range_begin)
+                        seq.begin()->getPosition() <= data->range_begin) {
                         range_cover_left--;
+                    }
                 }
             } else {
                 if (f_relscore <= max_score) {

@@ -105,11 +105,12 @@ cseq::append(const aligned_base& ab) {
 
 cseq&
 cseq::assign(vector<unsigned char>& dat) {
-    if (dat[0]=='#')
+    if (dat[0] == '#') {
         assignFromCompressed(&dat.front(), dat.size());
-    else {
-        if (dat.back() != '0')
+    } else {
+        if (dat.back() != '0') {
             dat.push_back('0');
+        }
 //        append((char*)&dat.front());
     #warning fix cseq::assign
     }
@@ -167,7 +168,9 @@ cseq::getAligned(bool nodots, bool dna) const {
     aligned.reserve(alignment_width);
 
     char dot='.';
-    if (nodots) dot='-';
+    if (nodots) {
+        dot='-';
+    }
 
     auto it = bases.begin(), it_end = bases.end();
 
@@ -309,10 +312,11 @@ cseq::assignFromCompressed(const void* data, size_t len) {
 char
 cseq::operator[](cseq::vidx_type i) {
     vector<aligned_base>::const_iterator it = getIterator(i);
-    if (it != bases.end() && i == it->getPosition())
+    if (it != bases.end() && i == it->getPosition()) {
         return it->getBase();
-    else
+    } else {
         return '-';
+    }
 }
 
 
@@ -411,7 +415,9 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
         bool gap = true;
         for (vector<cseq*>::size_type j = 0; j < jmax; ++j) {
             outchar[j] = seqs[j].operator[](i);
-            if (outchar[j] != '-') gap=false;
+            if (outchar[j] != '-') {
+                gap = false;
+            }
         }
 
         if (!gap || i == to_pos-1 ) {
@@ -452,16 +458,27 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
                     if (jt == last+1) {
                         range=true;
                         ofs << "-";
-                    } else
+                    } else {
                         ofs << " " << jt;
+                    }
                 }
                 last = jt;
-                if (jt +1 == (int)seqs.size()) is_last=true;
-                if (jt +2 == (int)seqs.size()) is_secondlast=true;
+                if (jt +1 == (int)seqs.size()) {
+                    is_last = true;
+                }
+                if (jt +2 == (int)seqs.size()) {
+                    is_secondlast = true;
+                }
             }
-            if (range) ofs << last;
-            if (is_last) ofs << " <---(## NEW ##) ";
-            if (is_secondlast) ofs << " <---(%% ORIG %%) ";
+            if (range) {
+                ofs << last;
+            }
+            if (is_last) {
+                ofs << " <---(## NEW ##) ";
+            }
+            if (is_secondlast) {
+                ofs << " <---(%% ORIG %%) ";
+            }
 
             ofs << endl;
         }
@@ -603,7 +620,9 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
 
         for (; last_it != curr_it; ++last_it) {
             last_it->setPosition(range_begin++);
-            if (lowercase) last_it->setLowerCase();
+            if (lowercase) {
+                last_it->setLowerCase();
+            }
         }
 
         total_inserts+=num_inserts;
@@ -640,15 +659,18 @@ cseq::find_differing_parts(const cseq& right) const {
             score = 4;
             ++r_it;
         } else { // rpos <=> lops
-            if ((char)l_it->getBase() != (char)r_it->getBase())
+            if ((char)l_it->getBase() != (char)r_it->getBase()) {
                 score = 4;
+            }
             ++r_it;
             ++l_it;
         }
-        if (l_it != l_end) 
+        if (l_it != l_end) {
             lpos = l_it->getPosition();
-        if (r_it != r_end)
+        }
+        if (r_it != r_end) {
             rpos = r_it->getPosition();
+        }
         if (score > 0) {
             if (!bad) {
                 int rpos = std::max(right.bases.begin(), r_it - 2)->getPosition();
@@ -662,8 +684,9 @@ cseq::find_differing_parts(const cseq& right) const {
             }
         }
     }
-    if (bad==true)
+    if (bad) {
         start_stops.push_back(std::min(lpos,rpos));
+    }
     
     return start_stops;
 }
@@ -674,7 +697,9 @@ cseq::calcPairScore(const std::vector<int>& pairs) {
     // create array to hold counts for base combinations
     std::vector<int> count;
     count.resize(65536);
-    for (int i=0; i<65536; ++i) count[i]=0;
+    for (int i=0; i<65536; ++i) {
+        count[i] = 0;
+    }
 
     int num=0;
 
@@ -688,10 +713,11 @@ cseq::calcPairScore(const std::vector<int>& pairs) {
                 and
                 (left != '-' or right != '-')) {
                 num++;
-                if (left < right)
+                if (left < right) {
                     count[((int)(left)<<8) + right]++;
-                else
+                } else {
                     count[((int)(right)<<8) + left]++;
+                }
             }
         }
     }

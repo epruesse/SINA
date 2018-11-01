@@ -82,8 +82,9 @@ public:
     /* assign from char */
     base_iupac& operator=(unsigned char c) {
         _data = iupac_char_to_bmask[c];
-        if (_data == 0 && c != '-' && c != '.')
+        if (_data == 0 && c != '-' && c != '.') {
             throw bad_character_exception(c);
+        }
         return *this;
     }
 

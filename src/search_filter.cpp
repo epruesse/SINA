@@ -323,7 +323,9 @@ search_filter::operator()(tray t) {
         for (string& s: opts->v_lca_fields) {
             data->arb->loadKey(r, s);
             string tax_path = r.get_attr<string>(s);
-            if (tax_path == "Unclassified;") continue;
+            if (tax_path == "Unclassified;") {
+                continue;
+            }
             vector<string> group_names;
             boost::split(group_names, tax_path, boost::is_any_of(";"));
             if (group_names.back().empty() || group_names.back()  == " ") {
@@ -366,7 +368,9 @@ search_filter::operator()(tray t) {
             string name = it->back();
             ++it;
             for (; it != group_names.end(); ++it) {
-                if (it->size() == 0 || it->back() != name) break;
+                if (it->size() == 0 || it->back() != name) {
+                    break;
+                }
             }
             if (it != group_names.end()) {
                 group_names.erase(it);

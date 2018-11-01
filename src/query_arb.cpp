@@ -614,8 +614,9 @@ query_arb::loadCache(std::vector<std::string>& keys) {
 #endif // have TBB
 
     logger->info("Loaded {} sequences", data.sequence_cache.size());
-    if (data.sequence_cache.size() > scache_size)
+    if (data.sequence_cache.size() > scache_size) {
         data.storeCache();
+    }
 
     data.have_cache = true;
 }
@@ -650,13 +651,15 @@ cseq&
 query_arb::getCseq(string name) {
     // if there is a preloaded cache, just hand out sequence
     boost::mutex::scoped_lock lock_cache(data.sequence_cache_access);
-    if (data.have_cache)
+    if (data.have_cache) {
         return data.sequence_cache[name];
+    }
     
     // if not, check whether we already loaded it
     auto it = data.sequence_cache.find(name);
-    if (it != data.sequence_cache.end())
+    if (it != data.sequence_cache.end()) {
         return it->second;
+    }
 
     // if all fails, fetch sequence from arb and cache
     cseq tmp(name.c_str(), 0.f, 
@@ -743,7 +746,9 @@ query_arb::copySequence(query_arb& other, std::string name, bool mark) {
     // don't copy if sequence with identical name exists
     if ( (gbdest=GBT_find_species(data.gbmain, name.c_str())) ) {
         logger->error("Species \"{}\" already in target db. Not copying.", name);
-        if (mark) write_flag(gbdest,1l);
+        if (mark) {
+            write_flag(gbdest, 1l);
+        }
         return;
     }
 
@@ -753,7 +758,9 @@ query_arb::copySequence(query_arb& other, std::string name, bool mark) {
         GB_copy(gbdest,gbsource);
         logger->info("Copied species {}", name);
         data.gblast = gbdest;
-        if (mark) write_flag(gbdest,1l);
+        if (mark) {
+            write_flag(gbdest, 1l);
+        }
         return;
     } else {
         logger->error("Error while copying species \"{}\".", name);
@@ -801,18 +808,21 @@ query_arb::getFilter(string name) {
 
     // find SAI container named <name>
     GBDATA *gbsai = GBT_find_SAI(data.gbmain, name.c_str());
-    if (not gbsai)
+    if (not gbsai) {
         return "";
+    }
 
     // descend into alignment tag
     gbsai = GB_find(gbsai, data.default_alignment, SEARCH_CHILD);
-    if (not gbsai)
+    if (not gbsai) {
         return "";
+    }
 
     // find data entry
     gbsai = GB_find(gbsai, "data", SEARCH_CHILD);
-    if (not gbsai)
+    if (not gbsai) {
         return "";
+    }
 
     // read data entry and return as string
     return string(GB_read_char_pntr(gbsai));
@@ -913,8 +923,9 @@ query_arb::getPairs() {
 
     const char* error = helix.init(data.gbmain, ali);
     if (not error) {
-        for (int i=0; i<data.alignment_length; ++i)
+        for (int i=0; i<data.alignment_length; ++i) {
             pairs[i]=helix.entry(i).pair_pos;
+        }
     } else {
         logger->error("No HELIX filter found in ARB file. "
                       "Disabling secondary structure features.");

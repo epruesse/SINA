@@ -50,9 +50,13 @@ draw_axis(SEQUENCE &s,
   end = s.end();
 
   // find parts to show;
-  while (it != end && it->getPosition() < from) ++it;
+  while (it != end && it->getPosition() < from) {
+    ++it;
+  }
   begin=it;
-  while (it != end && it->getPosition() < to) ++it;
+  while (it != end && it->getPosition() < to) {
+    ++it;
+  }
   end=it;
 
   // print node labels
@@ -64,8 +68,9 @@ draw_axis(SEQUENCE &s,
 
   // cluster master nodes, link with edges
   out << "{ edge [style=invis]; " << std::endl;
-  if (horizontal)
+  if (horizontal) {
     out << " rank=min;" << std:: endl;
+  }
   out << "origin -> ";
   for (it = begin; it != end && it->getPosition() < to-1; ++it) {
     out << nname << get_node_id(s,it) << " -> ";
@@ -235,10 +240,11 @@ seq_compare(L& left, R& right, W& weight) {
             mismatches += weight[rpos];
             ++r_it;
         } else { // rpos <=> lops
-            if (l_it->getBase() != r_it->getBase())
+            if (l_it->getBase() != r_it->getBase()) {
                 mismatches += weight[rpos];
-            else
+            } else {
                 matches += weight[rpos];
+	    }
             ++r_it;
             ++l_it;
         }

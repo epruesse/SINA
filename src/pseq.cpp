@@ -72,10 +72,18 @@ pseq::pseq(std::vector<cseq>::iterator seqs_it,
                 it->getPosition() == current_column) {
                 if (it->ambig_order() > 0) {
                     int points = 12 / it->ambig_order();
-                    if (it->has_A()) A+= points;
-                    if (it->has_G()) G+= points;
-                    if (it->has_C()) C+= points;
-                    if (it->has_TU()) T+= points;
+                    if (it->has_A()) {
+                        A += points;
+                    }
+                    if (it->has_G()) {
+                        G += points;
+                    }
+                    if (it->has_C()) {
+                        C += points;
+                    }
+                    if (it->has_TU()) {
+                        T += points;
+                    }
                     gap[row] = false;
                 }
                 ++base_iterators[row];

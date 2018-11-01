@@ -55,7 +55,9 @@ struct test_set {
             while (not d.insert(val).second)
             {
                 val++;
-                if (val >= size) val=0;
+                if (val >= size) {
+                    val=0;
+                }
             }
         }
         data.resize(n);
@@ -90,7 +92,9 @@ BOOST_DATA_TEST_CASE_F(test_set,
     // check get()
     int matching_set = 0;
     for (auto i: data) {
-        if (b.get(i)) matching_set++;
+        if (b.get(i)) {
+            matching_set++;
+        }
     }
     BOOST_CHECK_EQUAL(n, matching_set);
   

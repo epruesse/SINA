@@ -70,10 +70,18 @@ public:
       for (float & base : bases) {
         base=0.f;
       }
-      if (b.has_A())  bases[BASE_A] = val;
-      if (b.has_G())  bases[BASE_G] = val;
-      if (b.has_C())  bases[BASE_C] = val;
-      if (b.has_TU()) bases[BASE_TU] = val;
+      if (b.has_A()) {
+          bases[BASE_A] = val;
+      }
+      if (b.has_G()) {
+          bases[BASE_G] = val;
+      }
+      if (b.has_C()) {
+          bases[BASE_C] = val;
+      }
+      if (b.has_TU()) {
+          bases[BASE_TU] = val;
+      }
     }
   }
 

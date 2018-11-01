@@ -84,7 +84,9 @@ public:
 
     const T& getById(idx_type idx) const {
         auto it=_nodes.begin(), end=_nodes.end();
-        while (it != end && it->_id != idx ) ++it;
+        while (it != end && it->_id != idx ) {
+            ++it;
+        }
 #ifdef DEBUG
         if (it == end) {
             logger->critical("ARG234: {}", idx);
@@ -278,7 +280,9 @@ for_each_prev(T& git, S s) {
     using pn_iterator = typename std::list<node_ref>::iterator;
     pn_iterator it = git.get_node()._previous.begin();
     pn_iterator end = git.get_node()._previous.end();
-    for(; it != end; ++it) s(*it);
+    for(; it != end; ++it) {
+        s(*it);
+    }
     return s;
 }
 

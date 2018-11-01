@@ -98,32 +98,53 @@ void validate(boost::any& v,
               SEQUENCE_DB_TYPE* /*db*/, int) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
-    if (iequals(s, "NONE"))  v = SEQUENCE_DB_NONE;
-    else if (iequals(s, "AUTO")) v = SEQUENCE_DB_AUTO;
-    else if (iequals(s, "ARB")) v = SEQUENCE_DB_ARB;
-    else if (iequals (s, "FASTA")) v = SEQUENCE_DB_FASTA;
-    else throw po::invalid_option_value(s);
+    if (iequals(s, "NONE")) {
+        v = SEQUENCE_DB_NONE;
+    } else if (iequals(s, "AUTO")) {
+        v = SEQUENCE_DB_AUTO;
+    } else if (iequals(s, "ARB")) {
+        v = SEQUENCE_DB_ARB;
+    } else if (iequals (s, "FASTA")) {
+        v = SEQUENCE_DB_FASTA;
+    } else { throw po::invalid_option_value(s);
+}
 }
 
 // make known any<> types printable
 std::ostream& operator<<(std::ostream& out,
                          const boost::any& a) {
     using boost::any_cast;
-    if (any_cast<bool>(&a)) out << any_cast<bool>(a);
-    else if (any_cast<int>(&a)) out << any_cast<int>(a);
-    else if (any_cast<long>(&a)) out << any_cast<long>(a);
-    else if (any_cast<float>(&a)) out << any_cast<float>(a);
-    else if (any_cast<string>(&a)) out << any_cast<string>(a);
-    else if (any_cast<TURN_TYPE>(&a)) out << any_cast<TURN_TYPE>(a);
-    else if (any_cast<OVERHANG_TYPE>(&a)) out << any_cast<OVERHANG_TYPE>(a);
-    else if (any_cast<INSERTION_TYPE>(&a)) out << any_cast<INSERTION_TYPE>(a);
-    else if (any_cast<LOWERCASE_TYPE>(&a)) out << any_cast<LOWERCASE_TYPE>(a);
-    else if (any_cast<FASTA_META_TYPE>(&a)) out << any_cast<FASTA_META_TYPE>(a);
-    else if (any_cast<SEQUENCE_DB_TYPE>(&a)) out << any_cast<SEQUENCE_DB_TYPE>(a);
-    else if (any_cast<CMP_IUPAC_TYPE>(&a)) out << any_cast<CMP_IUPAC_TYPE>(a);
-    else if (any_cast<CMP_DIST_TYPE>(&a)) out << any_cast<CMP_DIST_TYPE>(a);
-    else if (any_cast<CMP_COVER_TYPE>(&a)) out << any_cast<CMP_COVER_TYPE>(a);
-    else out << "UNKNOWN TYPE: '" << a.type().name()<<"'";
+    if (any_cast<bool>(&a)) {
+        out << any_cast<bool>(a);
+    } else if (any_cast<int>(&a)) {
+        out << any_cast<int>(a);
+    } else if (any_cast<long>(&a)) {
+        out << any_cast<long>(a);
+    } else if (any_cast<float>(&a)) {
+        out << any_cast<float>(a);
+    } else if (any_cast<string>(&a)) {
+        out << any_cast<string>(a);
+    } else if (any_cast<TURN_TYPE>(&a)) {
+        out << any_cast<TURN_TYPE>(a);
+    } else if (any_cast<OVERHANG_TYPE>(&a)) {
+        out << any_cast<OVERHANG_TYPE>(a);
+    } else if (any_cast<INSERTION_TYPE>(&a)) {
+        out << any_cast<INSERTION_TYPE>(a);
+    } else if (any_cast<LOWERCASE_TYPE>(&a)) {
+        out << any_cast<LOWERCASE_TYPE>(a);
+    } else if (any_cast<FASTA_META_TYPE>(&a)) {
+        out << any_cast<FASTA_META_TYPE>(a);
+    } else if (any_cast<SEQUENCE_DB_TYPE>(&a)) {
+        out << any_cast<SEQUENCE_DB_TYPE>(a);
+    } else if (any_cast<CMP_IUPAC_TYPE>(&a)) {
+        out << any_cast<CMP_IUPAC_TYPE>(a);
+    } else if (any_cast<CMP_DIST_TYPE>(&a)) {
+        out << any_cast<CMP_DIST_TYPE>(a);
+    } else if (any_cast<CMP_COVER_TYPE>(&a)) {
+        out << any_cast<CMP_COVER_TYPE>(a);
+    } else {
+        out << "UNKNOWN TYPE: '" << a.type().name()<<"'";
+    }
     return out;
 }
 

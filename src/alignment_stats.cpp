@@ -98,8 +98,12 @@ alignment_stats::alignment_stats(
             maxweight = std::max(maxweight, (float)weight);
             minweight = std::min(minweight, (float)weight);
             weighted_columns++;
-            if (i<first_weighted) first_weighted=i;
-            if (i>last_weighted) last_weighted=i;
+            if (i < first_weighted) {
+                first_weighted = i;
+            }
+            if (i > last_weighted) {
+                last_weighted = i;
+            }
         } else {
             weights[i] = 1;
         }

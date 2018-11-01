@@ -80,7 +80,9 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
     vector<iterator> last(num_seqs);
     // iterate over alignment columns left to right
     for (unsigned int i=0; i < bases_width; i++) {
-        if (min_next > i) continue;
+        if (min_next > i) {
+            continue;
+        }
         min_next = std::numeric_limits<int>().max();
         nodes.assign(nodes_size, iterator());
 
@@ -95,8 +97,9 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
                     newnode = nodes[base];
                     newnode->weight += 1.f;
                 }
-                if (!last[j].isNull())
+                if (!last[j].isNull()) {
                     link(last[j],newnode);
+                }
                 last[j]=newnode;
 
                 ++citv[j];

@@ -117,9 +117,13 @@ void validate(boost::any& v,
     using namespace boost::program_options;
     validators::check_first_occurrence(v);
     const std::string& s = validators::get_single_string(values);
-    if (iequals(s, "pt-server")) v = ENGINE_ARB_PT;
-    else if (iequals(s, "internal")) v = ENGINE_SINA_KMER;
-    else throw po::invalid_option_value(s);
+    if (iequals(s, "pt-server")) {
+        v = ENGINE_ARB_PT;
+    } else if (iequals(s, "internal")) {
+        v = ENGINE_SINA_KMER;
+    } else {
+        throw po::invalid_option_value(s);
+    }
 }
 
 std::ostream& operator<<(std::ostream& out, const ENGINE_TYPE& t) {
@@ -137,10 +141,15 @@ void validate(boost::any& v,
     using namespace boost::program_options;
     validators::check_first_occurrence(v);
     const std::string& s = validators::get_single_string(values);
-    if (iequals(s, "none")) v = TURN_NONE;
-    else if (iequals(s, "revcomp")) v = TURN_REVCOMP;
-    else if (iequals(s, "all")) v = TURN_ALL;
-    else throw po::invalid_option_value(s);
+    if (iequals(s, "none")) {
+        v = TURN_NONE;
+    } else if (iequals(s, "revcomp")) {
+        v = TURN_REVCOMP;
+    } else if (iequals(s, "all")) {
+        v = TURN_ALL;
+    } else {
+        throw po::invalid_option_value(s);
+    }
 }
 
 std::ostream& operator<<(std::ostream& out, const TURN_TYPE& t) {
@@ -405,10 +414,11 @@ famfinder::_famfinder::turn_check(const cseq& query, bool all) {
 
     double max = 0;
     int best = 0;
-    for (int i = 0; i < 4; i++)
-        if (max < score[i])
+    for (int i = 0; i < 4; i++) {
+        if (max < score[i]) {
             max = score[i], best = i;
-
+        }
+    }
     return best;
 }
 

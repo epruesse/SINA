@@ -244,7 +244,9 @@ rw_fasta::reader::operator()(tray& t) {
         
         // set name to text between first '>' and first ' '
         unsigned int blank = line.find_first_of(' ');
-        if (blank == 0) blank = line.size();
+        if (blank == 0) {
+            blank = line.size();
+        }
         c.setName(line.substr(1, blank-1));
         if (blank < line.size()) {
             c.set_attr<string>(query_arb::fn_fullname, line.substr(blank+1));

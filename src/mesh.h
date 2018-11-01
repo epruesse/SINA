@@ -194,14 +194,16 @@ public:
        ++sit;
         sidx = get_node_id(m._slave,sit);
 
-        if (sit != m._slave.end())
+        if (sit != m._slave.end()) {
             return *this;
+        }
 
         ++mit;
         midx = get_node_id(m._master,mit);
 
-        if (mit == m._master.end())
+        if (mit == m._master.end()) {
             return *this;
+        }
 
         sit=m._slave.begin();
         sidx = get_node_id(m._slave,sit);
@@ -425,7 +427,9 @@ public:
               typename transition::slave_type::idx_type sidx,
               typename transition::slave_type::idx_type smax) {
 
-        if (smax < 1) return; // can't insert
+        if (smax < 1) {
+            return; // can't insert
+        }
 
         if (src.gaps_val != src.value ) {
             // opening gap
@@ -539,8 +543,9 @@ compute(MESH_TYPE& mesh, NODE_COMPUTOR& nc) {
 
     typename MESH_TYPE::iterator it = mesh.begin(), end = mesh.end();
 
-    for (;it != end ; ++it)
+    for (;it != end ; ++it) {
         nc.calc(it);
+    }
 }
 
 

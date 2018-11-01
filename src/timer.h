@@ -150,7 +150,9 @@ public:
                        std::ostream_iterator<std::string>(out, ", "),
                        [](const timestamp &t, const char* name) {
                            std::stringstream tmp;
-                           if (name) tmp << name << " = ";
+                           if (name) {
+                               tmp << name << " = ";
+                           }
                            tmp << t;
                            return tmp.str();
                        });

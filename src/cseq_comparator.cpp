@@ -63,12 +63,20 @@ traverse(const cseq& A, const cseq& B, FUNC F) {
     auto b_end = B.bases.end();
 
     // skip filtered bases at beginning
-    while (a != a_end && F->filtered(*a)) ++a;
-    while (b != b_end && F->filtered(*b)) ++b;
+    while (a != a_end && F->filtered(*a)) {
+        ++a;
+    }
+    while (b != b_end && F->filtered(*b)) {
+        ++b;
+    }
 
     // skip filtered bases at end
-    while (a != a_end && F->filtered(*(a_end-1)) ) --a_end;
-    while (b != b_end && F->filtered(*(b_end-1)) ) --b_end;
+    while (a != a_end && F->filtered(*(a_end-1)) ) {
+        --a_end;
+    }
+    while (b != b_end && F->filtered(*(b_end-1)) ) {
+        --b_end;
+    }
     
     // count left overhang
     if (a->getPosition() < b->getPosition()) {
@@ -155,16 +163,24 @@ template<typename BCOMP, typename FILTER>
 struct match_counter::counter : public match_counter, public FILTER {
     counter(const counter&);
     void overhangA(const aligned_base& b) {
-        if (!FILTER::filtered(b)) only_a_overhang++;
+        if (!FILTER::filtered(b)) {
+            only_a_overhang++;
+        }
     } 
     void overhangB(const aligned_base& b) {
-        if (!FILTER::filtered(b)) only_b_overhang++;
+        if (!FILTER::filtered(b)) {
+            only_b_overhang++;
+        }
     } 
     void onlyA(const aligned_base& b) {
-        if (!FILTER::filtered(b)) only_a++;
+        if (!FILTER::filtered(b)) {
+            only_a++;
+        }
     }
     void onlyB(const aligned_base& b) {
-        if (!FILTER::filtered(b)) only_b++;
+        if (!FILTER::filtered(b)) {
+            only_b++;
+        }
     }
     void both(const aligned_base& b1, 
                const aligned_base& b2) {
