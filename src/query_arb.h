@@ -126,15 +126,15 @@ class query_arb{
     int getSeqCount() const;
     std::vector<std::string> getSequenceNames();
 
-    cseq& getCseq(std::string name);
+    cseq& getCseq(const std::string& name);
     void putCseq(const cseq& seq);
     void putSequence(const cseq& seq);//calls write
-    void loadKey(cseq& c, std::string key);
-    void storeKey(cseq& c, std::string key);
+    void loadKey(cseq& c, const std::string& key);
+    void storeKey(cseq& c, const std::string& key);
 
     long getAlignmentWidth();
 
-    std::string getFilter(std::string name);
+    std::string getFilter(const std::string& name);
     std::vector<int> getPairs();
     std::vector<alignment_stats> getAlignmentStats();
 
@@ -159,7 +159,7 @@ private:
     void setMark(const cseq& cs);
 
     void copySequence(query_arb& qa, const cseq& cs, bool m); //calls write
-    void copySequence(query_arb& other, std::string name, bool mark);
+    void copySequence(query_arb& other, const std::string& name, bool mark);
 
     // make query_arb non-copyable
     query_arb(const query_arb&) = delete;

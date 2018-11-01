@@ -158,7 +158,7 @@ public:
   const aligned_base_profile& getById(idx_type i) const {return profile[i];}
   void sort() {}
 
-  void print_graphviz(std::ostream& out, std::string name);
+  void print_graphviz(std::ostream& out, const std::string& name);
 
 private:
   idx_type width;

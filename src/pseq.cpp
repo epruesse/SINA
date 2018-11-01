@@ -112,7 +112,7 @@ pseq::pseq(std::vector<cseq>::iterator seqs_it,
 }
 
 void
-pseq::print_graphviz(std::ostream& out, std::string /*name*/) {
+pseq::print_graphviz(std::ostream& out, const std::string& /*name*/) {
     for (iterator it = begin(); it != end(); ++it) {
         out << it->getBase().getString() << std::endl;
     }

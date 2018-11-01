@@ -63,7 +63,7 @@ public:
         finder(const finder& o);
         finder& operator=(const finder& o);
         ~finder();
-        tray operator()(tray t);
+        tray operator()(const tray& t);
     };
 
     static void get_options_description(boost::program_options::options_description& main,

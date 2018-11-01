@@ -163,7 +163,7 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
     dbname = dbname + ".index.arb";
 
     // Check portname: allowed are localhost:PORT, :PORT and :SOCKETFILE
-    int split = portname.find(":");
+    int split = portname.find(':');
     string host = portname.substr(0, split);
     string port = portname.substr(split+1);
     if (!host.empty() && host != "localhost") {
@@ -229,13 +229,13 @@ struct query_pt::priv_data {
     static std::map<string, std::weak_ptr<managed_pt_server>> servers;
     std::shared_ptr<managed_pt_server> server;
 
-    bool            connect_server(string portname);
+    bool            connect_server(const string& portname);
     void            disconnect_server();
 };
 
 
 bool
-query_pt::priv_data::connect_server(string portname) {
+query_pt::priv_data::connect_server(const string& portname) {
     boost::mutex::scoped_lock lock(arb_pt_access);
     GB_ERROR error = nullptr;
     link = aisc_open(portname.c_str(), com, AISC_MAGIC_NUMBER, &error);

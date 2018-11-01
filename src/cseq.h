@@ -31,6 +31,7 @@ for the parts of ARB used as well as that of the covered work.
 
 #include <string>
 #include <list>
+#include <utility>
 #include <vector>
 #include <map>
 #include <sstream>
@@ -104,7 +105,7 @@ public:
     std::string getAlignedNoDots() const {return getAligned(true);}
     std::string getBases() const;
     std::string getName() const { return name; }
-    void setName(std::string n) { name=n; }
+    void setName(std::string n) { name=std::move(n); }
     std::string getNameScore() const;
     // fixme: handle "-" and "." correctly
     //FIXME where is the difference between size and width? why is there a difference?
@@ -143,12 +144,12 @@ public:
                                 bool color_code = false);
 
     template<typename T>
-    void set_attr(std::string key, T val) {
+    void set_attr(const std::string& key, T val) {
         attributes[key]=val;
     }
 
     template<typename T>
-    T get_attr(std::string attr) {
+    T get_attr(const std::string& attr) {
         return boost::apply_visitor(lexical_cast_visitor<T>(), attributes[attr]); 
     }
 
@@ -182,7 +183,7 @@ private:
 };
 
 template<>
-inline cseq::variant cseq::get_attr<cseq::variant>(std::string attr) { return attributes[attr]; }
+inline cseq::variant cseq::get_attr<cseq::variant>(const std::string& attr) { return attributes[attr]; }
 
 std::ostream& operator<<(std::ostream& out, const cseq& c);
 
@@ -233,7 +234,7 @@ class cseq::const_reverse_iterator
     : public std::vector<aligned_base>::const_reverse_iterator
 {
  public:
-    const_reverse_iterator(std::vector<aligned_base>::const_reverse_iterator it)
+    const_reverse_iterator(const std::vector<aligned_base>::const_reverse_iterator& it)
       : std::vector<aligned_base>::const_reverse_iterator(it) {}
     const_reverse_iterator() = default;
 

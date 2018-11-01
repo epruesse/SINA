@@ -317,7 +317,7 @@ famfinder::finder::operator=(const finder& o) = default;
 famfinder::finder::~finder() = default;
 
 tray
-famfinder::finder::operator()(tray t) {
+famfinder::finder::operator()(const tray& t) {
     return (*data)(t);
 }
 

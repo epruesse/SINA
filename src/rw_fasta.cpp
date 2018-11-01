@@ -262,7 +262,7 @@ rw_fasta::reader::operator()(tray& t) {
         // if the comment contains an attribute: add it. 
         // Otherwise ignore the comment
 
-        size_t equalsign = line.find_first_of("=");
+        size_t equalsign = line.find_first_of('=');
         if (equalsign != string::npos) {
             string key = line.substr(1, equalsign-1);
             boost::trim(key);

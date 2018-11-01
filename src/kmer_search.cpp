@@ -89,7 +89,7 @@ kmer_search::get_kmer_search(fs::path& filename, int k) {
 
 void
 kmer_search::destroy_indices() {
-    for (const std::pair<std::string, kmer_search*>& pair: indices) {
+    for (auto& pair: indices) {
         delete pair.second;
     }
 }

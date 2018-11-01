@@ -175,7 +175,7 @@ struct query_arb::priv_data {
     GBDATA *gbmain{nullptr}, *gblast{nullptr}, *gbspec{nullptr};
     int count{0};
 
-    GBDATA* getGBDATA(string name);
+    GBDATA* getGBDATA(const string& name);
     void loadCache();
     void storeCache();
     string getSequence(const char* name, const char* ali);
@@ -186,7 +186,7 @@ struct query_arb::priv_data {
 GB_shell *query_arb::priv_data::the_arb_shell = nullptr;
 
 GBDATA*
-query_arb::priv_data::getGBDATA(string name) {
+query_arb::priv_data::getGBDATA(const string& name) {
     if (have_cache) {
         return gbdata_cache[name];
     }
@@ -384,7 +384,7 @@ query_arb::good() const {
 }
 
 static void
-loadKey(cseq& c, const string key, GBDATA* gbspec) {
+loadKey(cseq& c, const string& key, GBDATA* gbspec) {
     GBDATA *gbd = GB_find(gbspec, key.c_str(), SEARCH_CHILD);
     if (gbd != nullptr) {
         switch(GB_read_type(gbd)) {
@@ -409,7 +409,7 @@ loadKey(cseq& c, const string key, GBDATA* gbspec) {
 }
 
 void
-query_arb::loadKey(cseq& c, const string key) {
+query_arb::loadKey(cseq& c, const string& key) {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data.gbmain);
     ::loadKey(c, key, data.getGBDATA(c.getName()));
@@ -492,7 +492,7 @@ query_arb::storeKey(GBDATA* gbmain, GBDATA* gbspec, const std::string& key,
 }
 
 void
-query_arb::storeKey(cseq& c, const std::string key) {
+query_arb::storeKey(cseq& c, const std::string& key) {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data.gbmain);
     storeKey(data.gbmain, data.getGBDATA(c.getName()), key,
@@ -647,7 +647,7 @@ query_arb::getSequenceNames() {
 }
 
 cseq&
-query_arb::getCseq(string name) {
+query_arb::getCseq(const string& name) {
     // if there is a preloaded cache, just hand out sequence
     boost::mutex::scoped_lock lock_cache(data.sequence_cache_access);
     if (data.have_cache) {
@@ -733,7 +733,7 @@ query_arb::putSequence(const cseq& seq) {
 }
 
 void
-query_arb::copySequence(query_arb& other, std::string name, bool mark) {
+query_arb::copySequence(query_arb& other, const std::string& name, bool mark) {
     boost::mutex::scoped_lock lock(arb_db_access);
 
     // lock underlying arb database
@@ -794,7 +794,7 @@ query_arb::setMark(const std::string& name) {
 /////// filter stuff
 
 string
-query_arb::getFilter(string name) {
+query_arb::getFilter(const string& name) {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data.gbmain);
 

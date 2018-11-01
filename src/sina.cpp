@@ -222,7 +222,7 @@ void get_options_description(po::options_description& main,
         ;
 }
 
-void validate_vm(po::variables_map& vm, po::options_description all_od) {
+void validate_vm(po::variables_map& vm, const po::options_description& all_od) {
     if (vm.count("has-cli-vers") != 0u) {
         std::cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
                   << " present" << std::endl;
