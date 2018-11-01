@@ -49,12 +49,12 @@ namespace sina {
 class query_arb_exception : public std::exception
 {
 public:
-    query_arb_exception(std::string& what): m_what(what){}
-    query_arb_exception(std::string  what): m_what(std::move(what)){}
-    query_arb_exception(const char* what): m_what(what){}
-    query_arb_exception(){}
-    const char* what() const throw() override{ return m_what.c_str();}
-    ~query_arb_exception() throw() override{}
+    query_arb_exception(std::string& what): m_what(what) {}
+    query_arb_exception(std::string  what): m_what(std::move(what)) {}
+    query_arb_exception(const char* what): m_what(what) {}
+    query_arb_exception() {}
+    const char* what() const noexcept override { return m_what.c_str(); }
+    ~query_arb_exception() noexcept override {}
 
 private:
     std::string m_what;

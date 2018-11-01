@@ -62,11 +62,11 @@ public:
 
     class bad_character_exception : public std::exception {
     public:
-        bad_character_exception(value_type c) throw()
+        bad_character_exception(value_type c) noexcept
             : character(c)
         {
         }
-        const char* what() const throw() override {
+        const char* what() const noexcept override {
             return "Character not IUPAC encoded base or gap";
         }
         value_type character;

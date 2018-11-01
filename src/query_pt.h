@@ -40,9 +40,9 @@ namespace sina {
 class query_pt_exception : public std::exception {
     std::string message;
 public:
-    query_pt_exception(std::string  _message) throw();
-    ~query_pt_exception() throw() override;
-    const char* what() const throw() override;
+    query_pt_exception(std::string  _message) noexcept;
+    ~query_pt_exception() noexcept override;
+    const char* what() const noexcept override;
 };
 
 

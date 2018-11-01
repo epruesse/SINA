@@ -606,16 +606,16 @@ match_retry:
     return f_relscore;
 }
 
-query_pt_exception::query_pt_exception(std::string  msg) throw()
+query_pt_exception::query_pt_exception(std::string  msg) noexcept
     : message(std::move(msg))
 {
 }
 
-query_pt_exception::~query_pt_exception() throw() {
+query_pt_exception::~query_pt_exception() noexcept {
 }
 
 const char*
-query_pt_exception::what() const throw() {
+query_pt_exception::what() const noexcept {
     return message.c_str();
 }
 
