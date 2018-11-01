@@ -56,7 +56,7 @@ struct timestamp : private timeval {
     }
 
     void get() {
-        gettimeofday(this,0);
+        gettimeofday(this,nullptr);
     }
 
     timestamp() {
@@ -126,7 +126,7 @@ public:
         ++calls;
     }
 
-    void stop(const char* name=NULL) {
+    void stop(const char* name=nullptr) {
         timestamp t_now;
         if (++time_it == timestamps.end()) {
             names.push_back(name);

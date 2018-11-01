@@ -69,7 +69,7 @@ public:
 
     // Constructors / assignment operator
 
-    cseq(const char* name, float score = 0.f, const char* data = NULL);
+    cseq(const char* name, float score = 0.f, const char* data = nullptr);
     cseq();
     cseq& operator=(const cseq& rhs); 
     cseq(const cseq& orig);

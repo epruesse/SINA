@@ -80,7 +80,7 @@ public:
                          int max_match,
                          float min_score) override {
         return match(family, sequence, min_match, max_match, min_score, 2.0,
-                     NULL, false, 0, 0, 0, 0, false);
+                     nullptr, false, 0, 0, 0, 0, false);
     };
     
     void build_index();
