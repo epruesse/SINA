@@ -52,15 +52,15 @@ alignment_stats::alignment_stats() {
 }
 
 alignment_stats::alignment_stats(
-    std::string  _name,
+    std::string  name_,
     unsigned int ntaxa, unsigned int alen,
-    unsigned int *na, unsigned int *ng, unsigned int *nc, 
+    unsigned int *na, unsigned int *nc, unsigned int *ng,
     unsigned int *nu, unsigned int *nM, unsigned int *nT,
-    std::vector<int>  _pairs
+    std::vector<int>  pairs_
     ) 
-    : name(std::move(_name)),
+    : name(std::move(name_)),
       num_taxa(ntaxa), width(alen),
-      pairs(std::move(_pairs)),
+      pairs(std::move(pairs_)),
       minweight(9999999)
 {
     auto console = Log::create_logger("alignment_stats");

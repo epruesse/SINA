@@ -83,7 +83,7 @@ class managed_pt_server {
     string dbname;
     string portname;
 public:
-    managed_pt_server(string  dbname, string  portname);
+    managed_pt_server(string  dbname_, string  portname_);
     managed_pt_server(const managed_pt_server&);
     ~managed_pt_server();
 };

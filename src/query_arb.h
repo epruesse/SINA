@@ -159,7 +159,7 @@ private:
     void setMark(const cseq& cs);
 
     void copySequence(query_arb& qa, const cseq& cs, bool m); //calls write
-    void copySequence(query_arb& qa, std::string s, bool m);
+    void copySequence(query_arb& other, std::string name, bool mark);
 
     // make query_arb non-copyable
     query_arb(const query_arb&) = delete;

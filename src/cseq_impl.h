@@ -32,8 +32,8 @@ for the parts of ARB used as well as that of the covered work.
 namespace sina {
 
 inline cseq& 
-cseq::append(const std::string s) {
-  return append(s.c_str());
+cseq::append(const std::string& str) {
+  return append(str.c_str());
 }
 
 template<typename T>

@@ -65,14 +65,14 @@ public:
         struct priv_data;
         std::shared_ptr<priv_data> data;
     public:
-        writer(const boost::filesystem::path& out, unsigned int copy_relatives);
+        writer(const boost::filesystem::path& outfile, unsigned int copy_relatives);
         writer(const writer&);
         writer& operator=(const writer&);
         ~writer();
         tray operator()(tray);
     };
 
-    static void get_options_description(boost::program_options::options_description& all,
+    static void get_options_description(boost::program_options::options_description& main,
                                         boost::program_options::options_description& adv);
     static void validate_vm(boost::program_options::variables_map&,
                             boost::program_options::options_description&);

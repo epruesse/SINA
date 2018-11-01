@@ -40,7 +40,7 @@ namespace sina {
 class query_pt_exception : public std::exception {
     std::string message;
 public:
-    query_pt_exception(std::string  _message) noexcept;
+    query_pt_exception(std::string  msg) noexcept;
     ~query_pt_exception() noexcept override;
     const char* what() const noexcept override;
 };
@@ -75,16 +75,16 @@ public:
      *  leave_query_out: drop sequence with matching id
      */
     double match(std::vector<cseq> &family,
-                         const cseq& query,
+                         const cseq& queryc,
                          int min_match,
                          int max_match,
                          float min_score,
                          float max_score,
                          query_arb *arb,
                          bool noid,
-                         int minlen,
+                         int min_len,
                          int num_full,
-                         int minlen_full,
+                         int full_min_len,
                          int range_cover,
                          bool leave_query_out) override;
 

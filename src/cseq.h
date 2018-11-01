@@ -69,7 +69,7 @@ public:
 
     // Constructors / assignment operator
 
-    cseq(const char* name, float score = 0.f, const char* data = nullptr);
+    cseq(const char* _name, float _score = 0.f, const char* _data = nullptr);
     cseq();
     cseq& operator=(const cseq& rhs); 
     cseq(const cseq& orig);
@@ -77,15 +77,15 @@ public:
     // writing methods
     void clearSequence();
 
-    cseq& append(const char* aligned_rna_sequence);
-    cseq& append(std::string aligned_rna_sequence);
-    cseq& append(const aligned_base& a);
+    cseq& append(const char* str);
+    cseq& append(const std::string& str);
+    cseq& append(const aligned_base& ab);
 
     //FIXME what does assign do?
     cseq& assign(std::vector<unsigned char> &dat);
-  void assignFromCompressed(const void *buffer, size_t len);
+  void assignFromCompressed(const void *data, size_t len);
 
-    void setWidth(vidx_type pos);
+    void setWidth(vidx_type newWidth);
     //FIXME what does fix_duplicate_positions do?
     void fix_duplicate_positions(std::ostream&, bool lowercase, bool remove);
     //FIXME cseq does not inherit anything. why does the empty sort method exist?
@@ -137,8 +137,8 @@ public:
 
     // io operations dealing with vector<*cseq>
     static void write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
-                                cseq::idx_type start, cseq::idx_type stop, 
-                                bool color_code = false);    
+                                cseq::idx_type from_pos, cseq::idx_type to_pos,
+                                bool colors = false);
     static void write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
                                 bool color_code = false);
 

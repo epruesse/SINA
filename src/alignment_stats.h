@@ -47,11 +47,11 @@ public:
     unsigned int num_transversions{0};
   };
   alignment_stats();
-  alignment_stats(std::string  name,
+  alignment_stats(std::string  name_,
                   unsigned int ntaxa, unsigned int alen,
-		  unsigned int *na, unsigned int *nc, unsigned int *ng, 
-		  unsigned int *nu, unsigned int *nM, unsigned int *nT,
-                  std::vector<int>  _pairs);
+                  unsigned int *na, unsigned int *nc, unsigned int *ng,
+                  unsigned int *nu, unsigned int *nM, unsigned int *nT,
+                  std::vector<int>  pairs_);
   
   const std::vector<float>& getWeights() const { return weights; }
   const std::vector<int>& getPairs() const { return pairs; }
