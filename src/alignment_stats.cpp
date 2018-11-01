@@ -141,6 +141,7 @@ alignment_stats::getSubstMatrix(double identity) const {
     f[BASE_G] = (double)global_freqs.num_g/total_bases;
     f[BASE_TU] = (double)global_freqs.num_u/total_bases;
 
+#if 0
     double avgmm=0;
     for (int i=0; i < BASE_MAX; i++) {
         for (int j=0; j < BASE_MAX; j++) {
@@ -154,6 +155,7 @@ alignment_stats::getSubstMatrix(double identity) const {
         }
     }
     avgmm /= 12;
+# endif
 
     return m;
 }
