@@ -40,7 +40,7 @@ namespace sina {
 class query_pt_exception : public std::exception {
     std::string message;
 public:
-    query_pt_exception(const std::string& _message) throw();
+    query_pt_exception(std::string  _message) throw();
     ~query_pt_exception() throw();
     virtual const char* what() const throw();
 };

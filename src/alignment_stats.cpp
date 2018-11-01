@@ -32,6 +32,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+#include <utility>
 using std::string;
 using std::vector;
 namespace sina {
@@ -54,15 +55,15 @@ alignment_stats::alignment_stats()
 }
 
 alignment_stats::alignment_stats(
-    const std::string& _name,
+    std::string  _name,
     unsigned int ntaxa, unsigned int alen,
     unsigned int *na, unsigned int *ng, unsigned int *nc, 
     unsigned int *nu, unsigned int *nM, unsigned int *nT,
-    const std::vector<int>& _pairs
+    std::vector<int>  _pairs
     ) 
-    : name(_name),
+    : name(std::move(_name)),
       num_taxa(ntaxa), width(alen), global_freqs(), 
-      pairs(_pairs),
+      pairs(std::move(_pairs)),
       maxweight(0), 
       minweight(9999999), sumweight(0), weighted_columns(0)
 {

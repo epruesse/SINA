@@ -69,6 +69,7 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 #include <boost/system/error_code.hpp>
+#include <utility>
 namespace sys = boost::system;
 
 namespace sina {
@@ -82,14 +83,14 @@ class managed_pt_server {
     string dbname;
     string portname;
 public:
-    managed_pt_server(const string& dbname, const string& portname);
+    managed_pt_server(string  dbname, string  portname);
     managed_pt_server(const managed_pt_server&);
     ~managed_pt_server();
 };
 
 
-managed_pt_server::managed_pt_server(const string& dbname_, const string& portname_)
-    : dbname(dbname_), portname(portname_)
+managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
+    : dbname(std::move(dbname_)), portname(std::move(portname_))
 {
     // Check that database specified and file accessible
     if (dbname.empty()) {
@@ -611,8 +612,8 @@ match_retry:
     return f_relscore;
 }
 
-query_pt_exception::query_pt_exception(const std::string& msg) throw()
-    : message(msg)
+query_pt_exception::query_pt_exception(std::string  msg) throw()
+    : message(std::move(msg))
 {
 }
 

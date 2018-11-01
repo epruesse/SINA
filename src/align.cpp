@@ -33,6 +33,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <string>
 using std::string;
 
+#include <utility>
 #include <vector>
 using std::vector;
 
@@ -331,7 +332,7 @@ calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c) {
 struct not_icontains {
     typedef bool result_type;
     const string bases;
-    explicit not_icontains(const string& _bases) : bases(_bases) {}
+    explicit not_icontains(string  _bases) : bases(std::move(_bases)) {}
     bool operator()(const cseq& c) {
         return !boost::algorithm::icontains(c.getBases(), bases);
     }
@@ -340,7 +341,7 @@ struct not_icontains {
 struct iequals_cmp {
     typedef bool result_type;
     const string bases;
-    explicit iequals_cmp(const string& _bases) : bases(_bases) {}
+    explicit iequals_cmp(string  _bases) : bases(std::move(_bases)) {}
     bool operator()(const cseq& c) {
         return iequals(bases, c.getBases());
     }

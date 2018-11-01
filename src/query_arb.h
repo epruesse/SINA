@@ -30,6 +30,7 @@ for the parts of ARB used as well as that of the covered work.
 #define _QUERY_ARB_H_
 
 #include <string>
+#include <utility>
 #include <vector>
 #include <list>
 
@@ -49,7 +50,7 @@ class query_arb_exception : public std::exception
 {
 public:
     query_arb_exception(std::string& what): m_what(what){}
-    query_arb_exception(const std::string& what): m_what(what){}
+    query_arb_exception(std::string  what): m_what(std::move(what)){}
     query_arb_exception(const char* what): m_what(what){}
     query_arb_exception(){}
     virtual const char* what() const throw(){ return m_what.c_str();}

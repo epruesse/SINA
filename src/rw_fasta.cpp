@@ -29,6 +29,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "rw_fasta.h"
 
 #include <fstream>
+#include <utility>
 #include <vector>
 #include <iostream>
 #include <map>
@@ -174,7 +175,7 @@ struct rw_fasta::reader::priv_data {
     fs::path filename;
     int lineno;
     int seqno;
-    priv_data(fs::path filename_) : filename(filename_), lineno(0), seqno(0) {}
+    priv_data(fs::path filename_) : filename(std::move(filename_)), lineno(0), seqno(0) {}
     ~priv_data() {
         logger->info("read {} sequences from {} lines", seqno-1, lineno-1);
     }

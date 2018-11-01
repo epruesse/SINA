@@ -33,6 +33,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <string>
 using std::string;
 
+#include <utility>
 #include <vector>
 using std::vector;
 
@@ -215,7 +216,7 @@ search_filter::~search_filter()
 
 template<typename F>
 struct dereference {
-    explicit dereference(F f) : _f(f){}
+    explicit dereference(F f) : _f(std::move(f)){}
     dereference() : _f(){}
     typedef typename F::result_type  result_type;
 
