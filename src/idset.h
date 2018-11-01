@@ -95,7 +95,7 @@ public:
 
     /* get value of bit at @id */
     bool get(value_type id) const {
-        return data[block_index(id)] & (1 << (block_offset(id)));
+        return (data[block_index(id)] & (1 << (block_offset(id)))) != 0;
     }
 
     /* count total number of set bits */
@@ -150,28 +150,28 @@ public:
             uint8_t byte = *_it;
 #define SINA_UNROLL
 #ifdef SINA_UNROLL
-            if (!(byte & 0x80)) {
+            if ((byte & 0x80) == 0) {
                 return byte;
             }
             // second byte
             val = byte - 0x80;
             byte = *(++_it);
             val += byte << 7;
-            if (!(byte & 0x80)) {
+            if ((byte & 0x80) == 0) {
                 return val;
             }
             // third byte
             val -= 0x80 << 7;
             byte = *(++_it);
             val += byte << 14;
-            if (!(byte & 0x80)) {
+            if ((byte & 0x80) == 0) {
                 return val;
             }
             // fourth byte
             val -= 0x80 << 14;
             byte = *(++_it);
             val += byte << 21;
-            if (!(byte & 0x80)) {
+            if ((byte & 0x80) == 0) {
                 return val;
             }
             // fifth byte

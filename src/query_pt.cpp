@@ -98,7 +98,7 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
     }
 
     struct stat arbdb_stat;
-    if (stat(dbname.c_str(), &arbdb_stat)) {
+    if (stat(dbname.c_str(), &arbdb_stat) != 0) {
         perror("Error accessing ARB database file");
         throw query_pt_exception("Failed to launch PT server.");
     }
@@ -135,7 +135,7 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
     // (Re)build index if missing or older than database
     struct stat ptindex_stat;
     string ptindex = dbname + ".index.arb.pt";
-    if (stat(ptindex.c_str(), &ptindex_stat) 
+    if ((stat(ptindex.c_str(), &ptindex_stat) != 0)
         || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
         if (arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
             logger->info("PT server index missing for {}. Building:", dbname);
@@ -153,7 +153,7 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
             logger->debug("Command finished");
         }
 
-        if (stat(ptindex.c_str(), &ptindex_stat) 
+        if ((stat(ptindex.c_str(), &ptindex_stat) != 0)
             || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
             throw query_pt_exception("Failed to (re)build PT server index! (out of memory?)");
         }
@@ -239,24 +239,24 @@ query_pt::priv_data::connect_server(string portname) {
     boost::mutex::scoped_lock lock(arb_pt_access);
     GB_ERROR error = nullptr;
     link = aisc_open(portname.c_str(), com, AISC_MAGIC_NUMBER, &error);
-    if (error) {
+    if (error != nullptr) {
         throw query_pt_exception(error);
     }
-    if (!link) {
+    if (link == nullptr) {
         return false;
     }
 
     if (aisc_create(link,
                     PT_MAIN, com,
                     MAIN_LOCS, PT_LOCS, locs,
-                    NULL)) {
+                    NULL) != 0) {
         throw query_pt_exception("Unable to connect to PT server! (code 02)");
     }
 
     if (aisc_create(link,
                     PT_LOCS, locs,
                     LOCS_FFINDER, PT_FAMILYFINDER, ffinder,
-                    NULL)) {
+                    NULL) != 0) {
         throw query_pt_exception("Unable to connect to PT server! (code 03)");
     }
 
@@ -278,7 +278,7 @@ query_pt::query_pt(const char* portname, const char* dbname,
                    bool fast, int k, int mk, bool norel)
     : data(new priv_data())
 {
-    if (data->servers.count(portname)) {
+    if (data->servers.count(portname) != 0u) {
         data->server = data->servers[portname].lock();
     }
 
@@ -321,7 +321,7 @@ query_pt::set_find_type_fast(bool fast) {
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_FIND_TYPE, fast?1:0,
                        NULL);
-    if (err) {
+    if (err != 0) {
         logger->warn("Unable to set find_type = {}", fast ? "fast" : "normal");
     } else {
         data->find_type_fast = fast;
@@ -335,7 +335,7 @@ query_pt::set_probe_len(int len) {
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_PROBE_LEN, len,
                        NULL);
-    if (err) {
+    if (err != 0) {
         logger->warn("Unable to set k = {}", len);
     } else {
         data->kmer_len = len;
@@ -350,7 +350,7 @@ query_pt::set_mismatches(int len) {
                        FAMILYFINDER_MISMATCH_NUMBER, len,
                        NULL);
 
-    if (err) {
+    if (err != 0) {
         logger->warn("Unable to set allowable mismatches to {}", len);
     } else {
         data->num_mismatch = len;
@@ -364,7 +364,7 @@ query_pt::set_sort_type(bool absolute) {
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_SORT_TYPE, absolute?0:1,
                        NULL);
-    if (err) {
+    if (err != 0) {
         logger->warn("Unable to set sort type = {}", absolute ? "absolute" : "relative");
     } else {
         data->relative_sort = !absolute;
@@ -383,7 +383,7 @@ query_pt::set_range(int startpos, int stoppos) {
 #else
     int err = 0;
 #endif
-    if (err) {
+    if (err != 0) {
         logger->warn("Unable to constain matching to {}-{}", startpos, stoppos);
     } else {
         data->range_begin = startpos;
@@ -450,7 +450,7 @@ match_retry:
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_FIND_FAMILY, &bs,
                        NULL);
-    if (err) {
+    if (err != 0) {
         logger->error("Unable to execute find_family command on pt-server");
         if (--maxfail==0) {
             logger->error("No retries left; aborting.");
@@ -466,7 +466,7 @@ match_retry:
                    PT_FAMILYFINDER, data->ffinder,
                    FAMILYFINDER_FAMILY_LIST, f_list.as_result_param(),
                    NULL);
-    if (err) {
+    if (err != 0) {
         logger->error("Unable to get results for search");
         return 0;
     }
@@ -483,7 +483,7 @@ match_retry:
                        FAMILYLIST_REL_MATCHES, &f_relscore,
                        FAMILYLIST_NEXT, f_list.as_result_param(),
                        NULL);
-        if (err) {
+        if (err != 0) {
             logger->error("Unable to get next item in family list");
             break;
         }
@@ -502,7 +502,7 @@ match_retry:
         f_relscore = 1 - log(f_relscore + 1.0/bs.size)/log(1.0/bs.size);
 
         if (matches <= min_match || f_relscore >= min_score) {
-            if (arb) {
+            if (arb != nullptr) {
                 bool sequence_broken=false;
                 cseq seq(f_name);
                 try {
@@ -527,14 +527,14 @@ match_retry:
 
                     family.push_back(seq);
 
-                    if (num_full && (long)seq.size() > full_min_len) {
+                    if ((num_full != 0) && (long)seq.size() > full_min_len) {
                         num_full--;
                     }
-                    if (range_cover_right &&
+                    if ((range_cover_right != 0) &&
                         seq.getById(seq.size()-1).getPosition() >= data->range_end) {
                         range_cover_right--;
                     }
-                    if (range_cover_left &&
+                    if ((range_cover_left != 0) &&
                         seq.begin()->getPosition() <= data->range_begin) {
                         range_cover_left--;
                     }
@@ -553,15 +553,15 @@ match_retry:
              && f_list.exists());
 
     // get full length sequence
-    if (arb) {
-        while (f_list.exists() && num_full + range_cover_right + range_cover_left) {
+    if (arb != nullptr) {
+        while (f_list.exists() && ((num_full + range_cover_right + range_cover_left) != 0)) {
             err = aisc_get(data->link, PT_FAMILYLIST, f_list,
                            FAMILYLIST_NAME, &f_name,
                            FAMILYLIST_MATCHES, &f_relscore,
                            FAMILYLIST_NEXT, f_list.as_result_param(),
                            NULL);
 
-            if (err) {
+            if (err != 0) {
                 logger->warn("Unable to get next item in family list");
                 break;
             }
@@ -573,18 +573,18 @@ match_retry:
             seq.setScore(f_relscore);
             if (max_score >= 2 /*|| queryc.identity_with(seq) <= max_score FIXME*/) {
                 bool keep = false;
-                if (num_full && (long)seq.size() > full_min_len) {
+                if ((num_full != 0) && (long)seq.size() > full_min_len) {
                     num_full--;
                     keep = true;
                 }
 
-                if (range_cover_right && (long)seq.size() > min_len &&
+                if ((range_cover_right != 0) && (long)seq.size() > min_len &&
                     seq.getById(seq.size()-1).getPosition() >= data->range_end) {
                     range_cover_right--;
                     keep = true;
                 }
 
-                if (range_cover_left && (long)seq.size() > min_len &&
+                if ((range_cover_left != 0) && (long)seq.size() > min_len &&
                     seq.begin()->getPosition() <= data->range_begin) {
                     range_cover_left--;
                     keep = true;
@@ -597,7 +597,7 @@ match_retry:
         }
     }
 
-    if (skipped_max_score || skipped_broken || skipped_min_len || skipped_noid) {
+    if ((skipped_max_score != 0) || (skipped_broken != 0) || (skipped_min_len != 0) || (skipped_noid != 0)) {
         logger->warn("Skipped {} sequences ({} id < {}, {} broken, {} len < {}, {} noid)",
                      skipped_max_score + skipped_broken + skipped_min_len + skipped_noid,
                      skipped_max_score, max_score,

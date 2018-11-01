@@ -352,9 +352,9 @@ tray
 aligner::operator()(tray t) {
     // skip if requirements missing
     // FIXME: add logging here
-    if (not t.input_sequence ||
-        not t.alignment_reference ||
-        not t.astats ) {
+    if ((t.input_sequence == nullptr) ||
+        (t.alignment_reference == nullptr) ||
+        (t.astats == nullptr) ) {
         return t;
     }
     // prepare variables

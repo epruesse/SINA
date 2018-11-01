@@ -60,57 +60,57 @@ const int try_k_len = std::extent<decltype(try_k)>::value;
 
 const bool valid_k[try_k_len][test_sequence_len] = {
     { // k = 1
-        1, 1, 1, 1, 0,
-        1, 1, 1, 1,  1, 1, 1, 1, 0,
-        1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, 0
+        true, true, true, true, false,
+        true, true, true, true,  true, true, true, true, false,
+        true, true, true, true,  true, true, true, true,  true, true, true, true, false
     },
     { // k = 2
-        0, 1, 1, 1, 0,
-        0, 1, 1, 1,  1, 1, 1, 1, 0,
-        0, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, 0
+        false, true, true, true, false,
+        false, true, true, true,  true, true, true, true, false,
+        false, true, true, true,  true, true, true, true,  true, true, true, true, false
     },
     { // k = 3
-        0, 0, 1, 1, 0,
-        0, 0, 1, 1,  1, 1, 1, 1, 0,
-        0, 0, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, 0
+        false, false, true, true, false,
+        false, false, true, true,  true, true, true, true, false,
+        false, false, true, true,  true, true, true, true,  true, true, true, true, false
     },
     { // k = 4
-        0, 0, 0, 1, 0,
-        0, 0, 0, 1,  1, 1, 1, 1, 0,
-        0, 0, 0, 1,  1, 1, 1, 1,  1, 1, 1, 1, 0
+        false, false, false, true, false,
+        false, false, false, true,  true, true, true, true, false,
+        false, false, false, true,  true, true, true, true,  true, true, true, true, false
     },
     { // k = 8
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0,  0, 0, 0, 1, 0,
-        0, 0, 0, 0,  0, 0, 0, 1,  1, 1, 1, 1, 0
+        false, false, false, false, false,
+        false, false, false, false,  false, false, false, true, false,
+        false, false, false, false,  false, false, false, true,  true, true, true, true, false
     }
 };
 
 const bool first_k[try_k_len][test_sequence_len] = {
     { // k = 1
-        1, 1, 1, 1, 0,
-        0, 0, 0, 0,  0, 0, 0, 0, 0,
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0
+        true, true, true, true, false,
+        false, false, false, false,  false, false, false, false, false,
+        false, false, false, false,  false, false, false, false,  false, false, false, false, false
     },
     { // k = 2
-        0, 1, 1, 1, 0,
-        0, 0, 0, 0,  1, 0, 0, 0, 0,
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0
+        false, true, true, true, false,
+        false, false, false, false,  true, false, false, false, false,
+        false, false, false, false,  false, false, false, false,  false, false, false, false, false
     },
     { // k = 3
-        0, 0, 1, 1, 0,
-        0, 0, 0, 0,  1, 1, 0, 0, 0,
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0
+        false, false, true, true, false,
+        false, false, false, false,  true, true, false, false, false,
+        false, false, false, false,  false, false, false, false,  false, false, false, false, false
     },
     { // k = 4
-        0, 0, 0, 1, 0,
-        0, 0, 0, 0,  1, 1, 1, 0, 0,
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0
+        false, false, false, true, false,
+        false, false, false, false,  true, true, true, false, false,
+        false, false, false, false,  false, false, false, false,  false, false, false, false, false
     },
     { // k = 8
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0,  0, 0, 0, 1, 0,
-        0, 0, 0, 0,  0, 0, 0, 0,  1, 1, 1, 0, 0
+        false, false, false, false, false,
+        false, false, false, false,  false, false, false, true, false,
+        false, false, false, false,  false, false, false, false,  true, true, true, false, false
     }
 };
 

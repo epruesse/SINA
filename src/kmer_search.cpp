@@ -81,7 +81,7 @@ kmer_search::get_kmer_search(fs::path& filename, int k) {
     if (indices.size() == 0) {
         atexit(kmer_search::destroy_indices);
     }
-    if (not indices.count(str.str())) {
+    if (indices.count(str.str()) == 0u) {
         indices[str.str()] = new kmer_search(query_arb::getARBDB(filename), k);
     }
     return indices[str.str()];

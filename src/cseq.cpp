@@ -56,7 +56,7 @@ cseq& cseq::operator=(const cseq& rhs) = default;
 cseq::cseq(const char *_name, float _score, const char *_data) 
     : name(_name), score(_score)
 {
-    if (_data) {
+    if (_data != nullptr) {
         append(_data);
     }
 }
@@ -71,7 +71,7 @@ cseq::clearSequence() {
 cseq&
 cseq::append(const char *str) {
     //FIXME: keep internal '.'s
-    while(*str) {
+    while(*str != 0) {
         if (*str != ' ' && *str != '\t' && *str != '\n' &&  *str != '\r') {
             if (*str != '-' && *str != '.') {
                 bases.emplace_back(alignment_width, *str);
@@ -704,7 +704,7 @@ cseq::calcPairScore(const std::vector<int>& pairs) {
     int num=0;
 
     for(unsigned int i=0; i<pairs.size(); ++i) {
-        if (pairs[i]) { // alignment position has "helix-parter"
+        if (pairs[i] != 0) { // alignment position has "helix-parter"
             unsigned char left, right;
             left = operator[](i);
             right = operator[](pairs[i]);

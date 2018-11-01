@@ -500,7 +500,7 @@ famfinder::_famfinder::operator()(tray t) {
     do_turn_check(c);
 
     // FIXME: int noid = opts->realign
-    int noid = false;
+    bool noid = false;
     index->match(vc, c, opts->fs_min, opts->fs_max, opts->fs_msc, opts->fs_msc_max,
                  arb, noid, opts->fs_min_len, opts->fs_req_full,
                  opts->fs_full_len, opts->fs_cover_gene, opts->fs_leave_query_out);
@@ -519,7 +519,7 @@ famfinder::_famfinder::operator()(tray t) {
     c.set_attr(query_arb::fn_family_str, tmp.str());
 
     // remove sequences having too few gaps
-    if (opts->fs_req_gaps) {
+    if (opts->fs_req_gaps != 0) {
         vc.erase(std::remove_if(vc.begin(), vc.end(), 
                                 has_max_n_gaps(opts->fs_req_gaps)), 
                  vc.end());

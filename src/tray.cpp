@@ -76,11 +76,11 @@ tray::~tray() {
 
 void
 tray::destroy() {
-    if (input_sequence) { delete input_sequence; }
-    if (aligned_sequence) { delete aligned_sequence; }
-    if (alignment_reference) {delete alignment_reference; }
-    if (search_result) { delete search_result; }
-    if (astats) { delete astats; }
+    if (input_sequence != nullptr) { delete input_sequence; }
+    if (aligned_sequence != nullptr) { delete aligned_sequence; }
+    if (alignment_reference != nullptr) {delete alignment_reference; }
+    if (search_result != nullptr) { delete search_result; }
+    if (astats != nullptr) { delete astats; }
 
     DBG("Destroy");
 }

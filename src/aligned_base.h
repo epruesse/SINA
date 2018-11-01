@@ -126,7 +126,7 @@ public:
         _data &= ~BASEM_LC;
     }
     bool isLowerCase() const {
-        return _data & BASEM_LC;
+        return (_data & BASEM_LC) != 0;
     }
 
     int ambig_order() const {
@@ -138,15 +138,15 @@ public:
     }
 
 
-    bool has_A()  const { return _data & BASEM_A;  }
-    bool has_G()  const { return _data & BASEM_G;  }
-    bool has_C()  const { return _data & BASEM_C;  }
-    bool has_TU() const { return _data & BASEM_TU; }
+    bool has_A()  const { return (_data & BASEM_A) != 0;  }
+    bool has_G()  const { return (_data & BASEM_G) != 0;  }
+    bool has_C()  const { return (_data & BASEM_C) != 0;  }
+    bool has_TU() const { return (_data & BASEM_TU) != 0; }
 
 
     bool comp(const base_iupac& rhs) const{
       //optimistic, match if IUPAC suggests match possible
-      return 0xf & _data & rhs._data;
+      return (0xf & _data & rhs._data) != 0;
 
       //this would compute average
       //return 1.f - (2.f/count_bits(_data | rhs._data)) *
@@ -177,9 +177,9 @@ public:
       // "a &= a-1" unsets least significant bit
       // "a & -a" unsets all but least significant bit
 
-      for(value_type lm = _data & 0xf; lm; lm &= lm-1) {
+      for(value_type lm = _data & 0xf; lm != 0u; lm &= lm-1) {
         unsigned char l = (t >> (((lm & -lm)-1)*4)) & 0xF;
-        for (value_type rm = rhs._data & 0xf; rm; rm &= rm-1) {
+        for (value_type rm = rhs._data & 0xf; rm != 0u; rm &= rm-1) {
           unsigned char r = (t >> (((rm &-rm)-1)*4)) & 0xF;
           rval += m.v[l*BASE_MAX+r];
           c++;

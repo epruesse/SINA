@@ -388,10 +388,10 @@ rw_fasta::writer::operator()(tray t) {
 
     data->write(c);
 
-    if (data->copy_relatives || false) {
+    if ((data->copy_relatives != 0u) || false) {
         std::vector<cseq> *relatives =
-            t.search_result ? t.search_result : t.alignment_reference;
-        if (relatives) {
+            t.search_result != nullptr ? t.search_result : t.alignment_reference;
+        if (relatives != nullptr) {
             int i = data->copy_relatives;
             for (auto& seq : *relatives) {
                 if (data->relatives_written.insert(seq.getName()).second) {

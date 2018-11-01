@@ -148,10 +148,10 @@ static auto logger = Log::create_logger("ARB I/O");
 
 struct query_arb::priv_data {
     ~priv_data() {
-        if (default_alignment) {
+        if (default_alignment != nullptr) {
             free(const_cast<char*>(default_alignment));
         }
-        if (gbmain) {
+        if (gbmain != nullptr) {
             logger->info("Closing ARB database '{}'", filename);
             GB_close(gbmain);
         }
@@ -223,7 +223,7 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(gbmain);
 
-    if (not ali) {
+    if (ali == nullptr) {
         ali = default_alignment;
     }
 
@@ -231,9 +231,9 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
     GBDATA *gbdata;
     const char *res;
 
-    if ((gbdata = getGBDATA(name)) &&
-        (gbdata = GBT_find_sequence(gbdata, ali)) &&
-        (res = GB_read_char_pntr(gbdata))) {
+    if (((gbdata = getGBDATA(name)) != nullptr) &&
+        ((gbdata = GBT_find_sequence(gbdata, ali)) != nullptr) &&
+        ((res = GB_read_char_pntr(gbdata)) != nullptr)) {
         return res;
     } else {
         return "";
@@ -248,7 +248,7 @@ query_arb::query_arb(fs::path& arbfile)
     }
 
     data.gbmain = GB_open(arbfile.c_str(), "rwc");
-    if (not data.gbmain) {
+    if (data.gbmain == nullptr) {
         throw runtime_error(fmt::format("Unable to open ARB database {}.", arbfile));
     }
 
@@ -258,7 +258,7 @@ query_arb::query_arb(fs::path& arbfile)
 
     data.default_alignment = GBT_get_default_alignment(data.gbmain);
 
-    if (not data.default_alignment) {
+    if (data.default_alignment == nullptr) {
         GBT_create_alignment(data.gbmain, "ali_16s", 2000, 0, 4, "rna");
         GBT_set_default_alignment(data.gbmain, "ali_16s");
         data.default_alignment=strdup("ali_16s");
@@ -280,7 +280,7 @@ query_arb::query_arb(fs::path& arbfile)
 
     int spec_count = 0;
     for ( GBDATA *gbspec = GBT_first_species(data.gbmain);
-          gbspec; gbspec = GBT_next_species(gbspec)) {
+          gbspec != nullptr; gbspec = GBT_next_species(gbspec)) {
         spec_count++;
     }
     data.count=spec_count;
@@ -288,7 +288,7 @@ query_arb::query_arb(fs::path& arbfile)
     logger->info("Loading names map... (for {})", data.filename);
     boost::progress_display p(spec_count, std::cerr);
     for ( GBDATA* gbspec = GBT_first_species(data.gbmain);
-          gbspec; gbspec = GBT_next_species(gbspec)) {
+          gbspec != nullptr; gbspec = GBT_next_species(gbspec)) {
         data.gbdata_cache[GBT_read_name(gbspec)] = gbspec;
         ++p;
     }
@@ -337,7 +337,7 @@ static arb_handlers arb_log_handlers = {
 query_arb*
 query_arb::getARBDB(fs::path& file_name) {
     boost::mutex::scoped_lock lock(arb_db_access);
-    if (not query_arb::priv_data::the_arb_shell) {
+    if (query_arb::priv_data::the_arb_shell == nullptr) {
         query_arb::priv_data::the_arb_shell = new GB_shell();
 
         ARB_install_handlers(arb_log_handlers);
@@ -345,7 +345,7 @@ query_arb::getARBDB(fs::path& file_name) {
     if (open_arb_dbs.size() == 0) {
         atexit(query_arb::closeOpenARBDBs);
     }
-    if (not open_arb_dbs.count(file_name)) {
+    if (open_arb_dbs.count(file_name) == 0u) {
         open_arb_dbs[file_name] = new query_arb(file_name);
     }
     return open_arb_dbs[file_name];
@@ -369,7 +369,7 @@ query_arb::saveAs(const fs::path& fname, const char* type) {
         GB_transaction trans(data.gbmain);
         logger->info("Checking alignment...");
         GB_ERROR err = GBT_check_data(data.gbmain, data.default_alignment);
-        if (err) {
+        if (err != nullptr) {
             logger->error(err);
         }
     }
@@ -381,13 +381,13 @@ query_arb::saveAs(const fs::path& fname, const char* type) {
 
 bool
 query_arb::good() const {
-    return data.gbmain && data.default_alignment;
+    return (data.gbmain != nullptr) && (data.default_alignment != nullptr);
 }
 
 static void
 loadKey(cseq& c, const string key, GBDATA* gbspec) {
     GBDATA *gbd = GB_find(gbspec, key.c_str(), SEARCH_CHILD);
-    if (gbd) {
+    if (gbd != nullptr) {
         switch(GB_read_type(gbd)) {
             case GB_STRING:
                 c.set_attr(key, (const char*)GB_read_pntr(gbd));
@@ -435,12 +435,12 @@ struct query_arb::storeKey_visitor
     void operator()(const int& i) {
         GBT_add_new_changekey(_gbmain, _key.c_str(), GB_INT);
         GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
-        if (gbd && GB_read_type(gbd) != GB_INT) {
+        if ((gbd != nullptr) && GB_read_type(gbd) != GB_INT) {
             GB_delete(gbd);
             gbd = nullptr;
         }
 
-        if (not gbd) {
+        if (gbd == nullptr) {
             gbd = GB_create(_gbspec, _key.c_str(), GB_INT);
         }
         _query_arb.write(gbd, i);
@@ -456,11 +456,11 @@ struct query_arb::storeKey_visitor
     void operator()(const float& f) {
         GBT_add_new_changekey(_gbmain, _key.c_str(), GB_FLOAT);
         GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
-        if (gbd && GB_read_type(gbd) != GB_FLOAT) {
+        if ((gbd != nullptr) && GB_read_type(gbd) != GB_FLOAT) {
             GB_delete(gbd);
             gbd = nullptr;
         }
-        if (not gbd) {
+        if (gbd == nullptr) {
             gbd = GB_create(_gbspec, _key.c_str(), GB_FLOAT);
         }
 
@@ -469,11 +469,11 @@ struct query_arb::storeKey_visitor
     void operator()(const string& str) {
         GBT_add_new_changekey(_gbmain, _key.c_str(), GB_STRING);
         GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
-        if (gbd && GB_read_type(gbd) != GB_STRING) {
+        if ((gbd != nullptr) && GB_read_type(gbd) != GB_STRING) {
             GB_delete(gbd);
             gbd = nullptr;
         }
-        if (not gbd) {
+        if (gbd == nullptr) {
             gbd = GB_create(_gbspec, _key.c_str(), GB_STRING);
         }
 
@@ -556,7 +556,7 @@ query_arb::loadCache(std::vector<std::string>& keys) {
 #else // HAVE_TBB -- parallel implementation
 
     gbspec = GBT_first_species(data.gbmain);
-    if (not gbspec) {
+    if (gbspec == nullptr) {
         logger->error("Failed to load sequences -- database empty?");
         return;
     }
@@ -573,13 +573,13 @@ query_arb::loadCache(std::vector<std::string>& keys) {
                 arb.start();
                 const char* name_str;
                 GBDATA *gb_sequence = nullptr;
-                while (gbspec && not gb_sequence) {
+                while ((gbspec != nullptr) && (gb_sequence == nullptr)) {
                     name_str = GBT_read_name(gbspec);
                     gb_sequence = GBT_find_sequence(gbspec, ali);
                     gbspec = GBT_next_species(gbspec);
                 }
                 arb.stop("arb find");
-                if (not gbspec && not gb_sequence) {
+                if ((gbspec == nullptr) && (gb_sequence == nullptr)) {
                     fc.stop();
                     return std::make_pair("","");
                 }
@@ -600,7 +600,7 @@ query_arb::loadCache(std::vector<std::string>& keys) {
             {
                 tkeys.start();
                 for(auto & key : keys) {
-                    if (not sequence.get_attrs().count(key)) {
+                    if (sequence.get_attrs().count(key) == 0u) {
                         ::loadKey(sequence, key, gbspec);
                     }
                 }
@@ -698,7 +698,7 @@ query_arb::putSequence(const cseq& seq) {
     const char *aseq = aseq_string.c_str();
 
     gbdata = data.getGBDATA(seq.getName());
-    if (not gbdata) {
+    if (gbdata == nullptr) {
         gbdata =  GB_create_container(data.gbspec, "species");
         GBDATA *gbname  = GB_create(gbdata, "name", GB_STRING);
 
@@ -720,14 +720,14 @@ query_arb::putSequence(const cseq& seq) {
         stringstream tmp;
         tmp.str("");
         tmp << "ARB_" << uppercase << hex
-            << GB_checksum(aseq, strlen(aseq), true, ".-");
+            << GB_checksum(aseq, strlen(aseq), 1, ".-");
         write(gbacc, tmp.str().c_str());
         data.gbdata_cache[seq.getName()]=gbdata;
     }
     data.gblast = gbdata;
 
     GBDATA *gbseq = GBT_find_sequence(gbdata, ali);
-    if (not gbseq) {
+    if (gbseq == nullptr) {
         gbseq = GBT_create_sequence_data(gbdata, ali, "data", GB_STRING, 0);
     }
     write(gbseq, aseq);
@@ -744,7 +744,7 @@ query_arb::copySequence(query_arb& other, std::string name, bool mark) {
     GBDATA *gbdest;
 
     // don't copy if sequence with identical name exists
-    if ( (gbdest=GBT_find_species(data.gbmain, name.c_str())) ) {
+    if ( (gbdest=GBT_find_species(data.gbmain, name.c_str())) != nullptr ) {
         logger->error("Species \"{}\" already in target db. Not copying.", name);
         if (mark) {
             write_flag(gbdest, 1l);
@@ -754,7 +754,7 @@ query_arb::copySequence(query_arb& other, std::string name, bool mark) {
 
     GBDATA *gbsource = other.data.getGBDATA(name);
     gbdest = GB_create_container(data.gbspec, "species");
-    if (gbsource && gbdest) {
+    if ((gbsource != nullptr) && (gbdest != nullptr)) {
         GB_copy(gbdest,gbsource);
         logger->info("Copied species {}", name);
         data.gblast = gbdest;
@@ -772,7 +772,7 @@ query_arb::copySequence(query_arb& other, std::string name, bool mark) {
 void
 query_arb::setMark() {
     boost::mutex::scoped_lock lock(arb_db_access);
-    if (data.gblast) {
+    if (data.gblast != nullptr) {
         GB_transaction trans(data.gbmain);
         write_flag(data.gblast,1l);
     }
@@ -783,7 +783,7 @@ query_arb::setMark(const std::string& name) {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data.gbmain);
     GBDATA *gbdata = data.getGBDATA(name);
-    if (gbdata) {
+    if (gbdata != nullptr) {
         write_flag(gbdata,1);
         data.gblast = gbdata;
     } else {
@@ -808,19 +808,19 @@ query_arb::getFilter(string name) {
 
     // find SAI container named <name>
     GBDATA *gbsai = GBT_find_SAI(data.gbmain, name.c_str());
-    if (not gbsai) {
+    if (gbsai == nullptr) {
         return "";
     }
 
     // descend into alignment tag
     gbsai = GB_find(gbsai, data.default_alignment, SEARCH_CHILD);
-    if (not gbsai) {
+    if (gbsai == nullptr) {
         return "";
     }
 
     // find data entry
     gbsai = GB_find(gbsai, "data", SEARCH_CHILD);
-    if (not gbsai) {
+    if (gbsai == nullptr) {
         return "";
     }
 
@@ -844,18 +844,18 @@ query_arb::getAlignmentStats() {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data.gbmain);
 
-    for (GBDATA *gbsai = GBT_first_SAI(data.gbmain); gbsai; 
+    for (GBDATA *gbsai = GBT_first_SAI(data.gbmain); gbsai != nullptr;
          gbsai = GBT_next_SAI(gbsai)) {
         // get sai data for current alignment
         GBDATA *gbname = GB_find(gbsai, "name", SEARCH_CHILD);
-        if (not gbname) {
+        if (gbname == nullptr) {
             logger->error("SAI without name? Broken DB!");
             continue;
         }
         string name = string(GB_read_char_pntr(gbname));
 
         GBDATA *gbali = GB_find(gbsai, data.default_alignment, SEARCH_CHILD);
-        if (not gbali) {
+        if (gbali == nullptr) {
             continue; // no data for this alignment
         }
         
@@ -863,7 +863,7 @@ query_arb::getAlignmentStats() {
 
         // get contents of type field
         GBDATA *gbtype = GB_find(gbali, "_TYPE", SEARCH_CHILD);
-        if (not gbtype) {
+        if (gbtype == nullptr) {
             continue; // no _TYPE field
         }
         string type = string(GB_read_char_pntr(gbtype));
@@ -881,7 +881,7 @@ query_arb::getAlignmentStats() {
         
         // get frequencies container
         GBDATA *gbfreq = GB_find(gbali, "FREQUENCIES", SEARCH_CHILD);
-        if (not gbfreq) {
+        if (gbfreq == nullptr) {
             logger->error("ERROR: SAI '{}' is of type PVP but lacks"
                           "contained 'FREQUENCIES'. Your DB might be corrupted!",
                           name);
@@ -890,9 +890,9 @@ query_arb::getAlignmentStats() {
     
         // load frequencies
         unsigned int *pvp_data[6]; 
-        for ( int i=0; pvp_names[i]; i++) {
+        for ( int i=0; pvp_names[i] != nullptr; i++) {
             GBDATA *gbdata = GB_find(gbfreq, pvp_names[i], SEARCH_CHILD);
-            if (not gbdata) {
+            if (gbdata == nullptr) {
                 logger->error("unable to find PVP data {}", pvp_names[i]);
                 continue;
             }
@@ -922,7 +922,7 @@ query_arb::getPairs() {
     pairs.resize(data.alignment_length);
 
     const char* error = helix.init(data.gbmain, ali);
-    if (not error) {
+    if (error == nullptr) {
         for (int i=0; i<data.alignment_length; ++i) {
             pairs[i]=helix.entry(i).pair_pos;
         }
@@ -938,12 +938,12 @@ query_arb::getPairs() {
 
 void
 query_arb::write(GBDATA *pData, double value) {
-    if (not pData) {
+    if (pData == nullptr) {
         throw query_arb_exception("GB_write_float pData is null");
     }
 
     GB_ERROR err = GB_write_float(pData, value);
-    if (err) { //GB_write_int returns NULL if no error occurred.
+    if (err != nullptr) { //GB_write_int returns NULL if no error occurred.
         std::stringstream ss;
         ss << "GB_write_float(value = " << value << ") failed. Reason: " << err;
         addError(ss.str());
@@ -952,12 +952,12 @@ query_arb::write(GBDATA *pData, double value) {
 
 void
 query_arb::write(GBDATA *pData, int value) {
-    if (not pData) {
+    if (pData == nullptr) {
         throw query_arb_exception("GB_write_int pData is null");
     }
 
     GB_ERROR err = GB_write_int(pData, value);
-    if (err) {//GB_write_int returns NULL if no error occurred.
+    if (err != nullptr) {//GB_write_int returns NULL if no error occurred.
         std::stringstream ss;
         ss << "GB_write_int(value = " << value << ") failed. Reason: " << err;
         addError(ss.str());
@@ -969,12 +969,12 @@ query_arb::write(GBDATA *pData, int value) {
 
 void
 query_arb::write(GBDATA *pData, const char* pValue) {
-    if (not pData) {
+    if (pData == nullptr) {
         throw query_arb_exception("GB_write_string pData is null");
     }
 
     GB_ERROR err = GB_write_string(pData, pValue);
-    if (err) {  //GB_write_int returns NULL if no error occurred.
+    if (err != nullptr) {  //GB_write_int returns NULL if no error occurred.
         std::stringstream ss;
         ss << "GB_write_string(value = " << pValue << ") failed. Reason: " << err;
         addError(ss.str());
@@ -983,7 +983,7 @@ query_arb::write(GBDATA *pData, const char* pValue) {
 
 void
 query_arb::write_flag(GBDATA *pData, long value) {
-    if(not pData) {
+    if(pData == nullptr) {
         throw query_arb_exception("GB_write_flag pData is null");
     }
 

@@ -134,13 +134,13 @@ search_filter::get_options_description(po::options_description& main,
 void
 search_filter::validate_vm(boost::program_options::variables_map& vm,
                            po::options_description& desc) {
-    if (!opts) {
+    if (opts == nullptr) {
         throw std::logic_error("search options not parsed?!");
     }
  
     // we need a DB to search
     if (opts->pt_database.empty()) {
-        if (vm.count("db") && !vm["db"].as<fs::path>().empty()) {
+        if ((vm.count("db") != 0u) && !vm["db"].as<fs::path>().empty()) {
             opts->pt_database = vm["db"].as<fs::path>();
             if (vm["search-port"].defaulted()) {
                 opts->pt_port = vm["ptport"].as<string>();
@@ -241,7 +241,7 @@ struct iupac_contains {
 tray
 search_filter::operator()(tray t) {
     cseq *c;
-    if (t.aligned_sequence) {
+    if (t.aligned_sequence != nullptr) {
         c = t.aligned_sequence;
     } else {
         t.log << "search: no sequence?!;";
