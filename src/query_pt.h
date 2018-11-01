@@ -41,8 +41,8 @@ class query_pt_exception : public std::exception {
     std::string message;
 public:
     query_pt_exception(std::string  _message) throw();
-    ~query_pt_exception() throw();
-    virtual const char* what() const throw();
+    ~query_pt_exception() throw() override;
+    const char* what() const throw() override;
 };
 
 
@@ -54,7 +54,7 @@ public:
              int k=10,
              int mk=0,
              bool norel=false);
-    ~query_pt();
+    ~query_pt() override;
 
     /**
      * match runs a word search using the PT server
@@ -74,7 +74,7 @@ public:
      *  range_cover: minimum sequences touching alignment edge
      *  leave_query_out: drop sequence with matching id
      */
-    virtual double match(std::vector<cseq> &family,
+    double match(std::vector<cseq> &family,
                          const cseq& query,
                          int min_match,
                          int max_match,
@@ -88,7 +88,7 @@ public:
                          int range_cover,
                          bool leave_query_out) override;
 
-    virtual double match(std::vector<cseq> &family,
+    double match(std::vector<cseq> &family,
                          const cseq& sequence,
                          int min_match,
                          int max_match,

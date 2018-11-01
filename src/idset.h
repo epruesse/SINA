@@ -107,20 +107,20 @@ public:
         return total;
     }
 
-    virtual idset* make_new(value_type size) const override {
+    idset* make_new(value_type size) const override {
         return new bitmap(size);
     }
     
-    virtual const char* name() const override {
+    const char* name() const override {
         return "bitmap";
     }
     
-    virtual void push_back(value_type id) override {
+    void push_back(value_type id) override {
         set(id);
     }
 
 
-    virtual void increment(inc_t& t) const override {
+    void increment(inc_t& t) const override {
         for (value_type i=0; i < data.size(); i++) {
             block_type block = data[i];
             while (block != 0) {
@@ -219,15 +219,15 @@ public:
         return data.size();
     }
 
-    virtual idset* make_new(value_type size) const override {
+    idset* make_new(value_type size) const override {
         return new vlimap_abs(size);
     }
     
-    virtual const char* name() const override {
+    const char* name() const override {
         return "vlimap_abs";
     }
     
-    virtual void push_back(value_type n) override {
+    void push_back(value_type n) override {
         while (n > 127) {
             data.push_back(n | 0x80);
             n >>= 7;
@@ -235,7 +235,7 @@ public:
         data.push_back(n);
     }
     
-    virtual void increment(inc_t& t) const override {
+    void increment(inc_t& t) const override {
         for (idset::value_type it : *this) {
             t[it]++;
         }
@@ -247,20 +247,20 @@ class vlimap : public vlimap_abs {
 public:
     vlimap(value_type size) : vlimap_abs(size), last(0) {}
     
-    virtual idset* make_new(value_type size) const override {
+    idset* make_new(value_type size) const override {
         return new vlimap(size);
     }
     
-    virtual const char* name() const override {
+    const char* name() const override {
         return "vlimap";
     }
     
-    virtual void push_back(value_type n) override {
+    void push_back(value_type n) override {
         vlimap_abs::push_back(n-last);
         last = n;
     }
     
-    virtual void increment(inc_t& t) const override {
+    void increment(inc_t& t) const override {
         value_type last = 0;
         for (idset::value_type it : *this) {
             last += it;

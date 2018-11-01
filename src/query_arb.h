@@ -53,8 +53,8 @@ public:
     query_arb_exception(std::string  what): m_what(std::move(what)){}
     query_arb_exception(const char* what): m_what(what){}
     query_arb_exception(){}
-    virtual const char* what() const throw(){ return m_what.c_str();}
-    virtual ~query_arb_exception() throw(){}
+    const char* what() const throw() override{ return m_what.c_str();}
+    ~query_arb_exception() throw() override{}
 
 private:
     std::string m_what;

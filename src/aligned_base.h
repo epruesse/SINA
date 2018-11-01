@@ -66,7 +66,7 @@ public:
             : character(c)
         {
         }
-        virtual const char* what() const throw() {
+        const char* what() const throw() override {
             return "Character not IUPAC encoded base or gap";
         }
         value_type character;
