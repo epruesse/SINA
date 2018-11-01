@@ -63,8 +63,7 @@ alignment_stats::alignment_stats(
     : name(std::move(_name)),
       num_taxa(ntaxa), width(alen), global_freqs(), 
       pairs(std::move(_pairs)),
-      maxweight(0), 
-      minweight(9999999), sumweight(0), weighted_columns(0)
+      minweight(9999999)
 {
     auto console = Log::create_logger("alignment_stats");
 

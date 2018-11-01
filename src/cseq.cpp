@@ -441,23 +441,23 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
             }
             bool range=false, is_last=false, is_secondlast=false;
             int last=-2;
-            for (auto jt = it.second.begin(); jt != it.second.end(); ++jt) {
+            for (int jt : it.second) {
                 if (range) {
-                    if (*jt != last+1) {
+                    if (jt != last+1) {
                         ofs << last;
                         range=false;
-                        ofs << " " << *jt;
+                        ofs << " " << jt;
                     }
                 } else {
-                    if (*jt == last+1) {
+                    if (jt == last+1) {
                         range=true;
                         ofs << "-";
                     } else
-                        ofs << " " << *jt;
+                        ofs << " " << jt;
                 }
-                last = *jt;
-                if (*jt +1 == (int)seqs.size()) is_last=true;
-                if (*jt +2 == (int)seqs.size()) is_secondlast=true;
+                last = jt;
+                if (jt +1 == (int)seqs.size()) is_last=true;
+                if (jt +2 == (int)seqs.size()) is_secondlast=true;
             }
             if (range) ofs << last;
             if (is_last) ofs << " <---(## NEW ##) ";
