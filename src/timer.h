@@ -130,7 +130,7 @@ public:
         timestamp t_now;
         if (++time_it == timestamps.end()) {
             names.push_back(name);
-            timestamps.push_back(timestamp(0));
+            timestamps.emplace_back(0);
             time_it = timestamps.end() - 1;
         }
         *time_it +=  t_now - t_last;

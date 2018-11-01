@@ -97,7 +97,7 @@ pseq::pseq(std::vector<cseq>::iterator seqs_it,
         }
 
         base_profile bp(A, G, C, T, gapOpen*12, gapExtend*12);
-        profile.push_back(aligned_base_profile(current_column, bp));
+        profile.emplace_back(current_column, bp);
 
         current_column = next_column;
     }

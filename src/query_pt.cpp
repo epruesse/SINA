@@ -538,7 +538,7 @@ match_retry:
                 }
             } else {
                 if (f_relscore <= max_score) {
-                    family.push_back(cseq(f_name, f_relscore));
+                    family.emplace_back(f_name, f_relscore);
                     ++matches;
                 }
             }

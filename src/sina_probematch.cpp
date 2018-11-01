@@ -77,9 +77,9 @@ int main(int argc, const char **argv) {
 
   // make set of fields to load
   std::vector<std::string> fields;
-  fields.push_back("acc");
-  fields.push_back("start");
-  fields.push_back("stop");
+  fields.emplace_back("acc");
+  fields.emplace_back("start");
+  fields.emplace_back("stop");
   // cache sequences and meta data
   arb->loadCache(fields);
   // get sequences

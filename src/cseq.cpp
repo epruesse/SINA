@@ -94,7 +94,7 @@ cseq::append(const char *str) {
     while(*str) {
         if (*str != ' ' && *str != '\t' && *str != '\n' &&  *str != '\r') {
             if (*str != '-' && *str != '.') {
-                bases.push_back(aligned_base(alignment_width,*str));
+                bases.emplace_back(alignment_width, *str);
             }
             alignment_width++;
         }
@@ -116,7 +116,7 @@ cseq::append(const aligned_base& ab) {
         logger->error("$ cseq::append(): wrong order! {}({}<{})",
                       ab.getBase(), ab.getPosition(), alignment_width);
 
-        bases.push_back(aligned_base(alignment_width, ab.getBase()));
+        bases.emplace_back(alignment_width, ab.getBase());
         //FIXME shoudln't this increase the alignment_width as well?
     } 
 
@@ -258,7 +258,7 @@ cseq::compressAligned(std::vector<unsigned char> &out) {
     vector<unsigned char> buf;
     using uint = unsigned int;
 
-    bases.push_back(aligned_base(alignment_width));
+    bases.emplace_back(alignment_width);
     const uint bas = bases.size();
 
     const uint orig_size = sizeof(aligned_base) * bas;
@@ -318,7 +318,7 @@ cseq::assignFromCompressed(const void* data, size_t len) {
             diff |= buf[(j+1)*bas+i];
         }
         last+=diff;
-        bases.push_back(aligned_base(last,buf[i]));
+        bases.emplace_back(last, buf[i]);
     }
     alignment_width = bases.back().getPosition();
     bases.pop_back();
