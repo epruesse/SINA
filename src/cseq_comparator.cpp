@@ -52,15 +52,7 @@ cseq_comparator::cseq_comparator(CMP_IUPAC_TYPE iupac, CMP_DIST_TYPE dist,
 {
 }
 
-cseq_comparator::cseq_comparator() 
-    : iupac_rule(CMP_IUPAC_OPTIMISTIC),
-      dist_rule(CMP_DIST_NONE),
-      cover_rule(CMP_COVER_QUERY),
-      filter_lc_rule(false)
-{
-}
-
-
+cseq_comparator::cseq_comparator() {}
 
 template<typename FUNC> 
 void
@@ -144,17 +136,12 @@ struct filter_lowercase {
   
 
 struct match_counter {
-    int only_a_overhang;
-    int only_b_overhang;
-    int only_a;
-    int only_b;
-    int match;
-    int mismatch;
-    match_counter() 
-        : only_a_overhang(0), only_b_overhang(0), 
-          only_a(0), only_b(0),
-          match(0), mismatch(0)
-    {}
+    int only_a_overhang{0};
+    int only_b_overhang{0};
+    int only_a{0};
+    int only_b{0};
+    int match{0};
+    int mismatch{0};
 
     template<typename BCOMP, typename FILTER>     
     struct counter;

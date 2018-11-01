@@ -84,7 +84,7 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
     for (unsigned int i=0; i < bases_width; i++) {
         if (min_next > i) continue;
         min_next = std::numeric_limits<int>().max();
-        nodes.assign(nodes_size,iterator());
+        nodes.assign(nodes_size, iterator());
 
         // check all sequences for that column
         for (unsigned int j = 0; j < num_seqs; j++) {

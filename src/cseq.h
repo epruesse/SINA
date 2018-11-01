@@ -173,9 +173,9 @@ protected:
 private:
     std::string name;
     std::vector<aligned_base> bases;
-    unsigned int alignment_width;
+    unsigned int alignment_width{0};
     std::map<std::string,variant> attributes;
-    float score;
+    float score{0.f};
     
     template <typename FUNC>
     friend void traverse(const cseq& A, const cseq& B, FUNC F);

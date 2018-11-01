@@ -39,13 +39,13 @@ namespace sina {
 
 class tray {
 public:
-    unsigned int seqno;
-    cseq *input_sequence;
-    cseq *aligned_sequence;
-    std::vector<cseq> *alignment_reference;
-    std::vector<cseq> *search_result;
+    unsigned int seqno{0};
+    cseq *input_sequence{nullptr};
+    cseq *aligned_sequence{nullptr};
+    std::vector<cseq> *alignment_reference{nullptr};
+    std::vector<cseq> *search_result{nullptr};
     std::stringstream log;
-    alignment_stats *astats;
+    alignment_stats *astats{nullptr};
     
     tray();
     tray(const tray&);

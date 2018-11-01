@@ -42,8 +42,7 @@ float jukes_cantor(float in) {
 }
 
 alignment_stats::alignment_stats() 
-    : num_taxa(0), width(0), global_freqs(), maxweight(0), 
-      minweight(0), sumweight(0), weighted_columns(0)
+    : global_freqs()
 {
 
     global_freqs.num_a=1000;

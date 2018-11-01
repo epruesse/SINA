@@ -39,14 +39,12 @@ namespace sina {
 class alignment_stats {
 public:
   struct freqs {
-    unsigned int num_a;
-    unsigned int num_g;
-    unsigned int num_c;
-    unsigned int num_u;
-    unsigned int num_mutations;
-    unsigned int num_transversions;
-    freqs() : num_a(0), num_g(0), num_c(0), num_u(0),
-              num_mutations(0), num_transversions(0) {}
+    unsigned int num_a{0};
+    unsigned int num_g{0};
+    unsigned int num_c{0};
+    unsigned int num_u{0};
+    unsigned int num_mutations{0};
+    unsigned int num_transversions{0};
   };
   alignment_stats();
   alignment_stats(std::string  name,
@@ -62,8 +60,8 @@ public:
   std::string getName() const {return name;}
 private:
   std::string name;
-  unsigned int num_taxa;
-  unsigned int width;
+  unsigned int num_taxa{0};
+  unsigned int width{0};
   
   freqs global_freqs;
   std::vector<freqs> column_freqs;
@@ -71,8 +69,8 @@ private:
   std::vector<int> pairs;
 
   std::vector<float> weights;
-  float maxweight, minweight, sumweight;
-  int weighted_columns;
+  float maxweight{0}, minweight{0}, sumweight{0};
+  int weighted_columns{0};
 };
   
 }

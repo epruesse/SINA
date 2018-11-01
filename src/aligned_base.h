@@ -72,9 +72,6 @@ public:
         value_type character;
     };
 
-    /* empty default */
-    base_iupac() : _data(0) {}
-
     /* construct from char */
     base_iupac(unsigned char c) : _data(iupac_char_to_bmask[c]) {
         if (_data == 0 && c != '-' && c != '.') {
@@ -231,7 +228,7 @@ protected:
     }
 
 private:
-    value_type _data;
+    value_type _data{0};
 };
 
 template<typename T>

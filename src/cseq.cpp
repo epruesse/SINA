@@ -50,7 +50,7 @@ using namespace sina;
 static auto logger = Log::create_logger("cseq");
 
 cseq::cseq() 
-    : name(), bases(), alignment_width(0), attributes(), score(0.f)
+    : name(), bases(), attributes()
 {
 }
 

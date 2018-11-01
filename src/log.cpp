@@ -136,20 +136,12 @@ po::typed_value<counting_type<T> >* counter() {
 
 
 struct Log::options {
-    options() :
-        quiet_count(0),
-        verbose_count(0),
-        verbosity(spdlog::level::warn),
-        show_diff(false),
-        show_dist(false),
-        colors(false)
-    {}
-    int quiet_count;
-    int verbose_count;
-    level_enum verbosity;
-    bool show_diff;
-    bool show_dist;
-    bool colors;
+    int quiet_count{0};
+    int verbose_count{0};
+    level_enum verbosity{spdlog::level::warn};
+    bool show_diff{false};
+    bool show_dist{false};
+    bool colors{false};
     fs::path origdb;
     fs::path logfile;
 };
@@ -244,26 +236,21 @@ Log::create_logger(std::string name) {
 /// pipeline stuff ///
 
 struct Log::printer::priv_data {
-    priv_data() : sequence_num(0),
-                  total_sps(0), total_error(0), total_cpm(0),
-                  total_idty(0), total_bps(0), total_score(0),
-                  arb(nullptr)
-    {}
     ~priv_data();
 
-    int sequence_num;
+    int sequence_num{0};
 
     // stats
-    double total_sps;
-    double total_error;
-    double total_cpm;
-    double total_idty;
-    double total_bps;
-    double total_score;
+    double total_sps{0};
+    double total_error{0};
+    double total_cpm{0};
+    double total_idty{0};
+    double total_bps{0};
+    double total_score{0};
 
     std::ofstream out;
 
-    query_arb *arb;
+    query_arb *arb{nullptr};
 
     std::vector<int> helix_pairs;
 };

@@ -66,10 +66,6 @@ private:
 class mseq : public dag<mseq_node>
 {
 public:
-  mseq() 
-  : num_seqs(0), bases_width(0) 
-  {}
-
   mseq(std::vector<cseq>::iterator,
        std::vector<cseq>::iterator,
        float);
@@ -79,8 +75,8 @@ public:
   }
 
 private:
-  unsigned int num_seqs;
-  unsigned int bases_width;
+  unsigned int num_seqs{0};
+  unsigned int bases_width{0};
 };
 
 } // namespace sina

@@ -212,22 +212,16 @@ query_pt::validate_vm(po::variables_map& /* vm */,
 
 
 struct query_pt::priv_data {
-    priv_data()
-        : link(nullptr),
-          range_begin(-1),
-          range_end(-1),
-          find_type_fast(false)
-    {}
-    aisc_com         *link;
+    aisc_com         *link{nullptr};
     T_PT_MAIN         com;
     T_PT_LOCS         locs;
     T_PT_FAMILYFINDER ffinder;
 
     boost::mutex arb_pt_access;
 
-    int  range_begin;
-    int  range_end;
-    bool find_type_fast;
+    int  range_begin{-1};
+    int  range_end{-1};
+    bool find_type_fast{false};
     int  kmer_len;
     int  num_mismatch;
     bool relative_sort;

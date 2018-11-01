@@ -139,11 +139,10 @@ rw_arb::validate_vm(po::variables_map& /*vm*/,
  */
 
 struct rw_arb::reader::priv_data {
-    query_arb* arb;
-    istream *in;
-    int seqno;
+    query_arb* arb{nullptr};
+    istream *in{nullptr};
+    int seqno{0};
 
-    priv_data() : arb(nullptr), in(nullptr), seqno(0) {}
     ~priv_data() {
         logger->info("read {} sequences", seqno);
     }

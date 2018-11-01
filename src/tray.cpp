@@ -39,14 +39,7 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
-tray::tray()
-    : seqno(0),
-      input_sequence(nullptr),
-      aligned_sequence(nullptr),
-      alignment_reference(nullptr),
-      search_result(nullptr),
-      astats(nullptr)
-{
+tray::tray() {
     DBG("Construct");
 }
 

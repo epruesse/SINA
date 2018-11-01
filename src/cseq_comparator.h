@@ -157,10 +157,10 @@ public:
     operator()(const cseq& query, const cseq& target);
     
 private:
-    CMP_IUPAC_TYPE iupac_rule;
-    CMP_DIST_TYPE dist_rule;
-    CMP_COVER_TYPE cover_rule;
-    bool filter_lc_rule;
+    CMP_IUPAC_TYPE iupac_rule{CMP_IUPAC_OPTIMISTIC};
+    CMP_DIST_TYPE dist_rule{CMP_DIST_NONE};
+    CMP_COVER_TYPE cover_rule{CMP_COVER_QUERY};
+    bool filter_lc_rule{false};
 };
 
 /**

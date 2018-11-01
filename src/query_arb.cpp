@@ -147,16 +147,6 @@ static auto arb_logger = Log::create_logger("libARBDB");
 static auto logger = Log::create_logger("ARB I/O");
 
 struct query_arb::priv_data {
-    priv_data() :
-        have_cache(false),
-        default_alignment(nullptr),
-        alignment_length(0),
-        gbmain(nullptr),
-        gblast(nullptr),
-        gbspec(nullptr),
-        count(0)
-    {}
-
     ~priv_data() {
         if (default_alignment) {
             free(const_cast<char*>(default_alignment));
@@ -178,12 +168,12 @@ struct query_arb::priv_data {
     sequence_cache_type sequence_cache;
     gbdata_cache_type gbdata_cache;
     error_list_type write_errors;
-    bool have_cache;
-    const char* default_alignment;
-    int alignment_length;
+    bool have_cache{false};
+    const char* default_alignment{nullptr};
+    int alignment_length{0};
     fs::path filename;
-    GBDATA *gbmain, *gblast, *gbspec;
-    int count;
+    GBDATA *gbmain{nullptr}, *gblast{nullptr}, *gbspec{nullptr};
+    int count{0};
 
     GBDATA* getGBDATA(string name);
     void loadCache();

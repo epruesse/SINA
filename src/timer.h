@@ -116,9 +116,9 @@ class timer {
     std::vector<const char*> names;
     std::vector<timestamp>::iterator time_it;
     timestamp t_last;
-    unsigned int calls;
+    unsigned int calls{0};
 public:
-    timer() : timestamps(1,0), t_last(0), calls(0) {}
+    timer() : timestamps(1,0), t_last(0) {}
 
     void start() {
         time_it = timestamps.begin();

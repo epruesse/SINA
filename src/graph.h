@@ -58,7 +58,7 @@ public:
     using const_node_ref = typename node_container::const_iterator;
     using idx_type = unsigned int;
 
-    dag() : _nodes(),_nodes_size(0)
+    dag() : _nodes()
     {
          // ewww ... this is hacky! FIXME
         _nodes.push_back(node_type(T(0,'.'),-1));
@@ -101,7 +101,7 @@ public:
 //protected:
     node_container _nodes;
     node_ref _begin;
-    unsigned int _nodes_size;
+    unsigned int _nodes_size{0};
 };
 
 template<typename T>
@@ -195,7 +195,7 @@ public:
 
     iterator(node_ref idx) : _idx(idx), _isNull(false) {}
     iterator(const iterator& orig) : _idx(orig._idx), _isNull(false) {}
-    iterator() : _isNull(true) {}
+    iterator() {}
 
     dag_node<T>& get_node() const { return *_idx; }
     node_ref get_node_ref() const { return _idx; }
@@ -228,7 +228,7 @@ public:
     pointer operator->() { return &(get_node().data); }
 //protected:
     node_ref _idx;
-    bool     _isNull;
+    bool     _isNull{true};
 };
 
 template<typename T>
