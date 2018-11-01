@@ -78,7 +78,7 @@ kmer_search::get_kmer_search(fs::path& filename, int k) {
     boost::mutex::scoped_lock lock(indices_access);
     std::stringstream str;
     str << filename << "%%k=" << k;
-    if (indices.size() == 0) {
+    if (indices.empty()) {
         atexit(kmer_search::destroy_indices);
     }
     if (indices.count(str.str()) == 0u) {
@@ -214,7 +214,7 @@ kmer_search::match(std::vector<cseq>& results,
                    int range_cover,
                    bool leave_query_out) {
     find(query, results, max_match);
-    if (results.size() == 0) {
+    if (results.empty()) {
         return 0;
     } else {
         return results[0].getScore();

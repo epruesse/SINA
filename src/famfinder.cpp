@@ -428,7 +428,7 @@ famfinder::_famfinder::select_astats(tray& t) {
     alignment_stats *astats = nullptr;
 
     // load default as per --filter
-    if (opts->posvar_filter != "") {
+    if (!opts->posvar_filter.empty()) {
         for (alignment_stats &as: vastats) {
             if (as.getName() == opts->posvar_filter
                 || as.getName() == opts->posvar_filter + ":ALL"

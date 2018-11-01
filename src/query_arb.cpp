@@ -243,7 +243,7 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
 query_arb::query_arb(fs::path& arbfile)
     : data(* new(priv_data)) {
     data.filename = arbfile;
-    if (arbfile == "") {
+    if (arbfile.empty()) {
         throw runtime_error("Empty ARB database name?!");
     }
 
@@ -342,7 +342,7 @@ query_arb::getARBDB(fs::path& file_name) {
 
         ARB_install_handlers(arb_log_handlers);
     }
-    if (open_arb_dbs.size() == 0) {
+    if (open_arb_dbs.empty()) {
         atexit(query_arb::closeOpenARBDBs);
     }
     if (open_arb_dbs.count(file_name) == 0u) {
@@ -999,7 +999,7 @@ query_arb::addError(const std::string& message) {
 
 bool
 sina::query_arb::hasErrors() const {
-    return data.write_errors.size() > 0;
+    return !data.write_errors.empty();
 }
 
 void

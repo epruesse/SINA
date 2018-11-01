@@ -358,9 +358,9 @@ search_filter::operator()(tray t) {
             reverse(vs.begin(), vs.end());
         }
         int outliers = vc.size() * (1 - opts->lca_quorum);
-        while (outliers >= 0 && group_names.size() > 0) {
+        while (outliers >= 0 && !group_names.empty()) {
             auto it = group_names.begin();
-            if (it->size() == 0) {
+            if (it->empty()) {
                 group_names.erase(it);
                 outliers--;
                 continue;
@@ -368,7 +368,7 @@ search_filter::operator()(tray t) {
             string name = it->back();
             ++it;
             for (; it != group_names.end(); ++it) {
-                if (it->size() == 0 || it->back() != name) {
+                if (it->empty() || it->back() != name) {
                     break;
                 }
             }
