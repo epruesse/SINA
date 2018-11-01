@@ -200,19 +200,9 @@ search_filter::search_filter()
     }
 }
 
-search_filter::search_filter(const search_filter& o)
-    : data(o.data)
-{
-}
-
-search_filter& search_filter::operator=(const search_filter& o) {
-    data = o.data;
-    return *this;
-}
-
-search_filter::~search_filter()
-{
-}
+search_filter::search_filter(const search_filter& o) = default;
+search_filter& search_filter::operator=(const search_filter& o) = default;
+search_filter::~search_filter() = default;
 
 template<typename F>
 struct dereference {

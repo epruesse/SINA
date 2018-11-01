@@ -209,19 +209,9 @@ rw_fasta::reader::reader(const fs::path& infile)
     }
 }
 
-rw_fasta::reader::reader(const reader& r)
-    : data(r.data)
-{
-}
-
-rw_fasta::reader&
-rw_fasta::reader::operator=(const reader& r) {
-    data = r.data;
-    return *this;
-}
-
-rw_fasta::reader::~reader() {
-}
+rw_fasta::reader::reader(const reader& r) = default;
+rw_fasta::reader& rw_fasta::reader::operator=(const reader& r) = default;
+rw_fasta::reader::~reader() = default;
 
 bool
 rw_fasta::reader::operator()(tray& t) {
@@ -354,19 +344,9 @@ rw_fasta::writer::writer(const fs::path& outfile, unsigned int copy_relatives)
     }
 }
 
-rw_fasta::writer::writer(const writer& o)
-    : data(o.data)
-{
-}
-
-rw_fasta::writer&
-rw_fasta::writer::operator=(const writer& o) {
-    data = o.data;
-    return *this;
-}
-
-rw_fasta::writer::~writer() {
-}
+rw_fasta::writer::writer(const writer& o) = default;
+rw_fasta::writer& rw_fasta::writer::operator=(const writer& o) = default;
+rw_fasta::writer::~writer() = default;
 
 string escape_string(const string& in) {
     if (in.find_first_of("\",\r\n") == string::npos) {

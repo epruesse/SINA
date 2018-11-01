@@ -42,7 +42,7 @@ public:
     using data_t = std::vector<uint8_t>;
 
     /* virtual destructor */
-    virtual ~idset() {}
+    virtual ~idset() = default;
 
 
     size_t size() const {

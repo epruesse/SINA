@@ -44,7 +44,7 @@ std::ostream& operator<<(std::ostream& out, const idset& set) {
 BOOST_AUTO_TEST_SUITE(bitmap_test);
 
 struct test_set {
-    test_set() {}
+    test_set() = default;
     void init (int size, int fill, int seed) {
         n = size * fill / 100;
         std::mt19937 engine(seed);

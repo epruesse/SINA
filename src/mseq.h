@@ -40,7 +40,7 @@ class mseq;
 
 class mseq_node : public aligned_base 
 {
-  mseq_node();
+  mseq_node() = delete;
 public:
   mseq_node(const aligned_base& b) 
     : aligned_base(b), weight(1.f) 

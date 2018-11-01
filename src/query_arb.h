@@ -52,9 +52,9 @@ public:
     query_arb_exception(std::string& what): m_what(what) {}
     query_arb_exception(std::string  what): m_what(std::move(what)) {}
     query_arb_exception(const char* what): m_what(what) {}
-    query_arb_exception() {}
+    query_arb_exception() = default;
     const char* what() const noexcept override { return m_what.c_str(); }
-    ~query_arb_exception() noexcept override {}
+    ~query_arb_exception() noexcept override = default;
 
 private:
     std::string m_what;
@@ -162,8 +162,8 @@ private:
     void copySequence(query_arb& qa, const std::string s, bool m);
 
     // make query_arb non-copyable
-    query_arb(const query_arb&);
-    query_arb& operator=(const query_arb&);
+    query_arb(const query_arb&) = delete;
+    query_arb& operator=(const query_arb&) = delete;
 
     static void closeOpenARBDBs();
 

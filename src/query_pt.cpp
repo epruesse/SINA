@@ -611,8 +611,7 @@ query_pt_exception::query_pt_exception(std::string  msg) noexcept
 {
 }
 
-query_pt_exception::~query_pt_exception() noexcept {
-}
+query_pt_exception::~query_pt_exception() noexcept = default;
 
 const char*
 query_pt_exception::what() const noexcept {

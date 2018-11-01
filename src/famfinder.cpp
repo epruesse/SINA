@@ -300,19 +300,12 @@ famfinder::finder::finder(int n)
 {
 }
 
-famfinder::finder::finder(const finder& o)
-    : data(o.data)
-{
-}
+famfinder::finder::finder(const finder& o) = default;
 
 famfinder::finder&
-famfinder::finder::operator=(const finder& o) {
-    data = o.data;
-    return *this;
-}
+famfinder::finder::operator=(const finder& o) = default;
 
-famfinder::finder::~finder() {
-}
+famfinder::finder::~finder() = default;
 
 tray
 famfinder::finder::operator()(tray t) {

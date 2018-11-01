@@ -49,38 +49,18 @@ using namespace sina;
 
 static auto logger = Log::create_logger("cseq");
 
-cseq::cseq() 
-    : name(), bases(), attributes()
-{
-}
+cseq::cseq() = default;
+cseq::cseq(const cseq& orig) = default;
+cseq& cseq::operator=(const cseq& rhs) = default;
 
 cseq::cseq(const char *_name, float _score, const char *_data) 
-    : alignment_width(0), score(_score)
+    : name(_name), score(_score)
 {
-    name.assign(_name);
     if (_data) {
         append(_data);
     }
 }
 
-cseq::cseq(const cseq& orig) 
-    : name(orig.name), bases(orig.bases),
-      alignment_width(orig.alignment_width),
-      attributes(orig.attributes),
-      score(orig.score) 
-{
-}
-
-cseq& 
-cseq::operator=(const cseq& rhs) 
-{
-  name=rhs.name;
-  bases=rhs.bases;
-  alignment_width=rhs.alignment_width;
-  attributes=rhs.attributes;
-  score=rhs.score;
-  return *this;
-}
   
 void
 cseq::clearSequence() { 

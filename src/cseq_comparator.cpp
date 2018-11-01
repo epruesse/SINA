@@ -52,7 +52,7 @@ cseq_comparator::cseq_comparator(CMP_IUPAC_TYPE iupac, CMP_DIST_TYPE dist,
 {
 }
 
-cseq_comparator::cseq_comparator() {}
+cseq_comparator::cseq_comparator() = default;
 
 template<typename FUNC> 
 void

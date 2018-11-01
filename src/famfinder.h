@@ -58,7 +58,7 @@ public:
     class finder {
         std::shared_ptr<_famfinder> data;
     public:
-        finder() {}
+        finder() = default;
         explicit finder(int);
         finder(const finder&);
         finder& operator=(const finder&);

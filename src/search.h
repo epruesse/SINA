@@ -41,9 +41,9 @@ class query_arb;
 
 class search : private boost::noncopyable {
 protected:
-    search() {}
+    search() = default;
 public:
-    virtual ~search() {};
+    virtual ~search() = default;
 
     /**
      * match runs a word search using the PT server

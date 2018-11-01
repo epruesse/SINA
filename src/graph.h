@@ -195,7 +195,7 @@ public:
 
     iterator(node_ref idx) : _idx(idx), _isNull(false) {}
     iterator(const iterator& orig) : _idx(orig._idx), _isNull(false) {}
-    iterator() {}
+    iterator() = default;
 
     dag_node<T>& get_node() const { return *_idx; }
     node_ref get_node_ref() const { return _idx; }

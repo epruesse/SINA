@@ -69,7 +69,7 @@ public:
 
     class iterator;
 
-    mesh() {}
+    mesh() = default;
     mesh(SEQ_MASTER &m, SEQ_SLAVE &s)
         : _master(m),
           _slave(s),

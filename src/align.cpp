@@ -347,10 +347,10 @@ struct iequals_cmp {
     }
 };
 
-aligner::aligner() {}
-aligner::~aligner() {}
-aligner::aligner(const aligner&) {}
-aligner& aligner::operator=(const aligner& a) { return *this;}
+aligner::aligner() = default;
+aligner::~aligner() = default;
+aligner::aligner(const aligner&) = default;
+aligner& aligner::operator=(const aligner& a) = default;
 
 
 tray

@@ -277,19 +277,9 @@ Log::printer::printer()
     */
 }
 
-Log::printer::printer(const printer& o)
-    : data(o.data)
-{
-}
-
-Log::printer&
-Log::printer::operator=(const printer& o) {
-    data = o.data;
-    return *this;
-}
-
-Log::printer::~printer() {
-}
+Log::printer::printer(const printer& o) = default;
+Log::printer& Log::printer::operator=(const printer& o) = default;
+Log::printer::~printer() = default;
 
 Log::printer::priv_data::~priv_data() {
     if (Log::opts->show_dist) {

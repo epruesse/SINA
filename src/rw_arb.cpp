@@ -148,13 +148,10 @@ struct rw_arb::reader::priv_data {
     }
 };
 
-rw_arb::reader::reader() {}
-rw_arb::reader::reader(const reader& o) : data(o.data) {}
-rw_arb::reader::~reader() {}
-rw_arb::reader& rw_arb::reader::operator=(const reader& o) {
-    data = o.data;
-    return *this;
-}
+rw_arb::reader::reader() = default;
+rw_arb::reader::reader(const reader& o) = default;
+rw_arb::reader::~reader() = default;
+rw_arb::reader& rw_arb::reader::operator=(const reader& o) = default;
 
 
 rw_arb::reader::reader(fs::path infile)
@@ -252,13 +249,10 @@ struct rw_arb::writer::priv_data {
     }    
 };
 
-rw_arb::writer::writer() {}
-rw_arb::writer::writer(const writer& o) : data(o.data) {}
-rw_arb::writer::~writer() {}
-rw_arb::writer& rw_arb::writer::operator=(const writer& o) {
-    data = o.data;
-    return *this;
-}
+rw_arb::writer::writer() = default;
+rw_arb::writer::writer(const writer& o) = default;
+rw_arb::writer::~writer() = default;
+rw_arb::writer& rw_arb::writer::operator=(const writer& o) = default;
 
 rw_arb::writer::writer(fs::path outfile, unsigned int copy_relatives)
     :  data(new priv_data(outfile, copy_relatives))
