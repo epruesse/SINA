@@ -48,7 +48,7 @@ using boost::algorithm::equals;
 // predicate checking aligned_base objects for possible match
 // returns try if match is conceivable: N matches all
 struct iupac_compare {
-  typedef bool result_type;
+  using result_type = bool;
   bool operator()(const aligned_base& a, const aligned_base& b) const {
     return a.comp(b);
   }
@@ -56,7 +56,7 @@ struct iupac_compare {
 
 int main(int argc, const char **argv) {
   boost::filesystem::path arbdb;
-  const char *probe_seq = 0;
+  const char *probe_seq = nullptr;
   bool reverse = false;
   bool complement = false;
   for (int i=1; i<argc; i++) {
@@ -77,9 +77,9 @@ int main(int argc, const char **argv) {
 
   // make set of fields to load
   std::vector<std::string> fields;
-  fields.push_back("acc");
-  fields.push_back("start");
-  fields.push_back("stop");
+  fields.emplace_back("acc");
+  fields.emplace_back("start");
+  fields.emplace_back("stop");
   // cache sequences and meta data
   arb->loadCache(fields);
   // get sequences
@@ -96,26 +96,27 @@ int main(int argc, const char **argv) {
   }
 
   // iterate over sequences
-  for (std::vector<cseq*>::iterator it = sequences.begin();
-       it != sequences.end(); ++it) {
+  for (auto & sequence : sequences) {
 
     // iterate over matches of probe
-    typedef find_iterator<cseq::iterator> cseq_find_iterator;
+    using cseq_find_iterator = find_iterator<cseq::iterator>;
     for (cseq_find_iterator jt =
-	   make_find_iterator(**it, first_finder(probe, iupac_compare()));
+	   make_find_iterator(*sequence, first_finder(probe, iupac_compare()));
 	 jt != cseq_find_iterator(); ++jt) {
 
       // count ambiguities in match
       int iupac_count = 0;
       for (cseq::iterator kt = jt->begin(); kt != jt->end(); ++kt) {
-	if (kt->is_ambig()) iupac_count ++;
+	if (kt->is_ambig()) {
+	  iupac_count ++;
+	}
       }
 
       // print match
       std::cout
-	<< (*it)->get_attr<std::string>("acc") << "\t"
-	<< (*it)->get_attr<int>("start") << "\t"
-	<< (*it)->get_attr<int>("stop") << "\t"
+	<< sequence->get_attr<std::string>("acc") << "\t"
+	<< sequence->get_attr<int>("start") << "\t"
+	<< sequence->get_attr<int>("stop") << "\t"
 	<< jt->begin()->getPosition() << "\t"
 	<< jt->end()->getPosition() << "\t"
 	<< iupac_count

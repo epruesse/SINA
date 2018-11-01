@@ -29,18 +29,15 @@ for the parts of ARB used as well as that of the covered work.
 #include "rw_fasta.h"
 
 #include <fstream>
+#include <utility>
 #include <vector>
 #include <iostream>
-#include <map>
 #include <unordered_set>
 #include <string>
 #include <sstream>
 
 #include <functional>
 
-#include <boost/thread/thread.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -51,15 +48,8 @@ for the parts of ARB used as well as that of the covered work.
 
 using std::stringstream;
 using std::vector;
-using std::map;
 using std::string;
-using std::pair;
-using boost::thread;
-using boost::shared_ptr;
-using boost::bind;
-using boost::split;
 using boost::algorithm::iequals;
-using boost::algorithm::ends_with;
 
 namespace bi = boost::iostreams;
 namespace po = boost::program_options;
@@ -92,7 +82,7 @@ std::ostream& operator<<(std::ostream& out, const sina::FASTA_META_TYPE& m) {
 }
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              sina::FASTA_META_TYPE* /*m*/, int) {
+              sina::FASTA_META_TYPE* /*m*/, int /*unused*/) {
     po::validators::check_first_occurrence(v);
     const std::string &s = po::validators::get_single_string(values);
     if (iequals(s, "none")) {
@@ -174,7 +164,7 @@ struct rw_fasta::reader::priv_data {
     fs::path filename;
     int lineno;
     int seqno;
-    priv_data(fs::path filename_) : filename(filename_), lineno(0), seqno(0) {}
+    priv_data(fs::path filename_) : filename(std::move(filename_)), lineno(0), seqno(0) {}
     ~priv_data() {
         logger->info("read {} sequences from {} lines", seqno-1, lineno-1);
     }
@@ -208,19 +198,9 @@ rw_fasta::reader::reader(const fs::path& infile)
     }
 }
 
-rw_fasta::reader::reader(const reader& r)
-    : data(r.data)
-{
-}
-
-rw_fasta::reader&
-rw_fasta::reader::operator=(const reader& r) {
-    data = r.data;
-    return *this;
-}
-
-rw_fasta::reader::~reader() {
-}
+rw_fasta::reader::reader(const reader& r) = default;
+rw_fasta::reader& rw_fasta::reader::operator=(const reader& r) = default;
+rw_fasta::reader::~reader() = default;
 
 bool
 rw_fasta::reader::operator()(tray& t) {
@@ -253,7 +233,9 @@ rw_fasta::reader::operator()(tray& t) {
         
         // set name to text between first '>' and first ' '
         unsigned int blank = line.find_first_of(' ');
-        if (blank == 0) blank = line.size();
+        if (blank == 0) {
+            blank = line.size();
+        }
         c.setName(line.substr(1, blank-1));
         if (blank < line.size()) {
             c.set_attr<string>(query_arb::fn_fullname, line.substr(blank+1));
@@ -269,7 +251,7 @@ rw_fasta::reader::operator()(tray& t) {
         // if the comment contains an attribute: add it. 
         // Otherwise ignore the comment
 
-        size_t equalsign = line.find_first_of("=");
+        size_t equalsign = line.find_first_of('=');
         if (equalsign != string::npos) {
             string key = line.substr(1, equalsign-1);
             boost::trim(key);
@@ -353,19 +335,9 @@ rw_fasta::writer::writer(const fs::path& outfile, unsigned int copy_relatives)
     }
 }
 
-rw_fasta::writer::writer(const writer& o)
-    : data(o.data)
-{
-}
-
-rw_fasta::writer&
-rw_fasta::writer::operator=(const writer& o) {
-    data = o.data;
-    return *this;
-}
-
-rw_fasta::writer::~writer() {
-}
+rw_fasta::writer::writer(const writer& o) = default;
+rw_fasta::writer& rw_fasta::writer::operator=(const writer& o) = default;
+rw_fasta::writer::~writer() = default;
 
 string escape_string(const string& in) {
     if (in.find_first_of("\",\r\n") == string::npos) {
@@ -384,16 +356,16 @@ string escape_string(const string& in) {
 
 tray
 rw_fasta::writer::operator()(tray t) {
-    if (t.input_sequence == 0) {
+    if (t.input_sequence == nullptr) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
-    if (t.aligned_sequence == 0) {
+    if (t.aligned_sequence == nullptr) {
         logger->info("Not writing sequence {} (>{}): not aligned",
                      t.seqno, t.input_sequence->getName());
         ++data->excluded;
         return t;
     }
-    float idty = t.aligned_sequence->get_attr<float>(query_arb::fn_idty);
+    auto idty = t.aligned_sequence->get_attr<float>(query_arb::fn_idty);
     if (opts->min_idty > idty) {
         logger->info("Not writing sequence {} (>{}): below identity threshold ({}<={})",
                      t.seqno, t.input_sequence->getName(),
@@ -405,10 +377,10 @@ rw_fasta::writer::operator()(tray t) {
 
     data->write(c);
 
-    if (data->copy_relatives || false) {
+    if (data->copy_relatives != 0u) {
         std::vector<cseq> *relatives =
-            t.search_result ? t.search_result : t.alignment_reference;
-        if (relatives) {
+            t.search_result != nullptr ? t.search_result : t.alignment_reference;
+        if (relatives != nullptr) {
             int i = data->copy_relatives;
             for (auto& seq : *relatives) {
                 if (data->relatives_written.insert(seq.getName()).second) {

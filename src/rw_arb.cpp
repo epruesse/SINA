@@ -48,16 +48,6 @@ using std::map;
 
 #include <unordered_set>
 
-#include <boost/thread/thread.hpp>
-using boost::thread;
-
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
-
-#include <boost/bind.hpp>
-using boost::bind;
-using boost::ref;
-
 #include <boost/algorithm/string.hpp>
 using boost::split;
 using boost::is_any_of;
@@ -139,23 +129,19 @@ rw_arb::validate_vm(po::variables_map& /*vm*/,
  */
 
 struct rw_arb::reader::priv_data {
-    query_arb* arb;
-    istream *in;
-    int seqno;
+    query_arb* arb{nullptr};
+    istream *in{nullptr};
+    int seqno{0};
 
-    priv_data() : arb(NULL), in(NULL), seqno(0) {}
     ~priv_data() {
         logger->info("read {} sequences", seqno);
     }
 };
 
-rw_arb::reader::reader() {}
-rw_arb::reader::reader(const reader& o) : data(o.data) {}
-rw_arb::reader::~reader() {}
-rw_arb::reader& rw_arb::reader::operator=(const reader& o) {
-    data = o.data;
-    return *this;
-}
+rw_arb::reader::reader() = default;
+rw_arb::reader::reader(const reader& o) = default;
+rw_arb::reader::~reader() = default;
+rw_arb::reader& rw_arb::reader::operator=(const reader& o) = default;
 
 
 rw_arb::reader::reader(fs::path infile)
@@ -168,11 +154,10 @@ rw_arb::reader::reader(fs::path infile)
     } else if (!opts->select_file.empty()) {
         data->in = new ifstream(opts->select_file.c_str());
     } else {
-        stringstream *tmp = new stringstream();
+        auto *tmp = new stringstream();
         vector<string> cache = data->arb->getSequenceNames();
-        for (vector<string>::iterator it = cache.begin();
-              it != cache.end(); ++it) {
-            *tmp << *it << std::endl;
+        for (auto & it : cache) {
+            *tmp << it << std::endl;
         }
         data->in = tmp;
     }
@@ -189,9 +174,9 @@ bool
 rw_arb::reader::operator()(tray& t) {
     string name;
     t.seqno = ++data->seqno;
-    t.input_sequence = 0; // we may get initialized tray
+    t.input_sequence = nullptr; // we may get initialized tray
 
-    while (not t.input_sequence) {
+    while (t.input_sequence == nullptr) {
         if (data->in->bad()) {
             return false;
         }
@@ -235,7 +220,7 @@ struct rw_arb::writer::priv_data {
     unsigned long copy_relatives;
     priv_data(fs::path& arb_fname_,
               unsigned long copy_relatives_)
-        : arb(0),
+        : arb(nullptr),
           arb_fname(arb_fname_),
           count(0),
           excluded(0),
@@ -243,7 +228,7 @@ struct rw_arb::writer::priv_data {
     {
     }
     ~priv_data() {
-        if (!arb) { // might never have been initialized
+        if (arb == nullptr) { // might never have been initialized
             return;
         }
         logger->info("wrote {} sequences ({} excluded, {} relatives)",
@@ -254,13 +239,10 @@ struct rw_arb::writer::priv_data {
     }    
 };
 
-rw_arb::writer::writer() {}
-rw_arb::writer::writer(const writer& o) : data(o.data) {}
-rw_arb::writer::~writer() {}
-rw_arb::writer& rw_arb::writer::operator=(const writer& o) {
-    data = o.data;
-    return *this;
-}
+rw_arb::writer::writer() = default;
+rw_arb::writer::writer(const writer& o) = default;
+rw_arb::writer::~writer() = default;
+rw_arb::writer& rw_arb::writer::operator=(const writer& o) = default;
 
 rw_arb::writer::writer(fs::path outfile, unsigned int copy_relatives)
     :  data(new priv_data(outfile, copy_relatives))
@@ -272,7 +254,7 @@ rw_arb::writer::writer(fs::path outfile, unsigned int copy_relatives)
 
 tray
 rw_arb::writer::operator()(tray t) {
-    if (t.aligned_sequence == 0) {
+    if (t.aligned_sequence == nullptr) {
         logger->info("Not writing sequence {} (>{}): not aligned",
                      t.seqno, t.input_sequence->getName());
         ++data->excluded;
@@ -282,10 +264,10 @@ rw_arb::writer::operator()(tray t) {
 
     data->arb->putCseq(c);
 
-    if (data->copy_relatives) {
+    if (data->copy_relatives != 0u) {
         // FIXME: we should copy if reference is an arb database
-        auto* relatives = t.search_result ? t.search_result : t.alignment_reference;
-        if (relatives) {
+        auto* relatives = t.search_result != nullptr ? t.search_result : t.alignment_reference;
+        if (relatives != nullptr) {
             int i = data->copy_relatives;
             for (auto& seq : *relatives) {
                 if (data->relatives_written.insert(seq.getName()).second) {

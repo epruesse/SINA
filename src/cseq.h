@@ -31,6 +31,7 @@ for the parts of ARB used as well as that of the covered work.
 
 #include <string>
 #include <list>
+#include <utility>
 #include <vector>
 #include <map>
 #include <sstream>
@@ -57,19 +58,19 @@ template<typename T> class lexical_cast_visitor;
    have positions */
 class cseq {
 public:
-    typedef unsigned int idx_type;
-    typedef aligned_base::idx_type vidx_type;
-    typedef aligned_base value_type;
+    using idx_type = unsigned int;
+    using vidx_type = aligned_base::idx_type;
+    using value_type = aligned_base;
     class iterator;
     class const_iterator;
     class const_reverse_iterator;
-    typedef iterator pn_iterator;
-    typedef const_iterator const_pn_iterator;
-    typedef boost::variant<std::string, char, int, float> variant;
+    using pn_iterator = iterator;
+    using const_pn_iterator = const_iterator;
+    using variant = boost::variant<std::string, char, int, float>;
 
     // Constructors / assignment operator
 
-    cseq(const char* name, float score = 0.f, const char* data = NULL);
+    cseq(const char* _name, float _score = 0.f, const char* _data = nullptr);
     cseq();
     cseq& operator=(const cseq& rhs); 
     cseq(const cseq& orig);
@@ -77,17 +78,17 @@ public:
     // writing methods
     void clearSequence();
 
-    cseq& append(const char* aligned_rna_sequence);
-    cseq& append(const std::string aligned_rna_sequence);
-    cseq& append(const aligned_base& a);
+    cseq& append(const char* str);
+    cseq& append(const std::string& str);
+    cseq& append(const aligned_base& ab);
 
     //FIXME what does assign do?
     cseq& assign(std::vector<unsigned char> &dat);
-  void assignFromCompressed(const void *buffer, size_t len);
+  void assignFromCompressed(const void *data, size_t len);
 
-    void setWidth(vidx_type pos);
+    void setWidth(vidx_type newWidth);
     //FIXME what does fix_duplicate_positions do?
-    void fix_duplicate_positions(std::ostream&, bool lowercase, bool remove);
+    void fix_duplicate_positions(std::ostream& /*log*/, bool lowercase, bool remove);
     //FIXME cseq does not inherit anything. why does the empty sort method exist?
     void sort() {} // does nothing, cseq is always sorted by positions
     void reverse();
@@ -104,7 +105,7 @@ public:
     std::string getAlignedNoDots() const {return getAligned(true);}
     std::string getBases() const;
     std::string getName() const { return name; }
-    void setName(std::string n) { name=n; }
+    void setName(std::string n) { name=std::move(n); }
     std::string getNameScore() const;
     // fixme: handle "-" and "." correctly
     //FIXME where is the difference between size and width? why is there a difference?
@@ -127,7 +128,7 @@ public:
     iterator getIterator(cseq::vidx_type i);
     const_iterator getIterator(cseq::vidx_type i) const;
 
-    char operator [](vidx_type);
+    char operator [](vidx_type i);
     const aligned_base& getById(idx_type i) const { return bases[i]; } 
 
     // meta-data
@@ -137,25 +138,25 @@ public:
 
     // io operations dealing with vector<*cseq>
     static void write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
-                                cseq::idx_type start, cseq::idx_type stop, 
-                                bool color_code = false);    
+                                cseq::idx_type from_pos, cseq::idx_type to_pos,
+                                bool colors = false);
     static void write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
                                 bool color_code = false);
 
     template<typename T>
-    void set_attr(std::string key, T val) {
+    void set_attr(const std::string& key, T val) {
         attributes[key]=val;
     }
 
     template<typename T>
-    T get_attr(std::string attr) {
+    T get_attr(const std::string& attr) {
         return boost::apply_visitor(lexical_cast_visitor<T>(), attributes[attr]); 
     }
 
     const std::map<std::string,variant>& get_attrs() const { return attributes; }
 
 
-    friend std::ostream& operator<<(std::ostream& out, const cseq&);
+    friend std::ostream& operator<<(std::ostream& out, const cseq& c);
 
     bool operator==(const cseq& rhs) const {
         return name == rhs.name && bases == rhs.bases &&
@@ -167,24 +168,24 @@ public:
     }
     bool operator<(const cseq& rhs) const { return score < rhs.score; }
     bool operator>(const cseq& rhs) const { return score > rhs.score; }
-    std::list<unsigned int> find_differing_parts(const cseq&) const;
+    std::list<unsigned int> find_differing_parts(const cseq& right) const;
 protected:
 
 private:
     std::string name;
     std::vector<aligned_base> bases;
-    unsigned int alignment_width;
+    unsigned int alignment_width{0};
     std::map<std::string,variant> attributes;
-    float score;
+    float score{0.f};
     
     template <typename FUNC>
     friend void traverse(const cseq& A, const cseq& B, FUNC F);
 };
 
 template<>
-inline cseq::variant cseq::get_attr<cseq::variant>(std::string attr) { return attributes[attr]; }
+inline cseq::variant cseq::get_attr<cseq::variant>(const std::string& attr) { return attributes[attr]; }
 
-std::ostream& operator<<(std::ostream& out, const cseq&);
+std::ostream& operator<<(std::ostream& out, const cseq& c);
 
 
 
@@ -194,9 +195,9 @@ class cseq::iterator
 public:
     iterator(std::vector<aligned_base>::iterator it)
         : std::vector<aligned_base>::iterator(it) {}
-    iterator() : std::vector<aligned_base>::iterator() {}
+    iterator() = default;
 
-    typedef iterator pn_iterator;
+    using pn_iterator = iterator;
     iterator prev_begin() const { iterator n(*this); return --n; }
     iterator prev_end() const { return (*this); }
     iterator next_begin() const { iterator n(*this); return ++n; }
@@ -213,9 +214,9 @@ class cseq::const_iterator
  public:
     const_iterator(std::vector<aligned_base>::const_iterator it)
         : std::vector<aligned_base>::const_iterator(it) {}
-    const_iterator() : std::vector<aligned_base>::const_iterator() {}
+    const_iterator() = default;
 
-    typedef const_iterator const_pn_iterator;
+    using const_pn_iterator = const_iterator;
     const_iterator prev_begin() const {
         const_iterator n(*this); return --n; }
     const_iterator prev_end() const { return (*this); }
@@ -233,9 +234,9 @@ class cseq::const_reverse_iterator
     : public std::vector<aligned_base>::const_reverse_iterator
 {
  public:
-    const_reverse_iterator(std::vector<aligned_base>::const_reverse_iterator it)
+    const_reverse_iterator(const std::vector<aligned_base>::const_reverse_iterator& it)
       : std::vector<aligned_base>::const_reverse_iterator(it) {}
-    const_reverse_iterator() : std::vector<aligned_base>::const_reverse_iterator() {}
+    const_reverse_iterator() = default;
 
   /*
     typedef const_iterator const_pn_iterator;

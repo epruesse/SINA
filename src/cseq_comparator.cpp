@@ -52,32 +52,31 @@ cseq_comparator::cseq_comparator(CMP_IUPAC_TYPE iupac, CMP_DIST_TYPE dist,
 {
 }
 
-cseq_comparator::cseq_comparator() 
-    : iupac_rule(CMP_IUPAC_OPTIMISTIC),
-      dist_rule(CMP_DIST_NONE),
-      cover_rule(CMP_COVER_QUERY),
-      filter_lc_rule(false)
-{
-}
-
-
+cseq_comparator::cseq_comparator() = default;
 
 template<typename FUNC> 
 void
 traverse(const cseq& A, const cseq& B, FUNC F) {
-    typedef std::vector<aligned_base>::const_iterator bases_it;
-    bases_it a = A.bases.begin();
-    bases_it a_end = A.bases.end();
-    bases_it b = B.bases.begin();
-    bases_it b_end = B.bases.end();
+    auto a = A.bases.begin();
+    auto a_end = A.bases.end();
+    auto b = B.bases.begin();
+    auto b_end = B.bases.end();
 
     // skip filtered bases at beginning
-    while (a != a_end && F->filtered(*a)) ++a;
-    while (b != b_end && F->filtered(*b)) ++b;
+    while (a != a_end && F->filtered(*a)) {
+        ++a;
+    }
+    while (b != b_end && F->filtered(*b)) {
+        ++b;
+    }
 
     // skip filtered bases at end
-    while (a != a_end && F->filtered(*(a_end-1)) ) --a_end;
-    while (b != b_end && F->filtered(*(b_end-1)) ) --b_end;
+    while (a != a_end && F->filtered(*(a_end-1)) ) {
+        --a_end;
+    }
+    while (b != b_end && F->filtered(*(b_end-1)) ) {
+        --b_end;
+    }
     
     // count left overhang
     if (a->getPosition() < b->getPosition()) {
@@ -130,7 +129,7 @@ struct base_comp_pessimistic {
 };
 
 struct filter_none {
-    bool filtered(const aligned_base&) const {
+    bool filtered(const aligned_base& /*unused*/) const {
         return false;
     }
 };
@@ -144,17 +143,12 @@ struct filter_lowercase {
   
 
 struct match_counter {
-    int only_a_overhang;
-    int only_b_overhang;
-    int only_a;
-    int only_b;
-    int match;
-    int mismatch;
-    match_counter() 
-        : only_a_overhang(0), only_b_overhang(0), 
-          only_a(0), only_b(0),
-          match(0), mismatch(0)
-    {}
+    int only_a_overhang{0};
+    int only_b_overhang{0};
+    int only_a{0};
+    int only_b{0};
+    int match{0};
+    int mismatch{0};
 
     template<typename BCOMP, typename FILTER>     
     struct counter;
@@ -169,16 +163,24 @@ template<typename BCOMP, typename FILTER>
 struct match_counter::counter : public match_counter, public FILTER {
     counter(const counter&);
     void overhangA(const aligned_base& b) {
-        if (!FILTER::filtered(b)) only_a_overhang++;
+        if (!FILTER::filtered(b)) {
+            only_a_overhang++;
+        }
     } 
     void overhangB(const aligned_base& b) {
-        if (!FILTER::filtered(b)) only_b_overhang++;
+        if (!FILTER::filtered(b)) {
+            only_b_overhang++;
+        }
     } 
     void onlyA(const aligned_base& b) {
-        if (!FILTER::filtered(b)) only_a++;
+        if (!FILTER::filtered(b)) {
+            only_a++;
+        }
     }
     void onlyB(const aligned_base& b) {
-        if (!FILTER::filtered(b)) only_b++;
+        if (!FILTER::filtered(b)) {
+            only_b++;
+        }
     }
     void both(const aligned_base& b1, 
                const aligned_base& b2) {
@@ -283,7 +285,7 @@ cseq_comparator::operator()(const cseq& query, const cseq& target) {
 void
 validate(boost::any& v,
 	 const std::vector<std::string>& values,
-	 CMP_IUPAC_TYPE*, int) {
+	 CMP_IUPAC_TYPE* /*unused*/, int /*unused*/) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
     if (istarts_with("optimistic", s)) {
@@ -314,7 +316,7 @@ operator<<(std::ostream& out, const CMP_IUPAC_TYPE& t) {
 void
 validate(boost::any& v,
 	 const std::vector<std::string>& values,
-	 CMP_DIST_TYPE*, int) {
+	 CMP_DIST_TYPE* /*unused*/, int /*unused*/) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
     if (iequals(s, "none")) {
@@ -345,7 +347,7 @@ operator<<(std::ostream& out, const CMP_DIST_TYPE& t) {
 void
 validate(boost::any& v,
 	 const std::vector<std::string>& values,
-	 CMP_COVER_TYPE*, int) {
+	 CMP_COVER_TYPE* /*unused*/, int /*unused*/) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
     if (iequals(s, "abs")) {
@@ -458,7 +460,7 @@ cseq_comparator::make_from_variables_map(po::variables_map& vm,
             ("only fractional identity can be distance corrected");
     }
 
-    return cseq_comparator(iupac, dist, cover, filter_lc);
+    return {iupac, dist, cover, filter_lc};
 }
 
 
@@ -470,11 +472,10 @@ cseq_comparator::make_from_variables_map(po::variables_map& vm,
 template<typename T>
 boost::tuple<int,int,int>
 cseq::do_compare(const T& BASE_COMP, const cseq& rhs) const {
-    typedef std::vector<aligned_base>::const_iterator bases_it;
-    bases_it a = bases.begin();
-    bases_it a_end = bases.end();
-    bases_it b = rhs.bases.begin();
-    bases_it b_end = rhs.bases.end();
+    auto a = bases.begin();
+    auto a_end = bases.end();
+    auto b = rhs.bases.begin();
+    auto b_end = rhs.bases.end();
 
     int mismatches = 0;
     int matches = 0;
@@ -519,15 +520,14 @@ cseq::do_compare(const T& BASE_COMP, const cseq& rhs) const {
 }
 
 
-
 float
 cseq::compare(const cseq &seq_b, const vector<float> &weights, 
-     float gap_open, float gap_ext) const {
-    typedef std::vector<aligned_base>::const_iterator bases_it;
-    bases_it a = bases.begin();
-    bases_it a_end = bases.end();
-    bases_it b = seq_b.begin();
-    bases_it b_end = seq_b.end();
+              float gap_open, float gap_ext) const {
+
+    auto a = bases.begin();
+    auto a_end = bases.end();
+    auto b = seq_b.begin();
+    auto b_end = seq_b.end();
 
     int columns = 0;
     double score = 0;

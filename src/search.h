@@ -41,9 +41,9 @@ class query_arb;
 
 class search : private boost::noncopyable {
 protected:
-    search() {}
+    search() = default;
 public:
-    virtual ~search() {};
+    virtual ~search() = default;
 
     /**
      * match runs a word search using the PT server
@@ -83,7 +83,7 @@ public:
                          int max_match,
                          float min_score) {
         return match(family, sequence, min_match, max_match, min_score, 2.0,
-                     NULL, false, 0, 0, 0, 0, false);
+                     nullptr, false, 0, 0, 0, 0, false);
     };
 
     

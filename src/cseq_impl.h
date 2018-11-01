@@ -32,8 +32,8 @@ for the parts of ARB used as well as that of the covered work.
 namespace sina {
 
 inline cseq& 
-cseq::append(const std::string s) {
-  return append(s.c_str());
+cseq::append(const std::string& str) {
+  return append(str.c_str());
 }
 
 template<typename T>
@@ -65,9 +65,8 @@ inline cseq::iterator
 prev_begin(const cseq& c, const cseq::iterator& it) {
   if (c.begin() != it) {
     return it-1;
-  } else {
-    return it;
   }
+  return it;
 }
 inline cseq::iterator 
 prev_end(const cseq& /*c*/, const cseq::iterator& it) {
@@ -86,9 +85,8 @@ inline cseq::iterator
 next_end(const cseq& c, const cseq::iterator& it) {
   if (it+1 == c.end()) {
     return it + 1;
-  } else {
-    return it + 2;
   }
+  return it + 2;
 }
 inline bool
 has_next(const cseq& c, const cseq::iterator& it) {
@@ -103,45 +101,45 @@ get_node_id(cseq& c, const cseq::iterator& it){
 
 inline cseq::iterator
 cseq::begin() {
-    return iterator(bases.begin());
+    return {bases.begin()};
 }
 
 inline cseq::const_iterator
 cseq::begin() const {
-    return const_iterator(bases.begin());
+    return {bases.begin()};
 }
 
 inline cseq::const_reverse_iterator
 cseq::rbegin() const {
-    return const_reverse_iterator(bases.rbegin());
+    return {bases.rbegin()};
 }
 
 
 inline cseq::iterator
 cseq::end() {
-    return iterator(bases.end());
+    return {bases.end()};
 }
 
 inline cseq::const_iterator
 cseq::end() const {
-    return const_iterator(bases.end());
+    return {bases.end()};
 }
 inline cseq::const_reverse_iterator
 cseq::rend() const {
-    return const_reverse_iterator(bases.rend());
+    return {bases.rend()};
 }
 
 inline cseq::iterator
 cseq::getIterator(cseq::vidx_type i) {
   // this is weird. FIXME
-    return iterator(std::lower_bound(bases.begin(),
-                                bases.end(),aligned_base(i,'.')));
+    return {std::lower_bound(bases.begin(),
+                                bases.end(),aligned_base(i,'.'))};
 }
 
 inline cseq::const_iterator
 cseq::getIterator(cseq::vidx_type i) const {
-    return const_iterator(lower_bound(bases.begin(),
-                                      bases.end(),aligned_base(i,'.')));
+    return {lower_bound(bases.begin(),
+                                      bases.end(),aligned_base(i,'.'))};
 }
 
 

@@ -39,14 +39,7 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
-tray::tray()
-    : seqno(0),
-      input_sequence(0),
-      aligned_sequence(0),
-      alignment_reference(0),
-      search_result(0),
-      astats(0)
-{
+tray::tray() {
     DBG("Construct");
 }
 
@@ -83,17 +76,17 @@ tray::~tray() {
 
 void
 tray::destroy() {
-    if (input_sequence) { delete input_sequence; }
-    if (aligned_sequence) { delete aligned_sequence; }
-    if (alignment_reference) {delete alignment_reference; }
-    if (search_result) { delete search_result; }
-    if (astats) { delete astats; }
+    delete input_sequence;
+    delete aligned_sequence;
+    delete alignment_reference;
+    delete search_result;
+    delete astats;
 
     DBG("Destroy");
 }
 
 
-};
+} // namespace sina;
 
 
 /*

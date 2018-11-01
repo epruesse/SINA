@@ -36,51 +36,27 @@ for the parts of ARB used as well as that of the covered work.
 #include <vector>
 #include <list>
 #include <map>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
 #include <functional>
 #include <cmath>
 #include <zlib.h>
 
 using namespace std;
-using boost::lambda::bind;
-
 using namespace sina;
 
 static auto logger = Log::create_logger("cseq");
 
-cseq::cseq() 
-    : name(), bases(), alignment_width(0), attributes(), score(0.f)
-{
-}
+cseq::cseq() = default;
+cseq::cseq(const cseq& orig) = default;
+cseq& cseq::operator=(const cseq& rhs) = default;
 
 cseq::cseq(const char *_name, float _score, const char *_data) 
-    : alignment_width(0), score(_score)
+    : name(_name), score(_score)
 {
-    name.assign(_name);
-    if (_data) {
+    if (_data != nullptr) {
         append(_data);
     }
 }
 
-cseq::cseq(const cseq& orig) 
-    : name(orig.name), bases(orig.bases),
-      alignment_width(orig.alignment_width),
-      attributes(orig.attributes),
-      score(orig.score) 
-{
-}
-
-cseq& 
-cseq::operator=(const cseq& rhs) 
-{
-  name=rhs.name;
-  bases=rhs.bases;
-  alignment_width=rhs.alignment_width;
-  attributes=rhs.attributes;
-  score=rhs.score;
-  return *this;
-}
   
 void
 cseq::clearSequence() { 
@@ -91,10 +67,10 @@ cseq::clearSequence() {
 cseq&
 cseq::append(const char *str) {
     //FIXME: keep internal '.'s
-    while(*str) {
+    while(*str != 0) {
         if (*str != ' ' && *str != '\t' && *str != '\n' &&  *str != '\r') {
             if (*str != '-' && *str != '.') {
-                bases.push_back(aligned_base(alignment_width,*str));
+                bases.emplace_back(alignment_width, *str);
             }
             alignment_width++;
         }
@@ -116,7 +92,7 @@ cseq::append(const aligned_base& ab) {
         logger->error("$ cseq::append(): wrong order! {}({}<{})",
                       ab.getBase(), ab.getPosition(), alignment_width);
 
-        bases.push_back(aligned_base(alignment_width, ab.getBase()));
+        bases.emplace_back(alignment_width, ab.getBase());
         //FIXME shoudln't this increase the alignment_width as well?
     } 
 
@@ -125,11 +101,12 @@ cseq::append(const aligned_base& ab) {
 
 cseq&
 cseq::assign(vector<unsigned char>& dat) {
-    if (dat[0]=='#')
+    if (dat[0] == '#') {
         assignFromCompressed(&dat.front(), dat.size());
-    else {
-        if (dat.back() != '0')
+    } else {
+        if (dat.back() != '0') {
             dat.push_back('0');
+        }
 //        append((char*)&dat.front());
     #warning fix cseq::assign
     }
@@ -187,11 +164,11 @@ cseq::getAligned(bool nodots, bool dna) const {
     aligned.reserve(alignment_width);
 
     char dot='.';
-    if (nodots) dot='-';
+    if (nodots) {
+        dot='-';
+    }
 
-    vector<aligned_base>::const_iterator 
-        it = bases.begin(),
-        it_end = bases.end();
+    auto it = bases.begin(), it_end = bases.end();
 
     unsigned int cursor = 0;
     for (; it != it_end; ++it) {
@@ -200,7 +177,7 @@ cseq::getAligned(bool nodots, bool dna) const {
             stringstream recent;
             int i=0;
             int left = (it_end - it) - 1;
-            for (vector<aligned_base>::const_iterator jt = it + std::min(2,left); 
+            for (auto jt = it + std::min(2,left);
                  jt != bases.begin() && i<10; --jt, ++i) {
                 recent << " " << *jt;
             }
@@ -208,10 +185,11 @@ cseq::getAligned(bool nodots, bool dna) const {
             logger->error("broken sequence! C={} P={} L={} B={} P={}",
                           cursor, pos, left, *it, recent.str());
             throw runtime_error("Internal error");
-        } else {
-            aligned.append(pos - cursor, dot);
-            cursor = pos;
         }
+
+        aligned.append(pos - cursor, dot);
+        cursor = pos;
+
         dot = '-'; // (only the first "gap" is dots)
         if (dna) {
             aligned.append(1, it->getBase().iupac_dna());
@@ -242,8 +220,8 @@ cseq::getBases() const {
 
 // for_each(bases.begin(), bases.end(),
     //         basestr += bind<char>(&aligned_base::getBase,boost::lambda::_1));
-    for (uint i=0; i < bases.size(); i++) {
-        basestr += bases[i].getBase();
+    for (auto base : bases) {
+        basestr += base.getBase();
     }
 
     return basestr;
@@ -258,9 +236,9 @@ struct compressed_data {
 void
 cseq::compressAligned(std::vector<unsigned char> &out) {
     vector<unsigned char> buf;
-    typedef unsigned int uint;
+    using uint = unsigned int;
 
-    bases.push_back(aligned_base(alignment_width));
+    bases.emplace_back(alignment_width);
     const uint bas = bases.size();
 
     const uint orig_size = sizeof(aligned_base) * bas;
@@ -283,7 +261,7 @@ cseq::compressAligned(std::vector<unsigned char> &out) {
 
     unsigned long compr_size = compressBound(orig_size);
     out.resize(compr_size);
-    compressed_data *cd = reinterpret_cast<compressed_data*>(&out.front());
+    auto *cd = reinterpret_cast<compressed_data*>(&out.front());
 
     cd->id='#';
     cd->size=(unsigned short)orig_size;
@@ -296,8 +274,8 @@ cseq::compressAligned(std::vector<unsigned char> &out) {
 void
 cseq::assignFromCompressed(const void* data, size_t len) {
     vector<unsigned char> buf;
-    typedef unsigned int uint;
-    const compressed_data *cd = reinterpret_cast<const compressed_data*>(data);
+    using uint = unsigned int;
+    const auto *cd = reinterpret_cast<const compressed_data*>(data);
     buf.resize(cd->size);
 
     unsigned long compr_size = len - sizeof(compressed_data);
@@ -320,7 +298,7 @@ cseq::assignFromCompressed(const void* data, size_t len) {
             diff |= buf[(j+1)*bas+i];
         }
         last+=diff;
-        bases.push_back(aligned_base(last,buf[i]));
+        bases.emplace_back(last, buf[i]);
     }
     alignment_width = bases.back().getPosition();
     bases.pop_back();
@@ -331,10 +309,10 @@ cseq::assignFromCompressed(const void* data, size_t len) {
 char
 cseq::operator[](cseq::vidx_type i) {
     vector<aligned_base>::const_iterator it = getIterator(i);
-    if (it != bases.end() && i == it->getPosition())
+    if (it != bases.end() && i == it->getPosition()) {
         return it->getBase();
-    else
-        return '-';
+    }
+    return '-';
 }
 
 
@@ -366,7 +344,7 @@ cseq::upperCaseAll() {
 
 template<typename RandIt, typename StrictWeakOrdering>
 RandIt group_by(RandIt& a, RandIt& b,
-                StrictWeakOrdering &cmp) {
+                StrictWeakOrdering & /*cmp*/) {
     sort(a,b);
     RandIt end = unique(a,b);
     return end;
@@ -433,7 +411,9 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
         bool gap = true;
         for (vector<cseq*>::size_type j = 0; j < jmax; ++j) {
             outchar[j] = seqs[j].operator[](i);
-            if (outchar[j] != '-') gap=false;
+            if (outchar[j] != '-') {
+                gap = false;
+            }
         }
 
         if (!gap || i == to_pos-1 ) {
@@ -446,7 +426,7 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
     std::map<string,list<int> > mymap;
 
     size_t maxlen = 0;
-    for (vector<string>::iterator it = out.begin(); it != out.end(); ++it) {
+    for (auto it = out.begin(); it != out.end(); ++it) {
         maxlen = std::max(maxlen, it->size());
         mymap[*it].push_back(it-out.begin());
     }
@@ -455,37 +435,46 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
     for (unsigned int i = 0; i < maxlen; i+=100) {
         int len = maxlen - i;
         len = std::min(100,len);
-        for (std::map<string,list<int> >::iterator it = mymap.begin(); 
-             it != mymap.end(); ++it) {
+        for (auto & it : mymap) {
             if (colors) {
-                ofs << color_code(it->first.substr(i, len)) << " ";
+                ofs << color_code(it.first.substr(i, len)) << " ";
             } else {
-                ofs << it->first.substr(i, len) << " ";
+                ofs << it.first.substr(i, len) << " ";
             }
             bool range=false, is_last=false, is_secondlast=false;
             int last=-2;
-            for (std::list<int>::iterator jt = it->second.begin();
-                 jt != it->second.end(); ++jt) {
+            for (int jt : it.second) {
                 if (range) {
-                    if (*jt != last+1) {
+                    if (jt != last+1) {
                         ofs << last;
                         range=false;
-                        ofs << " " << *jt;
+                        ofs << " " << jt;
                     }
                 } else {
-                    if (*jt == last+1) {
+                    if (jt == last+1) {
                         range=true;
                         ofs << "-";
-                    } else
-                        ofs << " " << *jt;
+                    } else {
+                        ofs << " " << jt;
+                    }
                 }
-                last = *jt;
-                if (*jt +1 == (int)seqs.size()) is_last=true;
-                if (*jt +2 == (int)seqs.size()) is_secondlast=true;
+                last = jt;
+                if (jt +1 == (int)seqs.size()) {
+                    is_last = true;
+                }
+                if (jt +2 == (int)seqs.size()) {
+                    is_secondlast = true;
+                }
             }
-            if (range) ofs << last;
-            if (is_last) ofs << " <---(## NEW ##) ";
-            if (is_secondlast) ofs << " <---(%% ORIG %%) ";
+            if (range) {
+                ofs << last;
+            }
+            if (is_last) {
+                ofs << " <---(## NEW ##) ";
+            }
+            if (is_secondlast) {
+                ofs << " <---(%% ORIG %%) ";
+            }
 
             ofs << endl;
         }
@@ -503,9 +492,9 @@ void
 cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
     idx_type total_inserts = 0, longest_insert = 0, orig_inserts = 0;
 
-    vector<aligned_base>::iterator last_it = bases.begin();
-    vector<aligned_base>::iterator bases_end = bases.end();
-    vector<aligned_base>::iterator curr_it = last_it+1;
+    auto last_it = bases.begin();
+    auto bases_end = bases.end();
+    auto curr_it = last_it+1;
     idx_type last_idx = last_it->getPosition();
 
 
@@ -521,11 +510,10 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
             if (curr_it+1 != bases_end) {
                 // not at end of sequence -> da capo
                 continue;
-            } else {
-                // curr is the last base.
-                // move iterator to end and fall through to placement
-                ++curr_it;
             }
+            // curr is the last base.
+            // move iterator to end and fall through to placement
+            ++curr_it;
         }
         idx_type num_inserts = curr_it - last_it - 1;
         if (num_inserts == 0) {
@@ -557,8 +545,8 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
             while (range_end - range_begin < num_inserts) {
                 int next_left_gap;
                 int next_right_gap;
-                vector<aligned_base>::iterator left = last_it;
-                vector<aligned_base>::iterator right = curr_it;
+                auto left = last_it;
+                auto right = curr_it;
                 
                 // find first free gap to left of range
                 if (left == bases.begin()) {
@@ -627,7 +615,9 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
 
         for (; last_it != curr_it; ++last_it) {
             last_it->setPosition(range_begin++);
-            if (lowercase) last_it->setLowerCase();
+            if (lowercase) {
+                last_it->setLowerCase();
+            }
         }
 
         total_inserts+=num_inserts;
@@ -645,9 +635,9 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
 
 std::list<unsigned int>
 cseq::find_differing_parts(const cseq& right) const {
-    typedef std::vector<aligned_base>::const_iterator bases_it;
-    bases_it l_it = bases.begin(), l_end = bases.end();
-    bases_it r_it = right.bases.begin(), r_end = right.bases.end();
+    using bases_it = std::vector<aligned_base>::const_iterator;
+    auto l_it = bases.begin(), l_end = bases.end();
+    auto r_it = right.bases.begin(), r_end = right.bases.end();
     
     std::list<unsigned int> start_stops;
     int score = 0;
@@ -664,15 +654,18 @@ cseq::find_differing_parts(const cseq& right) const {
             score = 4;
             ++r_it;
         } else { // rpos <=> lops
-            if ((char)l_it->getBase() != (char)r_it->getBase())
+            if ((char)l_it->getBase() != (char)r_it->getBase()) {
                 score = 4;
+            }
             ++r_it;
             ++l_it;
         }
-        if (l_it != l_end) 
+        if (l_it != l_end) {
             lpos = l_it->getPosition();
-        if (r_it != r_end)
+        }
+        if (r_it != r_end) {
             rpos = r_it->getPosition();
+        }
         if (score > 0) {
             if (!bad) {
                 int rpos = std::max(right.bases.begin(), r_it - 2)->getPosition();
@@ -686,8 +679,9 @@ cseq::find_differing_parts(const cseq& right) const {
             }
         }
     }
-    if (bad==true)
+    if (bad) {
         start_stops.push_back(std::min(lpos,rpos));
+    }
     
     return start_stops;
 }
@@ -698,12 +692,14 @@ cseq::calcPairScore(const std::vector<int>& pairs) {
     // create array to hold counts for base combinations
     std::vector<int> count;
     count.resize(65536);
-    for (int i=0; i<65536; ++i) count[i]=0;
+    for (int i=0; i<65536; ++i) {
+        count[i] = 0;
+    }
 
     int num=0;
 
     for(unsigned int i=0; i<pairs.size(); ++i) {
-        if (pairs[i]) { // alignment position has "helix-parter"
+        if (pairs[i] != 0) { // alignment position has "helix-parter"
             unsigned char left, right;
             left = operator[](i);
             right = operator[](pairs[i]);
@@ -712,10 +708,11 @@ cseq::calcPairScore(const std::vector<int>& pairs) {
                 and
                 (left != '-' or right != '-')) {
                 num++;
-                if (left < right)
+                if (left < right) {
                     count[((int)(left)<<8) + right]++;
-                else
+                } else {
                     count[((int)(right)<<8) + left]++;
+                }
             }
         }
     }
@@ -786,7 +783,7 @@ struct counter {
 };
 
 struct iupac_compare {
-    typedef bool value_type;
+    using value_type = bool;
     bool operator()(const aligned_base& a, const aliged_base& b) const {
         return a.comp(b);
     }

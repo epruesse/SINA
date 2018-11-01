@@ -33,6 +33,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <string>
 using std::string;
 
+#include <utility>
 #include <vector>
 using std::vector;
 
@@ -55,7 +56,6 @@ using std::stringstream;
 
 #include <exception>
 using std::exception;
-using std::logic_error;
 
 #include <algorithm>
 using std::find_if;
@@ -64,20 +64,10 @@ using std::find_if;
 #  include "tbb/tbb_allocator.h"
 #endif
 
-#include <boost/bind.hpp>
-using boost::bind;
-
 #include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
 
-#include <boost/thread.hpp>
-using boost::thread;
-
-#include <boost/lexical_cast.hpp>
-using boost::lexical_cast;
-
 #include <boost/algorithm/string/predicate.hpp>
-using boost::algorithm::istarts_with;
 using boost::algorithm::iequals;
 
 #include <boost/assert.hpp>
@@ -104,10 +94,10 @@ auto logger = sina::Log::create_logger("align");
 namespace sina {
 
 template<typename SCORING_SCHEME, typename MASTER>
-void choose_transition(cseq&, cseq&, MASTER&, SCORING_SCHEME&, ostream&);
+void choose_transition(cseq& c, cseq& orig, MASTER& m, SCORING_SCHEME& s, ostream& log);
 
 template<typename transition, typename MASTER>
-void do_align(cseq&, cseq&, MASTER&, transition&, ostream&);
+void do_align(cseq& c, cseq& orig, MASTER& m, transition& tr, ostream& log);
 
 struct aligner::options {
     bool realign;
@@ -128,22 +118,13 @@ struct aligner::options {
     bool write_used_rels;
 
     bool use_subst_matrix;
-
-    template<typename SCORING_SCHEME, typename MASTER>
-    friend
-    void choose_transition(cseq&, cseq&, MASTER&, SCORING_SCHEME&, ostream&);
-
-    template<typename transition, typename MASTER>
-    friend
-    void do_align(cseq&, cseq&, MASTER&, transition&, ostream&);
-
 };
 struct aligner::options *aligner::opts;
 
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              OVERHANG_TYPE* /*tt*/, int) {
+              OVERHANG_TYPE* /*tt*/, int /*unused*/) {
   using namespace boost::program_options;
   validators::check_first_occurrence(v);
   const std::string& s = validators::get_single_string(values);
@@ -176,7 +157,7 @@ std::ostream& operator<<(std::ostream& out, const OVERHANG_TYPE& t) {
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              LOWERCASE_TYPE* /*tt*/, int) {
+              LOWERCASE_TYPE* /*tt*/, int /*unused*/) {
   using namespace boost::program_options;
   validators::check_first_occurrence(v);
   const std::string& s = validators::get_single_string(values);
@@ -209,7 +190,7 @@ std::ostream& operator<<(std::ostream& out, const LOWERCASE_TYPE& t) {
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              INSERTION_TYPE* /*tt*/, int) {
+              INSERTION_TYPE* /*tt*/, int /*unused*/) {
   using namespace boost::program_options;
   validators::check_first_occurrence(v);
   const std::string& s = validators::get_single_string(values);
@@ -242,7 +223,7 @@ std::ostream& operator<<(std::ostream& out, const INSERTION_TYPE& t) {
 
 
 void
-aligner::get_options_description(po::options_description& main,
+aligner::get_options_description(po::options_description&  /*main*/,
                                  po::options_description& adv) {
     opts = new struct aligner::options();
 
@@ -299,7 +280,7 @@ void aligner::validate_vm(boost::program_options::variables_map& /*vm*/,
                           po::options_description& /*desc*/) {
 }
 
-} // namespace sina;
+} // namespace sina
 
 using namespace sina;
 
@@ -322,43 +303,47 @@ calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c) {
     cseq::iterator it = c.begin();
     cseq::iterator end = c.end();
 
-    while (it != end && it->getPosition() < term_begin) ++it;
-    while (it != end && it->getPosition() < term_end) { ++it, ++n; }
+    while (it != end && it->getPosition() < term_begin) {
+        ++it;
+    }
+    while (it != end && it->getPosition() < term_end) {
+        ++it, ++n;
+    }
 
     return n;
 }
 
 struct not_icontains {
-    typedef bool result_type;
+    using result_type = bool;
     const string bases;
-    explicit not_icontains(const string& _bases) : bases(_bases) {}
+    explicit not_icontains(string  _bases) : bases(std::move(_bases)) {}
     bool operator()(const cseq& c) {
         return !boost::algorithm::icontains(c.getBases(), bases);
     }
 };
 
 struct iequals_cmp {
-    typedef bool result_type;
+    using result_type = bool;
     const string bases;
-    explicit iequals_cmp(const string& _bases) : bases(_bases) {}
+    explicit iequals_cmp(string  _bases) : bases(std::move(_bases)) {}
     bool operator()(const cseq& c) {
         return iequals(bases, c.getBases());
     }
 };
 
-aligner::aligner() {}
-aligner::~aligner() {}
-aligner::aligner(const aligner&) {}
-aligner& aligner::operator=(const aligner& a) { return *this;}
+aligner::aligner() = default;
+aligner::~aligner() = default;
+aligner::aligner(const aligner&) = default;
+aligner& aligner::operator=(const aligner&  /*a*/) = default;
 
 
 tray
 aligner::operator()(tray t) {
     // skip if requirements missing
     // FIXME: add logging here
-    if (not t.input_sequence ||
-        not t.alignment_reference ||
-        not t.astats ) {
+    if ((t.input_sequence == nullptr) ||
+        (t.alignment_reference == nullptr) ||
+        (t.astats == nullptr) ) {
         return t;
     }
     // prepare variables
@@ -371,15 +356,13 @@ aligner::operator()(tray t) {
     }
 
     // sort reference sequences containing candidate to end of family
-    vector<cseq>::iterator it;
-    it = partition(vc.begin(), vc.end(), not_icontains(bases));
+    auto it = partition(vc.begin(), vc.end(), not_icontains(bases));
 
     // if there are such sequences...
     if (it != vc.end()) {
         if (opts->realign) { // ...either realign (throw them out)
             t.log << "sequences ";
-            for (vector<cseq>::iterator it2 = it;
-                 it2 != vc.end(); ++it2) {
+            for (auto it2 = it; it2 != vc.end(); ++it2) {
                 t.log << it->get_attr<string>(query_arb::fn_acc) << " ";
             }
             t.log << "containing exact candidate removed from family;";
@@ -389,7 +372,7 @@ aligner::operator()(tray t) {
                 return t;
             }
         } else { // ...or steal their alignment
-            vector<cseq>::iterator exact_match = find_if(it,vc.end(),iequals_cmp(bases));
+            auto exact_match = find_if(it, vc.end(), iequals_cmp(bases));
             if (exact_match != vc.end()) {
                 c.setAlignedBases(exact_match->getAlignedBases());
                 t.log << "copied alignment from identical template sequence "
@@ -511,8 +494,8 @@ void
 sina::do_align(cseq& c, cseq& orig, MASTER &m,
                transition &tr, ostream& log) {
 
-    typedef compute_node_simple<transition> cnsts_type;
-    typedef typename cnsts_type::data_type data_type;
+    using cnsts_type = compute_node_simple<transition>;
+    using data_type = typename cnsts_type::data_type;
     cnsts_type cns(tr);
 
     // create the alignment "mesh" (not quite a matrix)
@@ -547,10 +530,9 @@ sina::do_align(cseq& c, cseq& orig, MASTER &m,
         m.print_graphviz(out,"reference");
 
         list<unsigned int> bad_parts = orig.find_differing_parts(c);
-        for (list<unsigned int>::iterator it=bad_parts.begin();
-             it!=bad_parts.end(); ++it) {
+        for (auto it = bad_parts.begin(); it != bad_parts.end(); ++it) {
             stringstream tmp;
-            list<unsigned int>::iterator begin=it++;
+            auto begin = it++;
             tmp << "mesh_" << c.getName() << "_" << *begin
                 << "_" << *it << ".dot";
             mesh_to_svg(A, *begin, *it, tmp.str().c_str());

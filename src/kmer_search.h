@@ -60,7 +60,7 @@ public:
      *  range_cover: minimum sequences touching alignment edge
      *  leave_query_out: drop sequence with matching id
      */
-    virtual double match(std::vector<cseq> &family,
+    double match(std::vector<cseq> &results,
                          const cseq& query,
                          int min_match,
                          int max_match,
@@ -74,22 +74,22 @@ public:
                          int range_cover,
                          bool leave_query_out) override;
 
-    virtual double match(std::vector<cseq> &family,
+    double match(std::vector<cseq> &family,
                          const cseq& sequence,
                          int min_match,
                          int max_match,
                          float min_score) override {
         return match(family, sequence, min_match, max_match, min_score, 2.0,
-                     NULL, false, 0, 0, 0, 0, false);
+                     nullptr, false, 0, 0, 0, 0, false);
     };
     
     void build_index();
     void init();
-    void find(const cseq& query, std::vector<cseq>& family, int max);
+    void find(const cseq& query, std::vector<cseq>& results, int max);
 
 private:
-    kmer_search(query_arb* db, int k=8);
-    ~kmer_search();
+    kmer_search(query_arb* arbdb, int k=8);
+    ~kmer_search() override;
 
     class index;
     index &data;

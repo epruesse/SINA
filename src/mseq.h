@@ -40,7 +40,7 @@ class mseq;
 
 class mseq_node : public aligned_base 
 {
-  mseq_node();
+  mseq_node() = delete;
 public:
   mseq_node(const aligned_base& b) 
     : aligned_base(b), weight(1.f) 
@@ -66,21 +66,17 @@ private:
 class mseq : public dag<mseq_node>
 {
 public:
-  mseq() 
-  : num_seqs(0), bases_width(0) 
-  {}
-
-  mseq(std::vector<cseq>::iterator,
-       std::vector<cseq>::iterator,
-       float);
+  mseq(std::vector<cseq>::iterator seqs_begin,
+       std::vector<cseq>::iterator seqs_end,
+       float weight);
 
   unsigned int getWidth() { 
     return bases_width; 
   }
 
 private:
-  unsigned int num_seqs;
-  unsigned int bases_width;
+  unsigned int num_seqs{0};
+  unsigned int bases_width{0};
 };
 
 } // namespace sina

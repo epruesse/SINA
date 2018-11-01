@@ -32,6 +32,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+#include <utility>
 using std::string;
 using std::vector;
 namespace sina {
@@ -40,10 +41,7 @@ float jukes_cantor(float in) {
     return -3.0/4 * log( 1.0 - 4.0/3*in);
 }
 
-alignment_stats::alignment_stats() 
-    : num_taxa(0), width(0), global_freqs(), maxweight(0), 
-      minweight(0), sumweight(0), weighted_columns(0)
-{
+alignment_stats::alignment_stats() {
 
     global_freqs.num_a=1000;
     global_freqs.num_g=1000;
@@ -54,17 +52,16 @@ alignment_stats::alignment_stats()
 }
 
 alignment_stats::alignment_stats(
-    const std::string& _name,
+    std::string  name_,
     unsigned int ntaxa, unsigned int alen,
-    unsigned int *na, unsigned int *ng, unsigned int *nc, 
-    unsigned int *nu, unsigned int *nM, unsigned int *nT,
-    const std::vector<int>& _pairs
+    const unsigned int *na, const unsigned int *nc, const unsigned int *ng,
+    const unsigned int *nu, const unsigned int *nM, const unsigned int *nT,
+    std::vector<int>  pairs_
     ) 
-    : name(_name),
-      num_taxa(ntaxa), width(alen), global_freqs(), 
-      pairs(_pairs),
-      maxweight(0), 
-      minweight(9999999), sumweight(0), weighted_columns(0)
+    : name(std::move(name_)),
+      num_taxa(ntaxa), width(alen),
+      pairs(std::move(pairs_)),
+      minweight(9999999)
 {
     auto console = Log::create_logger("alignment_stats");
 
@@ -101,8 +98,12 @@ alignment_stats::alignment_stats(
             maxweight = std::max(maxweight, (float)weight);
             minweight = std::min(minweight, (float)weight);
             weighted_columns++;
-            if (i<first_weighted) first_weighted=i;
-            if (i>last_weighted) last_weighted=i;
+            if (i < first_weighted) {
+                first_weighted = i;
+            }
+            if (i > last_weighted) {
+                last_weighted = i;
+            }
         } else {
             weights[i] = 1;
         }
@@ -131,7 +132,7 @@ alignment_stats::alignment_stats(
 }
 
 const aligned_base::matrix_type 
-alignment_stats::getSubstMatrix(double identity) const {
+alignment_stats::getSubstMatrix(double  /*identity*/) const {
     aligned_base::matrix_type m;
     int total_bases = global_freqs.num_a + global_freqs.num_c + 
         global_freqs.num_g + global_freqs.num_u;
@@ -141,6 +142,7 @@ alignment_stats::getSubstMatrix(double identity) const {
     f[BASE_G] = (double)global_freqs.num_g/total_bases;
     f[BASE_TU] = (double)global_freqs.num_u/total_bases;
 
+#if 0
     double avgmm=0;
     for (int i=0; i < BASE_MAX; i++) {
         for (int j=0; j < BASE_MAX; j++) {
@@ -154,6 +156,7 @@ alignment_stats::getSubstMatrix(double identity) const {
         }
     }
     avgmm /= 12;
+# endif
 
     return m;
 }

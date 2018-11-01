@@ -47,31 +47,29 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
-template<typename SEQ_MASTER,
-         typename SEQ_SLAVE,
-         typename DATA,
+template<typename SEQ_MASTER, // mseq
+         typename SEQ_SLAVE,  // cseq
+         typename DATA,       // data_type
          typename ALLOCATOR = std::allocator<DATA> >
 class mesh
 {
 public:
-    typedef SEQ_MASTER master_type;
-    typedef typename SEQ_MASTER::iterator master_iterator_type;
-    typedef typename SEQ_MASTER::idx_type master_idx_type;
+    using master_type = SEQ_MASTER;
+    using master_iterator_type = typename master_type::iterator;
+    using master_idx_type = typename master_type::idx_type;
 
-    typedef SEQ_SLAVE slave_type;
-    typedef typename SEQ_SLAVE::iterator slave_iterator_type;
-    typedef typename SEQ_SLAVE::idx_type slave_idx_type;
+    using slave_type = SEQ_SLAVE;
+    using slave_iterator_type = typename slave_type::iterator;
+    using slave_idx_type = typename slave_type::idx_type;
 
-    typedef DATA value_type;
-    typedef ALLOCATOR allocator_type;
-
-    typedef std::vector<value_type, ALLOCATOR> vector_type;
-    typedef typename vector_type::iterator vector_iterator;
-    typedef typename vector_type::size_type size_type;
+    using value_type = DATA;
+    using vector_type = std::vector<value_type, ALLOCATOR>;
+    using vector_iterator = typename vector_type::iterator;
+    using size_type = typename vector_type::size_type;
 
     class iterator;
 
-    mesh() {}
+    mesh() = default;
     mesh(SEQ_MASTER &m, SEQ_SLAVE &s)
         : _master(m),
           _slave(s),
@@ -150,8 +148,8 @@ public:
 #endif
 };
 
-template<typename SEQ_MASTER,
-         typename SEQ_SLAVE,
+template<typename SEQ_MASTER, // mseq, pseq
+         typename SEQ_SLAVE,  // cseq
          typename DATA,
          typename ALLOCATOR>
 class mesh<SEQ_MASTER,
@@ -159,17 +157,17 @@ class mesh<SEQ_MASTER,
            DATA,
            ALLOCATOR>::iterator {
 public:
-    typedef mesh<SEQ_MASTER, SEQ_SLAVE, DATA, ALLOCATOR> MESH_TYPE;
-    typedef SEQ_MASTER master_type;
-    typedef typename master_type::iterator miterator_type;
-    typedef typename master_type::idx_type midx_type;
-    typedef SEQ_SLAVE slave_type;
-    typedef typename slave_type::iterator siterator_type;
-    typedef typename slave_type::idx_type sidx_type;
-    typedef DATA value_type;
-    typedef typename mesh::size_type size_type;
+    using mesh_type = mesh<SEQ_MASTER, SEQ_SLAVE, DATA, ALLOCATOR>;
+    using master_type = SEQ_MASTER;
+    using miterator_type = typename master_type::iterator;
+    using midx_type = typename master_type::idx_type;
+    using slave_type = SEQ_SLAVE;
+    using siterator_type = typename slave_type::iterator;
+    using sidx_type = typename slave_type::idx_type;
+    using value_type = DATA;
+    using size_type = typename mesh_type::size_type;
 
-    iterator(MESH_TYPE& _mesh,
+    iterator(mesh_type& _mesh,
              const miterator_type& _mit,
              const siterator_type& _sit)
         : m(_mesh), mit(_mit), sit(_sit)
@@ -196,14 +194,16 @@ public:
        ++sit;
         sidx = get_node_id(m._slave,sit);
 
-        if (sit != m._slave.end())
+        if (sit != m._slave.end()) {
             return *this;
+        }
 
         ++mit;
         midx = get_node_id(m._master,mit);
 
-        if (mit == m._master.end())
+        if (mit == m._master.end()) {
             return *this;
+        }
 
         sit=m._slave.begin();
         sidx = get_node_id(m._slave,sit);
@@ -234,7 +234,7 @@ public:
     midx_type getMidx() { return midx; }
     sidx_type getSidx() { return sidx; }
 
-    MESH_TYPE      &m;
+    mesh_type      &m;
     miterator_type mit;
     midx_type      midx;
     siterator_type sit;
@@ -276,194 +276,196 @@ operator<<(std::ostream& out, mesh<SEQ_MASTER,SEQ_SLAVE,DATA> m) {
 }
 
 template<typename SCORING_SCHEME,
-         typename SEQ_MASTER_,
-         typename SEQ_SLAVE_>
+         typename SEQ_MASTER, // mseq, pseq
+         typename SEQ_SLAVE>  // cseq
 class transition_simple {
 public:
-  typedef SEQ_MASTER_ SEQ_MASTER;
-  typedef SEQ_SLAVE_ SEQ_SLAVE;
-  typedef typename SCORING_SCHEME::value_type value_type;
-  struct data_type;
-  typedef mesh<SEQ_MASTER,SEQ_SLAVE,data_type> MESH;
-  typedef typename MESH::iterator mesh_iterator_type;
+    using master_type = SEQ_MASTER;
+    using slave_type = SEQ_SLAVE;
+    using value_type = typename SCORING_SCHEME::value_type;
+    struct data_type;
+    using mesh_type = mesh<master_type, slave_type, data_type>;
+    using mesh_iterator_type = typename mesh_type::iterator;
 
   //private:
-  const SCORING_SCHEME& s;
+    const SCORING_SCHEME& s;
 
 public:
 
-  transition_simple(const SCORING_SCHEME& _s)
-    : s(_s)
-  {
-  }
-
-  struct data_type {
-    typename SEQ_MASTER::idx_type value_midx;
-    typename SEQ_SLAVE::idx_type value_sidx;
-    typename SEQ_MASTER::idx_type gapm_idx;
-    typename SEQ_SLAVE::idx_type gaps_idx;
-    typename SEQ_SLAVE::idx_type gaps_max;
-
-    value_type value;
-    value_type gapm_val;
-    value_type gaps_val;
-
-    bool operator<(const data_type& o) const { return value<o.value; }
-
-    void init_edge() {
-      value = gapm_val = gaps_val = 1,
-        value_midx = value_sidx = gapm_idx = gaps_idx = gaps_max = 0;
-    }
-    void init() {
-      value = gapm_val = gaps_val = 1000000,
-        value_midx = value_sidx = gapm_idx = gaps_idx = gaps_max = 0;
-    }
-  };
-
-
-  template<typename BASE_TYPE_A, typename BASE_TYPE_B>
-  void
-  deletion(const data_type &src, data_type &dest,
-           const BASE_TYPE_A& b1, const BASE_TYPE_B& b2,
-           typename SEQ_MASTER::idx_type midx,
-           typename SEQ_MASTER::idx_type sidx) {
-
-    value_type value = s.deletion(src.value, b1, b2);
-    value_type gap_val = s.deletion_ext(src.gapm_val, b1, b2, 0);
-
-    if (value < gap_val) {
-      dest.gapm_val = value;
-      dest.gapm_idx = midx;
-    } else {
-      dest.gapm_val = gap_val;
-      dest.gapm_idx = src.gapm_idx;
-      value = gap_val;
-      midx = src.gapm_idx;
+    transition_simple(const SCORING_SCHEME& _s)
+        : s(_s)
+    {
     }
 
-    if ( value < dest.value ) {
-      dest.value = value;
-      dest.value_midx = midx;
-      dest.value_sidx = sidx;
+    struct data_type {
+        typename master_type::idx_type value_midx;
+        typename slave_type::idx_type value_sidx;
+        typename master_type::idx_type gapm_idx;
+        typename slave_type::idx_type gaps_idx;
+        typename slave_type::idx_type gaps_max;
+
+        value_type value;
+        value_type gapm_val;
+        value_type gaps_val;
+
+        bool operator<(const data_type& o) const { return value<o.value; }
+
+        void init_edge() {
+            value = gapm_val = gaps_val = 1,
+                value_midx = value_sidx = gapm_idx = gaps_idx = gaps_max = 0;
+        }
+        void init() {
+            value = gapm_val = gaps_val = 1000000,
+                value_midx = value_sidx = gapm_idx = gaps_idx = gaps_max = 0;
+        }
+    };
+
+
+    template<typename BASE_TYPE_A, typename BASE_TYPE_B>
+    void
+    deletion(const data_type &src, data_type &dest,
+             const BASE_TYPE_A& b1, const BASE_TYPE_B& b2,
+             typename SEQ_MASTER::idx_type midx,
+             typename SEQ_MASTER::idx_type sidx) {
+
+        value_type value = s.deletion(src.value, b1, b2);
+        value_type gap_val = s.deletion_ext(src.gapm_val, b1, b2, 0);
+
+        if (value < gap_val) {
+            dest.gapm_val = value;
+            dest.gapm_idx = midx;
+        } else {
+            dest.gapm_val = gap_val;
+            dest.gapm_idx = src.gapm_idx;
+            value = gap_val;
+            midx = src.gapm_idx;
+        }
+
+        if ( value < dest.value ) {
+            dest.value = value;
+            dest.value_midx = midx;
+            dest.value_sidx = sidx;
+        }
     }
-  }
 
-  template<typename BASE_TYPE_A, typename BASE_TYPE_B>
-  void
-  insertion(const data_type &src, data_type &dest,
-            const BASE_TYPE_A& b1, const BASE_TYPE_B& b2,
-            typename SEQ_MASTER::idx_type midx,
-            typename SEQ_SLAVE::idx_type sidx,
-            typename SEQ_SLAVE::idx_type /*smax*/) {
+    template<typename BASE_TYPE_A, typename BASE_TYPE_B>
+    void
+    insertion(const data_type &src, data_type &dest,
+              const BASE_TYPE_A& b1, const BASE_TYPE_B& b2,
+              typename SEQ_MASTER::idx_type midx,
+              typename SEQ_SLAVE::idx_type sidx,
+              typename SEQ_SLAVE::idx_type /*smax*/) {
 
-    if (src.gaps_val != src.value ) {
-      // opening gap
-      dest.gaps_val = s.insertion(src.value, b1, b2);
-      dest.gaps_idx = sidx;
-    } else {
-      // extending gap
-      dest.gaps_val = s.insertion_ext(src.gaps_val, b1, b2,
-                                      sidx-src.gaps_idx);
-      dest.gaps_idx = src.gaps_idx;
+        if (src.gaps_val != src.value ) {
+            // opening gap
+            dest.gaps_val = s.insertion(src.value, b1, b2);
+            dest.gaps_idx = sidx;
+        } else {
+            // extending gap
+            dest.gaps_val = s.insertion_ext(src.gaps_val, b1, b2,
+                                            sidx-src.gaps_idx);
+            dest.gaps_idx = src.gaps_idx;
+        }
+
+        if ( dest.gaps_val <= dest.value ) {
+            // if gap open/extend is currently the best
+            // option, remember this
+            dest.value = dest.gaps_val;
+            dest.value_sidx = dest.gaps_idx;
+            dest.value_midx = midx;
+        }
     }
 
-    if ( dest.gaps_val <= dest.value ) {
-      // if gap open/extend is currently the best
-      // option, remember this
-      dest.value = dest.gaps_val;
-      dest.value_sidx = dest.gaps_idx;
-      dest.value_midx = midx;
+    template<typename BASE_TYPE_A, typename BASE_TYPE_B>
+    void
+    match(const data_type &src, data_type &dest,
+          const BASE_TYPE_A& b1, const BASE_TYPE_B& b2,
+          typename SEQ_MASTER::idx_type midx,
+          typename SEQ_SLAVE::idx_type sidx) {
+
+        value_type value = s.match(src.value, b1, b2) ;
+
+        if (value < dest.value) {
+            dest.value = value;
+            dest.value_midx = midx;
+            dest.value_sidx = sidx;
+        }
     }
-  }
-
-  template<typename BASE_TYPE_A, typename BASE_TYPE_B>
-  void
-  match(const data_type &src, data_type &dest,
-        const BASE_TYPE_A& b1, const BASE_TYPE_B& b2,
-        typename SEQ_MASTER::idx_type midx,
-        typename SEQ_SLAVE::idx_type sidx) {
-
-    value_type value = s.match(src.value, b1, b2) ;
-
-    if (value < dest.value) {
-      dest.value = value;
-      dest.value_midx = midx;
-      dest.value_sidx = sidx;
-    }
-  }
 };
 
 template<typename SCORING_SCHEME,
          typename SEQ_MASTER_,
          typename SEQ_SLAVE_>
 class transition_aspace_aware
-  : public transition_simple<SCORING_SCHEME, SEQ_MASTER_, SEQ_SLAVE_>  {
+    : public transition_simple<SCORING_SCHEME, SEQ_MASTER_, SEQ_SLAVE_>  {
 public:
-  typedef transition_simple<SCORING_SCHEME,
-                            SEQ_MASTER_, SEQ_SLAVE_> transition;
-  transition_aspace_aware(const SCORING_SCHEME& _s)
-    : transition(_s)
-  {
-  }
-
-  struct data_type
-    : public transition::data_type {
-    typename transition::SEQ_SLAVE::idx_type gaps_max;
-    void init_edge() {
-      transition::data_type::init_edge();
-      gaps_max = 0;
-    }
-    void init() {
-      transition::data_type::init();
-      gaps_max = 0;
-    }
-  };
-
-  template<typename BASE_TYPE_A, typename BASE_TYPE_B>
-  void
-  insertion(const data_type &src, data_type &dest,
-            const BASE_TYPE_A& b1, const BASE_TYPE_B& b2,
-            typename transition::SEQ_MASTER::idx_type midx,
-            typename transition::SEQ_SLAVE::idx_type sidx,
-            typename transition::SEQ_SLAVE::idx_type smax) {
-
-    if (smax < 1) return; // can't insert
-
-    if (src.gaps_val != src.value ) {
-      // opening gap
-      dest.gaps_val = transition::s.insertion(src.value, b1, b2);
-      dest.gaps_idx = sidx;
-      dest.gaps_max = smax-1;
-    } else if (src.gaps_max > 0) {
-      // extending gap
-      dest.gaps_val = transition::s.insertion_ext(src.gaps_val, b1, b2,
-                                      sidx-src.gaps_idx);
-      dest.gaps_idx = src.gaps_idx;
-      dest.gaps_max = src.gaps_max-1;
-    } else {
-      return;
+    typedef transition_simple<SCORING_SCHEME,
+                              SEQ_MASTER_, SEQ_SLAVE_> transition;
+    transition_aspace_aware(const SCORING_SCHEME& _s)
+        : transition(_s)
+    {
     }
 
-    if ( dest.gaps_val <= dest.value ) {
-      // if gap open/extend is currently the best
-      // option, remember this
-      dest.value = dest.gaps_val;
-      dest.value_sidx = dest.gaps_idx;
-      dest.value_midx = midx;
+    struct data_type
+        : public transition::data_type {
+        typename transition::slave_type::idx_type gaps_max;
+        void init_edge() {
+            transition::data_type::init_edge();
+            gaps_max = 0;
+        }
+        void init() {
+            transition::data_type::init();
+            gaps_max = 0;
+        }
+    };
+
+    template<typename BASE_TYPE_A, typename BASE_TYPE_B>
+    void
+    insertion(const data_type &src, data_type &dest,
+              const BASE_TYPE_A& b1, const BASE_TYPE_B& b2,
+              typename transition::master_type::idx_type midx,
+              typename transition::slave_type::idx_type sidx,
+              typename transition::slave_type::idx_type smax) {
+
+        if (smax < 1) {
+            return; // can't insert
+        }
+
+        if (src.gaps_val != src.value ) {
+            // opening gap
+            dest.gaps_val = transition::s.insertion(src.value, b1, b2);
+            dest.gaps_idx = sidx;
+            dest.gaps_max = smax-1;
+        } else if (src.gaps_max > 0) {
+            // extending gap
+            dest.gaps_val = transition::s.insertion_ext(src.gaps_val, b1, b2,
+                                                        sidx-src.gaps_idx);
+            dest.gaps_idx = src.gaps_idx;
+            dest.gaps_max = src.gaps_max-1;
+        } else {
+            return;
+        }
+
+        if ( dest.gaps_val <= dest.value ) {
+            // if gap open/extend is currently the best
+            // option, remember this
+            dest.value = dest.gaps_val;
+            dest.value_sidx = dest.gaps_idx;
+            dest.value_midx = midx;
+        }
     }
-  }
 };
 
 /* computes all possible transitions to this node and choses the best */
 template<typename TRANSITION>
 struct compute_node_simple {
-    typedef typename TRANSITION::SEQ_MASTER SEQ_MASTER;
-    typedef typename TRANSITION::SEQ_SLAVE SEQ_SLAVE;
-    typedef typename TRANSITION::data_type data_type;
-    typedef typename SEQ_MASTER::idx_type midx_type;
-    typedef typename SEQ_SLAVE::idx_type sidx_type;
-    typedef typename SEQ_MASTER::pn_iterator mpit_type;
-    typedef typename SEQ_SLAVE::pn_iterator spit_type;
+    using master_type = typename TRANSITION::master_type;
+    using slave_type = typename TRANSITION::slave_type;
+    using data_type = typename TRANSITION::data_type;
+    using midx_type = typename master_type::idx_type;
+    using sidx_type = typename slave_type::idx_type;
+    using mpit_type = typename master_type::pn_iterator;
+    using spit_type = typename slave_type::pn_iterator;
 
     compute_node_simple(TRANSITION _t) : t(_t) {}
 
@@ -471,11 +473,11 @@ struct compute_node_simple {
     void
     calc(T& it)
     {
-        typedef typename T::MESH_TYPE MESH_TYPE;
-        MESH_TYPE &mesh=it.m;
+        using mesh_type = typename T::mesh_type;
+        mesh_type &mesh=it.m;
 
-        typename SEQ_MASTER::iterator m = it.mit;
-        typename SEQ_SLAVE::iterator s = it.sit;
+        typename master_type::iterator m = it.mit;
+        typename slave_type::iterator s = it.sit;
 
         mpit_type mpit_end = prev_end(mesh._master, m);
         spit_type spit_end = prev_end(mesh._slave, s);
@@ -521,16 +523,16 @@ struct compute_node_simple {
 };
 
 
-
 /* computes values in a mesh by executing NODE_COMPUTOR for every
    position */
-template<typename MESH_TYPE, typename NODE_COMPUTOR>
+template<typename MESH_TYPE,
+         typename NODE_COMPUTOR>
 void
 compute(MESH_TYPE& mesh, NODE_COMPUTOR& nc) {
-    typedef typename MESH_TYPE::master_type master_type;
-    typedef typename MESH_TYPE::slave_type slave_type;
-    typedef typename MESH_TYPE::master_iterator_type master_iterator_type;
-    typedef typename MESH_TYPE::slave_iterator_type slave_iterator_type;
+    using master_type = typename MESH_TYPE::master_type;
+    using slave_type = typename MESH_TYPE::slave_type;
+    using master_iterator_type = typename MESH_TYPE::master_iterator_type;
+    using slave_iterator_type = typename MESH_TYPE::slave_iterator_type;
 
     mesh._master.sort();
     mesh._slave.sort();
@@ -541,9 +543,11 @@ compute(MESH_TYPE& mesh, NODE_COMPUTOR& nc) {
 
     typename MESH_TYPE::iterator it = mesh.begin(), end = mesh.end();
 
-    for (;it != end ; ++it)
+    for (;it != end ; ++it) {
         nc.calc(it);
+    }
 }
+
 
 /** backtrack creates the cseq result sequence from a mesh that has
  * been computed. returns float score.
@@ -555,14 +559,14 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
           INSERTION_TYPE insertion,
           int& cutoff_head, int& cutoff_tail,
           std::ostream& log) {
-    typedef typename MESH_TYPE::master_type master_type;
-    typedef typename MESH_TYPE::slave_type slave_type;
-    typedef typename MESH_TYPE::master_idx_type master_idx_type;
-    typedef typename MESH_TYPE::slave_idx_type slave_idx_type;
-    typedef typename master_type::pn_iterator m_pnit_type;
-    typedef typename slave_type::pn_iterator s_pnit_type;
-    typedef typename master_type::value_type master_base_type;
-    typedef typename slave_type::value_type slave_base_type;
+    using master_type = typename MESH_TYPE::master_type;
+    using slave_type = typename MESH_TYPE::slave_type;
+    using master_idx_type = typename MESH_TYPE::master_idx_type;
+    using slave_idx_type = typename MESH_TYPE::slave_idx_type;
+    using m_pnit_type = typename master_type::pn_iterator;
+    using s_pnit_type = typename slave_type::pn_iterator;
+    using master_base_type = typename master_type::value_type;
+    using slave_base_type = typename slave_type::value_type;
 
     master_idx_type alig_width = mesh._master.getWidth();
 
@@ -637,7 +641,7 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
     }
 
     // calculate score
-    float rval = (float)mesh(m,s).value;
+    auto rval = (float)mesh(m,s).value;
 
     unsigned int pos=alig_width -1 -mesh._master.getById(m).getPosition();
     float sum_weight=0;

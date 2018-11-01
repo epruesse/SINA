@@ -38,7 +38,7 @@ operator<<(std::ostream& out, const aligned_base_profile& ab)
     tmp <<  ab.getBase().getString() << "(" << ab.getPosition() << ")";
     return out << tmp.str();
 }
-}
+} // namespace sina
 
 using namespace sina;
 pseq::pseq(std::vector<cseq>::iterator seqs_it,
@@ -59,7 +59,7 @@ pseq::pseq(std::vector<cseq>::iterator seqs_it,
         gap[i] = true;
     }
 
-    typedef aligned_base::idx_type idx_type;
+    using idx_type = aligned_base::idx_type;
 
     idx_type current_column = 0;
     while (current_column < width) {
@@ -72,10 +72,18 @@ pseq::pseq(std::vector<cseq>::iterator seqs_it,
                 it->getPosition() == current_column) {
                 if (it->ambig_order() > 0) {
                     int points = 12 / it->ambig_order();
-                    if (it->has_A()) A+= points;
-                    if (it->has_G()) G+= points;
-                    if (it->has_C()) C+= points;
-                    if (it->has_TU()) T+= points;
+                    if (it->has_A()) {
+                        A += points;
+                    }
+                    if (it->has_G()) {
+                        G += points;
+                    }
+                    if (it->has_C()) {
+                        C += points;
+                    }
+                    if (it->has_TU()) {
+                        T += points;
+                    }
                     gap[row] = false;
                 }
                 ++base_iterators[row];
@@ -97,14 +105,14 @@ pseq::pseq(std::vector<cseq>::iterator seqs_it,
         }
 
         base_profile bp(A, G, C, T, gapOpen*12, gapExtend*12);
-        profile.push_back(aligned_base_profile(current_column, bp));
+        profile.emplace_back(current_column, bp);
 
         current_column = next_column;
     }
 }
 
 void
-pseq::print_graphviz(std::ostream& out, std::string /*name*/) {
+pseq::print_graphviz(std::ostream& out, const std::string& /*name*/) {
     for (iterator it = begin(); it != end(); ++it) {
         out << it->getBase().getString() << std::endl;
     }

@@ -154,7 +154,7 @@ public:
 template<typename GENERATOR, typename bases>
 class iterable : GENERATOR {
 private:
-    typedef typename bases::const_iterator bases_iterator;
+    using bases_iterator = typename bases::const_iterator;
     bases_iterator _begin, _end;
 public:
     template<typename... ARGS>
@@ -203,12 +203,12 @@ public:
 };
 
 
-} // namespace sina::kmer
+} // namespace kmer
 
-typedef kmer::generator kmer_generator;
-typedef kmer::unique_filter<kmer_generator> unique_kmer_generator;
-typedef kmer::prefix_filter<kmer_generator> prefix_kmer_generator;
-typedef kmer::unique_filter<prefix_kmer_generator> unique_prefix_kmer_generator;
+using kmer_generator = kmer::generator;
+using unique_kmer_generator = kmer::unique_filter<kmer_generator>;
+using prefix_kmer_generator = kmer::prefix_filter<kmer_generator>;
+using unique_prefix_kmer_generator = kmer::unique_filter<prefix_kmer_generator>;
 
 /**
  * iterate over all kmers in container v

@@ -67,13 +67,21 @@ public:
   {
     if (b.ambig_order() > 0) {
       float val = 1.f / b.ambig_order();
-      for (int i=0; i<BASE_MAX; i++) {
-        bases[i]=0.f; // c++0x would come in handy here...
+      for (float & base : bases) {
+        base=0.f;
       }
-      if (b.has_A())  bases[BASE_A] = val;
-      if (b.has_G())  bases[BASE_G] = val;
-      if (b.has_C())  bases[BASE_C] = val;
-      if (b.has_TU()) bases[BASE_TU] = val;
+      if (b.has_A()) {
+          bases[BASE_A] = val;
+      }
+      if (b.has_G()) {
+          bases[BASE_G] = val;
+      }
+      if (b.has_C()) {
+          bases[BASE_C] = val;
+      }
+      if (b.has_TU()) {
+          bases[BASE_TU] = val;
+      }
     }
   }
 
@@ -125,17 +133,17 @@ public:
   float gapExtend;
 };
 
-typedef aligned<base_profile> aligned_base_profile;
+using aligned_base_profile = aligned<base_profile>;
 
 class pseq {
 public:
-  typedef unsigned int idx_type;
+  using idx_type = unsigned int;
   class iterator;
   class const_iterator;
-  typedef iterator pn_iterator;
-  typedef aligned_base_profile value_type;
+  using pn_iterator = iterator;
+  using value_type = aligned_base_profile;
 
-  pseq(std::vector<cseq>::iterator, std::vector<cseq>::iterator);
+  pseq(std::vector<cseq>::iterator seqs_it, std::vector<cseq>::iterator seqs_end);
 
   idx_type size() const { return profile.size(); }
   idx_type getWidth() const { return width; }
@@ -150,7 +158,7 @@ public:
   const aligned_base_profile& getById(idx_type i) const {return profile[i];}
   void sort() {}
 
-  void print_graphviz(std::ostream& out, std::string name);
+  void print_graphviz(std::ostream& out, const std::string& name);
 
 private:
   idx_type width;
@@ -166,9 +174,9 @@ class pseq::iterator
 public:
   iterator(std::vector<aligned_base_profile>::iterator it)
     : std::vector<aligned_base_profile>::iterator(it) {}
-  iterator() : std::vector<aligned_base_profile>::iterator() {}
+  iterator() = default;
 
-  typedef iterator pn_iterator;
+  using pn_iterator = iterator;
   iterator prev_begin() const { iterator n(*this); return --n; }
   iterator prev_end() const { return (*this); }
   iterator next_begin() const { iterator n(*this); return ++n; }
@@ -181,9 +189,9 @@ class pseq::const_iterator
 public:
   const_iterator(std::vector<aligned_base_profile>::const_iterator it)
     : std::vector<aligned_base_profile>::const_iterator(it) {}
-  const_iterator() : std::vector<aligned_base_profile>::const_iterator() {}
+  const_iterator() = default;
 
-  typedef const_iterator const_pn_iterator;
+  using const_pn_iterator = const_iterator;
   const_iterator prev_begin() const { const_iterator n(*this); return --n; }
   const_iterator prev_end() const { return (*this); }
   const_iterator next_begin() const { const_iterator n(*this); return ++n; }
@@ -197,22 +205,22 @@ get_node_id(pseq& p, const pseq::iterator& i)  {
 
 inline pseq::iterator
 pseq::begin() {
-  return iterator(profile.begin());
+  return {profile.begin()};
 }
 
 inline pseq::iterator
 pseq::end() {
-  return iterator(profile.end());
+  return {profile.end()};
 }
 
 inline pseq::const_iterator
 pseq::begin() const {
-  return const_iterator(profile.begin());
+  return {profile.begin()};
 }
 
 inline pseq::const_iterator
 pseq::end() const {
-  return const_iterator(profile.end());
+  return {profile.end()};
 }
 
 inline  pseq::pn_iterator
@@ -236,25 +244,23 @@ inline pseq::iterator
 prev_begin(const pseq& p, const pseq::iterator& it) {
   if (p.begin() != it) {
     return it-1;
-  } else {
-    return it;
   }
-}
-inline pseq::iterator
-prev_end(const pseq& /*c*/, const pseq::iterator& it) {
   return it;
 }
 inline pseq::iterator
-next_begin(const pseq& /*c*/, const pseq::iterator& it) {
+prev_end(const pseq&  /*c*/, const pseq::iterator& it) {
+  return it;
+}
+inline pseq::iterator
+next_begin(const pseq&  /*c*/, const pseq::iterator& it) {
   return it+1;
 }
 inline pseq::iterator
 next_end(const pseq& p, const pseq::iterator& it) {
   if (it+1 == p.end()) {
     return it + 1;
-  } else {
-    return it + 2;
   }
+  return it + 2;
 }
 
 std::ostream& operator<<(std::ostream& out, const sina::aligned_base_profile& ab);

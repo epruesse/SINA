@@ -50,9 +50,13 @@ draw_axis(SEQUENCE &s,
   end = s.end();
 
   // find parts to show;
-  while (it != end && it->getPosition() < from) ++it;
+  while (it != end && it->getPosition() < from) {
+    ++it;
+  }
   begin=it;
-  while (it != end && it->getPosition() < to) ++it;
+  while (it != end && it->getPosition() < to) {
+    ++it;
+  }
   end=it;
 
   // print node labels
@@ -64,8 +68,9 @@ draw_axis(SEQUENCE &s,
 
   // cluster master nodes, link with edges
   out << "{ edge [style=invis]; " << std::endl;
-  if (horizontal)
+  if (horizontal) {
     out << " rank=min;" << std:: endl;
+  }
   out << "origin -> ";
   for (it = begin; it != end && it->getPosition() < to-1; ++it) {
     out << nname << get_node_id(s,it) << " -> ";
@@ -102,8 +107,8 @@ mesh_to_svg(MESH& mesh, unsigned int from, unsigned int to, std::ostream& out) {
       << "origin [style=invis]; " << std::endl
     ;
 
-  typedef typename MESH::master_idx_type midx_type;
-  typedef typename MESH::slave_idx_type sidx_type;
+  using midx_type = typename MESH::master_idx_type;
+  using sidx_type = typename MESH::slave_idx_type;
 
   typename MESH::master_type::iterator  mit, mit_end, mit_begin;
   draw_axis(mesh._master, mit_begin, mit_end, from, to, out, false);
@@ -117,7 +122,7 @@ mesh_to_svg(MESH& mesh, unsigned int from, unsigned int to, std::ostream& out) {
     for (sit = sit_begin; sit != sit_end; ++sit) {
       sidx_type sidx = get_node_id(mesh._slave, sit);
       out << "f_" << midx << "_" << sidx << " [label=<<TABLE BORDER=\"0\""
-	  << " CELLBORDER=\"1\" CELLSPACING=\"0\">"
+	  << R"( CELLBORDER="1" CELLSPACING="0">)"
 	  << "<TR><TD>" <<  -mesh(midx,sidx).value
 	  << " (" << mesh(midx,sidx).value - 
 	mesh(mesh(midx,sidx).value_midx,
@@ -192,7 +197,7 @@ mesh_to_svg(MESH& mesh, unsigned int from, unsigned int to, const char* outfile)
 
 
 struct default_weight {
-    int operator[](int) { return 1; }
+    int operator[](int /*unused*/) { return 1; }
 };
 
 template<typename L, typename R>
@@ -235,10 +240,11 @@ seq_compare(L& left, R& right, W& weight) {
             mismatches += weight[rpos];
             ++r_it;
         } else { // rpos <=> lops
-            if (l_it->getBase() != r_it->getBase())
+            if (l_it->getBase() != r_it->getBase()) {
                 mismatches += weight[rpos];
-            else
+            } else {
                 matches += weight[rpos];
+	    }
             ++r_it;
             ++l_it;
         }

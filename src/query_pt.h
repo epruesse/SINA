@@ -40,9 +40,9 @@ namespace sina {
 class query_pt_exception : public std::exception {
     std::string message;
 public:
-    query_pt_exception(const std::string& _message) throw();
-    ~query_pt_exception() throw();
-    virtual const char* what() const throw();
+    query_pt_exception(std::string  msg) noexcept;
+    ~query_pt_exception() noexcept override;
+    const char* what() const noexcept override;
 };
 
 
@@ -54,7 +54,7 @@ public:
              int k=10,
              int mk=0,
              bool norel=false);
-    ~query_pt();
+    ~query_pt() override;
 
     /**
      * match runs a word search using the PT server
@@ -74,27 +74,27 @@ public:
      *  range_cover: minimum sequences touching alignment edge
      *  leave_query_out: drop sequence with matching id
      */
-    virtual double match(std::vector<cseq> &family,
-                         const cseq& query,
+    double match(std::vector<cseq> &family,
+                         const cseq& queryc,
                          int min_match,
                          int max_match,
                          float min_score,
                          float max_score,
                          query_arb *arb,
                          bool noid,
-                         int minlen,
+                         int min_len,
                          int num_full,
-                         int minlen_full,
+                         int full_min_len,
                          int range_cover,
                          bool leave_query_out) override;
 
-    virtual double match(std::vector<cseq> &family,
+    double match(std::vector<cseq> &family,
                          const cseq& sequence,
                          int min_match,
                          int max_match,
                          float min_score) override {
         return match(family, sequence, min_match, max_match, min_score, 2.0,
-                     NULL, false, 0, 0, 0, 0, false);
+                     nullptr, false, 0, 0, 0, 0, false);
     };
 
     int turn_check(const cseq& query, bool all);
@@ -108,8 +108,8 @@ public:
 
     static void get_options_description(boost::program_options::options_description& all,
                                         boost::program_options::options_description& adv);
-    static void validate_vm(boost::program_options::variables_map&,
-                            boost::program_options::options_description&);
+    static void validate_vm(boost::program_options::variables_map& /*unused*/,
+                            boost::program_options::options_description& /*unused*/);
 
 private:
     struct priv_data;

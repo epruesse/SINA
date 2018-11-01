@@ -46,9 +46,7 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 #include <boost/algorithm/string/predicate.hpp>
-using boost::algorithm::iends_with;
 using boost::algorithm::iequals;
-using boost::algorithm::equals;
 
 using std::exception;
 using std::logic_error;
@@ -95,35 +93,56 @@ std::ostream& operator<<(std::ostream& out,
 // make above type parseable by boost::program_options
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              SEQUENCE_DB_TYPE* /*db*/, int) {
+              SEQUENCE_DB_TYPE* /*db*/, int /*unused*/) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
-    if (iequals(s, "NONE"))  v = SEQUENCE_DB_NONE;
-    else if (iequals(s, "AUTO")) v = SEQUENCE_DB_AUTO;
-    else if (iequals(s, "ARB")) v = SEQUENCE_DB_ARB;
-    else if (iequals (s, "FASTA")) v = SEQUENCE_DB_FASTA;
-    else throw po::invalid_option_value(s);
+    if (iequals(s, "NONE")) {
+        v = SEQUENCE_DB_NONE;
+    } else if (iequals(s, "AUTO")) {
+        v = SEQUENCE_DB_AUTO;
+    } else if (iequals(s, "ARB")) {
+        v = SEQUENCE_DB_ARB;
+    } else if (iequals (s, "FASTA")) {
+        v = SEQUENCE_DB_FASTA;
+    } else { throw po::invalid_option_value(s);
+}
 }
 
 // make known any<> types printable
 std::ostream& operator<<(std::ostream& out,
                          const boost::any& a) {
     using boost::any_cast;
-    if (any_cast<bool>(&a)) out << any_cast<bool>(a);
-    else if (any_cast<int>(&a)) out << any_cast<int>(a);
-    else if (any_cast<long>(&a)) out << any_cast<long>(a);
-    else if (any_cast<float>(&a)) out << any_cast<float>(a);
-    else if (any_cast<string>(&a)) out << any_cast<string>(a);
-    else if (any_cast<TURN_TYPE>(&a)) out << any_cast<TURN_TYPE>(a);
-    else if (any_cast<OVERHANG_TYPE>(&a)) out << any_cast<OVERHANG_TYPE>(a);
-    else if (any_cast<INSERTION_TYPE>(&a)) out << any_cast<INSERTION_TYPE>(a);
-    else if (any_cast<LOWERCASE_TYPE>(&a)) out << any_cast<LOWERCASE_TYPE>(a);
-    else if (any_cast<FASTA_META_TYPE>(&a)) out << any_cast<FASTA_META_TYPE>(a);
-    else if (any_cast<SEQUENCE_DB_TYPE>(&a)) out << any_cast<SEQUENCE_DB_TYPE>(a);
-    else if (any_cast<CMP_IUPAC_TYPE>(&a)) out << any_cast<CMP_IUPAC_TYPE>(a);
-    else if (any_cast<CMP_DIST_TYPE>(&a)) out << any_cast<CMP_DIST_TYPE>(a);
-    else if (any_cast<CMP_COVER_TYPE>(&a)) out << any_cast<CMP_COVER_TYPE>(a);
-    else out << "UNKNOWN TYPE: '" << a.type().name()<<"'";
+    if (any_cast<bool>(&a) != nullptr) {
+        out << any_cast<bool>(a);
+    } else if (any_cast<int>(&a) != nullptr) {
+        out << any_cast<int>(a);
+    } else if (any_cast<long>(&a) != nullptr) {
+        out << any_cast<long>(a);
+    } else if (any_cast<float>(&a) != nullptr) {
+        out << any_cast<float>(a);
+    } else if (any_cast<string>(&a) != nullptr) {
+        out << any_cast<string>(a);
+    } else if (any_cast<TURN_TYPE>(&a) != nullptr) {
+        out << any_cast<TURN_TYPE>(a);
+    } else if (any_cast<OVERHANG_TYPE>(&a) != nullptr) {
+        out << any_cast<OVERHANG_TYPE>(a);
+    } else if (any_cast<INSERTION_TYPE>(&a) != nullptr) {
+        out << any_cast<INSERTION_TYPE>(a);
+    } else if (any_cast<LOWERCASE_TYPE>(&a) != nullptr) {
+        out << any_cast<LOWERCASE_TYPE>(a);
+    } else if (any_cast<FASTA_META_TYPE>(&a) != nullptr) {
+        out << any_cast<FASTA_META_TYPE>(a);
+    } else if (any_cast<SEQUENCE_DB_TYPE>(&a) != nullptr) {
+        out << any_cast<SEQUENCE_DB_TYPE>(a);
+    } else if (any_cast<CMP_IUPAC_TYPE>(&a) != nullptr) {
+        out << any_cast<CMP_IUPAC_TYPE>(a);
+    } else if (any_cast<CMP_DIST_TYPE>(&a) != nullptr) {
+        out << any_cast<CMP_DIST_TYPE>(a);
+    } else if (any_cast<CMP_COVER_TYPE>(&a) != nullptr) {
+        out << any_cast<CMP_COVER_TYPE>(a);
+    } else {
+        out << "UNKNOWN TYPE: '" << a.type().name()<<"'";
+    }
     return out;
 }
 
@@ -201,8 +220,8 @@ void get_options_description(po::options_description& main,
         ;
 }
 
-void validate_vm(po::variables_map& vm, po::options_description all_od) {
-    if (vm.count("has-cli-vers")) {
+void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od*/) {
+    if (vm.count("has-cli-vers") != 0u) {
         std::cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
                   << " present" << std::endl;
         const char* supported_versions[]{"1", "2", "ARB5.99"};
@@ -216,7 +235,7 @@ void validate_vm(po::variables_map& vm, po::options_description all_od) {
         exit(EXIT_FAILURE);
     }
 
-    if (vm.count("version")) {
+    if (vm.count("version") != 0u) {
         std::cerr << PACKAGE_STRING
 #ifdef PACKAGE_BUILDINFO
                   << " (" << PACKAGE_BUILDINFO << ")"
@@ -256,13 +275,13 @@ void validate_vm(po::variables_map& vm, po::options_description all_od) {
 }
 
 void show_help(po::options_description* od,
-               po::options_description* adv = NULL) {
+               po::options_description* adv = nullptr) {
     std::cerr << "Usage:" << std::endl
               << " sina -i input [-o output] [--prealigned|--db reference] [--search] "
               << "[--search-db search.arb] [options]"
               << std::endl << std::endl
               << *od << std::endl;
-    if (adv) {
+    if (adv != nullptr) {
         std::cerr << *adv << std::endl;
     }
     exit(EXIT_SUCCESS);
@@ -291,10 +310,10 @@ parse_options(int argc, char** argv) {
     try {
         po::store(po::parse_command_line(argc,argv,all_od),vm);
 
-        if (vm.count("help")) {
+        if (vm.count("help") != 0u) {
             show_help(&od);
         }
-        if (vm.count("help-all")) {
+        if (vm.count("help-all") != 0u) {
             show_help(&od, &adv_od);
         }
 
@@ -317,7 +336,7 @@ parse_options(int argc, char** argv) {
                   << e.what() << std::endl
                   << "Use \"--help\" to show options" << std::endl
                   << std::endl;
-        if (vm.count("show-conf")) {
+        if (vm.count("show-conf") != 0u) {
             show_conf(vm);
         }
         exit(EXIT_FAILURE);
@@ -329,7 +348,7 @@ parse_options(int argc, char** argv) {
 int real_main(int argc, char** argv) {
     po::variables_map vm = parse_options(argc, argv);
     logger->warn("This is {}.", PACKAGE_STRING);
-    if (vm.count("show-conf")) {
+    if (vm.count("show-conf") != 0u) {
          show_conf(vm);
     }
 
@@ -339,9 +358,9 @@ int real_main(int argc, char** argv) {
     std::vector<std::unique_ptr<tf::graph_node>> nodes; // Nodes (for cleanup)
     tf::sender<tray> *last_node; // Last tray producing node
 
-    typedef tf::source_node<tray> source_node;
-    typedef tf::function_node<tray, tray> filter_node;
-    typedef tf::limiter_node<tray> limiter_node;
+    using source_node = tf::source_node<tray>;
+    using filter_node = tf::function_node<tray, tray>;
+    using limiter_node = tf::limiter_node<tray>;
     filter_node *node;
 
     // Make source node reading sequences
@@ -360,7 +379,7 @@ int real_main(int argc, char** argv) {
     last_node = source;
 
     // Make node limiting in-flight sequence trays
-    limiter_node *limiter = new limiter_node(g, opts.max_trays);
+    auto *limiter = new limiter_node(g, opts.max_trays);
     tf::make_edge(*last_node, *limiter);
     nodes.emplace_back(limiter);
     last_node = limiter;
@@ -376,14 +395,14 @@ int real_main(int argc, char** argv) {
         last_node = node;
     } else {
         // Make node(s) finding reference set
-        typedef tuple<tray, famfinder::finder> tray_and_finder;
-        typedef tf::multifunction_node<tray_and_finder, tray_and_finder> finder_node;
-        typedef finder_node::output_ports_type finder_node_out;
-        typedef tf::buffer_node<famfinder::finder> finder_buffer_node;
-        typedef tf::join_node<tray_and_finder> tray_and_finder_join_node;
+        using tray_and_finder = tuple<tray, famfinder::finder>;
+        using finder_node = tf::multifunction_node<tray_and_finder, tray_and_finder>;
+        using finder_node_out = finder_node::output_ports_type;
+        using finder_buffer_node = tf::buffer_node<famfinder::finder>;
+        using tray_and_finder_join_node = tf::join_node<tray_and_finder>;
 
-        finder_buffer_node *buffer = new finder_buffer_node(g);
-        tray_and_finder_join_node *join = new tray_and_finder_join_node(g);
+        auto *buffer = new finder_buffer_node(g);
+        auto *join = new tray_and_finder_join_node(g);
 
         finder_node *family_find = new finder_node(
             g, opts.num_pt_servers,
@@ -427,7 +446,7 @@ int real_main(int argc, char** argv) {
     }
 
     if (opts.inorder) {
-        typedef tf::sequencer_node<tray> sequencer_node;
+        using sequencer_node = tf::sequencer_node<tray>;
         sequencer_node *node = new sequencer_node(
             g, [](const tray& t) -> int {
                 return t.seqno - 1;
@@ -446,12 +465,12 @@ int real_main(int argc, char** argv) {
         node = new filter_node(g, 1, rw_fasta::writer(opts.out, opts.copy_relatives));
         break;
     case SEQUENCE_DB_NONE:
-        node = NULL;
+        node = nullptr;
         break;
     default:
         throw logic_error("output type undefined");
     }
-    if (node) {
+    if (node != nullptr) {
         tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
         last_node = node;

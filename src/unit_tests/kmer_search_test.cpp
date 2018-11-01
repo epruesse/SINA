@@ -32,7 +32,6 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
-namespace bdata = boost::unit_test::data;
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;

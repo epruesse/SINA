@@ -30,6 +30,7 @@ for the parts of ARB used as well as that of the covered work.
 #define _QUERY_ARB_H_
 
 #include <string>
+#include <utility>
 #include <vector>
 #include <list>
 
@@ -48,12 +49,12 @@ namespace sina {
 class query_arb_exception : public std::exception
 {
 public:
-    query_arb_exception(std::string& what): m_what(what){}
-    query_arb_exception(const std::string& what): m_what(what){}
-    query_arb_exception(const char* what): m_what(what){}
-    query_arb_exception(){}
-    virtual const char* what() const throw(){ return m_what.c_str();}
-    virtual ~query_arb_exception() throw(){}
+    query_arb_exception(std::string& what): m_what(what) {}
+    query_arb_exception(std::string  what): m_what(std::move(what)) {}
+    query_arb_exception(const char* what): m_what(what) {}
+    query_arb_exception() = default;
+    const char* what() const noexcept override { return m_what.c_str(); }
+    ~query_arb_exception() noexcept override = default;
 
 private:
     std::string m_what;
@@ -61,7 +62,7 @@ private:
 
 
 class query_arb{
-    query_arb(boost::filesystem::path&);
+    query_arb(boost::filesystem::path& arbfile);
     ~query_arb();
 
  public:
@@ -120,25 +121,25 @@ class query_arb{
      */
     const boost::filesystem::path& getFileName() const;
 
-    void setProtectionLevel(int);
+    void setProtectionLevel(int p);
 
     int getSeqCount() const;
     std::vector<std::string> getSequenceNames();
 
-    cseq& getCseq(std::string name);
-    void putCseq(const cseq&);
-    void putSequence(const cseq&);//calls write
-    void loadKey(cseq&, std::string);
-    void storeKey(cseq&, std::string);
+    cseq& getCseq(const std::string& name);
+    void putCseq(const cseq& seq);
+    void putSequence(const cseq& seq);//calls write
+    void loadKey(cseq& c, const std::string& key);
+    void storeKey(cseq& c, const std::string& key);
 
     long getAlignmentWidth();
 
-    std::string getFilter(std::string name);
+    std::string getFilter(const std::string& name);
     std::vector<int> getPairs();
     std::vector<alignment_stats> getAlignmentStats();
 
     void loadCache();
-    void loadCache(std::vector<std::string>&);
+    void loadCache(std::vector<std::string>& keys);
     std::vector<cseq*> getCacheContents();
 
 private:
@@ -154,15 +155,15 @@ private:
      */
     bool hasErrors() const;
     void setMark();
-    void setMark(const std::string&);
+    void setMark(const std::string& name);
     void setMark(const cseq& cs);
 
     void copySequence(query_arb& qa, const cseq& cs, bool m); //calls write
-    void copySequence(query_arb& qa, const std::string s, bool m);
+    void copySequence(query_arb& other, const std::string& name, bool mark);
 
     // make query_arb non-copyable
-    query_arb(const query_arb&);
-    query_arb& operator=(const query_arb&);
+    query_arb(const query_arb&) = delete;
+    query_arb& operator=(const query_arb&) = delete;
 
     static void closeOpenARBDBs();
 

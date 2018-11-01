@@ -27,7 +27,7 @@
 */
 
 #include <sys/time.h>
-#include <time.h>
+#include <ctime>
 #include <vector>
 #include <algorithm>
 #include <iomanip>
@@ -50,13 +50,13 @@ struct timeval {
 namespace sina {
 
 struct timestamp : private timeval {
-    timestamp(int) {
+    timestamp(int /*unused*/) {
         tv_sec = 0;
         tv_usec = 0;
     }
 
     void get() {
-        gettimeofday(this,0);
+        gettimeofday(this,nullptr);
     }
 
     timestamp() {
@@ -116,9 +116,9 @@ class timer {
     std::vector<const char*> names;
     std::vector<timestamp>::iterator time_it;
     timestamp t_last;
-    unsigned int calls;
+    unsigned int calls{0};
 public:
-    timer() : timestamps(1,0), t_last(0), calls(0) {}
+    timer() : timestamps(1,0), t_last(0) {}
 
     void start() {
         time_it = timestamps.begin();
@@ -126,11 +126,11 @@ public:
         ++calls;
     }
 
-    void stop(const char* name=NULL) {
+    void stop(const char* name=nullptr) {
         timestamp t_now;
         if (++time_it == timestamps.end()) {
             names.push_back(name);
-            timestamps.push_back(timestamp(0));
+            timestamps.emplace_back(0);
             time_it = timestamps.end() - 1;
         }
         *time_it +=  t_now - t_last;
@@ -150,7 +150,9 @@ public:
                        std::ostream_iterator<std::string>(out, ", "),
                        [](const timestamp &t, const char* name) {
                            std::stringstream tmp;
-                           if (name) tmp << name << " = ";
+                           if (name != nullptr) {
+                               tmp << name << " = ";
+                           }
                            tmp << t;
                            return tmp.str();
                        });

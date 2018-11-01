@@ -92,8 +92,8 @@ int main(int argc, const char** argv) {
 			);
     if (self == family.end()) {
       logger->info("{}:", seqNames[i]);
-      for (int i=0; i<family.size(); i++) {
-	logger->info(family[i].getNameScore());
+      for (auto & i : family) {
+	logger->info(i.getNameScore());
       }
     }
   }

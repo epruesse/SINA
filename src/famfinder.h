@@ -42,9 +42,9 @@ enum TURN_TYPE {
     TURN_REVCOMP=1,
     TURN_ALL=2
 };
-std::ostream& operator<<(std::ostream&, const sina::TURN_TYPE&);
-void validate(boost::any&, const std::vector<std::string>&,
-              sina::TURN_TYPE*,int);
+std::ostream& operator<<(std::ostream& out, const sina::TURN_TYPE& t);
+void validate(boost::any& v, const std::vector<std::string>& values,
+              sina::TURN_TYPE* /*unused*/,int /*unused*/);
 
 
 class famfinder {
@@ -58,18 +58,18 @@ public:
     class finder {
         std::shared_ptr<_famfinder> data;
     public:
-        finder() {}
-        explicit finder(int);
-        finder(const finder&);
-        finder& operator=(const finder&);
+        finder() = default;
+        explicit finder(int n);
+        finder(const finder& o);
+        finder& operator=(const finder& o);
         ~finder();
-        tray operator()(tray);
+        tray operator()(const tray& t);
     };
 
-    static void get_options_description(boost::program_options::options_description& all,
+    static void get_options_description(boost::program_options::options_description& main,
                                         boost::program_options::options_description& adv);
-    static void validate_vm(boost::program_options::variables_map&,
-                            boost::program_options::options_description&);
+    static void validate_vm(boost::program_options::variables_map& vm,
+                            boost::program_options::options_description& desc);
 };
 
 

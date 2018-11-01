@@ -48,12 +48,9 @@ using std::string;
 #include <vector>
 using std::vector;
 
-#include <list>
-using std::list;
 using std::pair;
 
 #include <exception>
-using std::exception;
 using std::logic_error;
 
 
@@ -113,13 +110,17 @@ struct famfinder::options *famfinder::opts;
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              ENGINE_TYPE* /*tt*/, int) {
+              ENGINE_TYPE* /*tt*/, int /*unused*/) {
     using namespace boost::program_options;
     validators::check_first_occurrence(v);
     const std::string& s = validators::get_single_string(values);
-    if (iequals(s, "pt-server")) v = ENGINE_ARB_PT;
-    else if (iequals(s, "internal")) v = ENGINE_SINA_KMER;
-    else throw po::invalid_option_value(s);
+    if (iequals(s, "pt-server")) {
+        v = ENGINE_ARB_PT;
+    } else if (iequals(s, "internal")) {
+        v = ENGINE_SINA_KMER;
+    } else {
+        throw po::invalid_option_value(s);
+    }
 }
 
 std::ostream& operator<<(std::ostream& out, const ENGINE_TYPE& t) {
@@ -133,14 +134,19 @@ std::ostream& operator<<(std::ostream& out, const ENGINE_TYPE& t) {
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              TURN_TYPE* /*tt*/, int) {
+              TURN_TYPE* /*tt*/, int /*unused*/) {
     using namespace boost::program_options;
     validators::check_first_occurrence(v);
     const std::string& s = validators::get_single_string(values);
-    if (iequals(s, "none")) v = TURN_NONE;
-    else if (iequals(s, "revcomp")) v = TURN_REVCOMP;
-    else if (iequals(s, "all")) v = TURN_ALL;
-    else throw po::invalid_option_value(s);
+    if (iequals(s, "none")) {
+        v = TURN_NONE;
+    } else if (iequals(s, "revcomp")) {
+        v = TURN_REVCOMP;
+    } else if (iequals(s, "all")) {
+        v = TURN_ALL;
+    } else {
+        throw po::invalid_option_value(s);
+    }
 }
 
 std::ostream& operator<<(std::ostream& out, const TURN_TYPE& t) {
@@ -228,7 +234,7 @@ famfinder::get_options_description(po::options_description& main,
 }
 
 void famfinder::validate_vm(po::variables_map& vm,
-                            po::options_description& desc) {
+                            po::options_description&  /*desc*/) {
     if (vm["db"].empty() && vm["ptdb"].empty()) {
         throw logic_error("Family Finder: PT server database not set");
     }
@@ -282,15 +288,15 @@ class famfinder::_famfinder {
     query_arb *arb;
     vector<alignment_stats> vastats;
     
-    void do_turn_check(cseq&);
-    int turn_check(const cseq&, bool);
+    void do_turn_check(cseq& /*c*/);
+    int turn_check(const cseq& /*query*/, bool /*all*/);
     void select_astats(tray &t);
     
 public:
     explicit _famfinder(int n);
     _famfinder(const _famfinder&);
     ~_famfinder();
-    tray operator()(tray);
+    tray operator()(tray /*t*/);
     std::string getName() const {return "famfinder";}
 };
 
@@ -300,22 +306,15 @@ famfinder::finder::finder(int n)
 {
 }
 
-famfinder::finder::finder(const finder& o)
-    : data(o.data)
-{
-}
+famfinder::finder::finder(const finder& o) = default;
 
 famfinder::finder&
-famfinder::finder::operator=(const finder& o) {
-    data = o.data;
-    return *this;
-}
+famfinder::finder::operator=(const finder& o) = default;
 
-famfinder::finder::~finder() {
-}
+famfinder::finder::~finder() = default;
 
 tray
-famfinder::finder::operator()(tray t) {
+famfinder::finder::operator()(const tray& t) {
     return (*data)(t);
 }
 
@@ -412,20 +411,21 @@ famfinder::_famfinder::turn_check(const cseq& query, bool all) {
 
     double max = 0;
     int best = 0;
-    for (int i = 0; i < 4; i++)
-        if (max < score[i])
+    for (int i = 0; i < 4; i++) {
+        if (max < score[i]) {
             max = score[i], best = i;
-
+        }
+    }
     return best;
 }
 
 
 void
 famfinder::_famfinder::select_astats(tray& t) {
-    alignment_stats *astats = 0;
+    alignment_stats *astats = nullptr;
 
     // load default as per --filter
-    if (opts->posvar_filter != "") {
+    if (!opts->posvar_filter.empty()) {
         for (alignment_stats &as: vastats) {
             if (as.getName() == opts->posvar_filter
                 || as.getName() == opts->posvar_filter + ":ALL"
@@ -445,8 +445,8 @@ famfinder::_famfinder::select_astats(tray& t) {
     if (opts->posvar_autofilter_field.length() > 0) {
         vector<cseq> &vc = *t.alignment_reference;
         int best_count = 0;
-        typedef pair<string, alignment_stats> vastats_t;
-        alignment_stats *best=0;
+        using vastats_t = pair<string, alignment_stats>;
+        alignment_stats *best = nullptr;
         for (alignment_stats& p: vastats) {
             string filter_name = p.getName();
             int n = 0;
@@ -470,7 +470,7 @@ famfinder::_famfinder::select_astats(tray& t) {
         }
     }
 
-    if (astats ==  0) {
+    if (astats == nullptr) {
         astats = new alignment_stats();
     }
 
@@ -479,7 +479,7 @@ famfinder::_famfinder::select_astats(tray& t) {
 
 /* tests if cseq has less than n gaps before last base */
 struct has_max_n_gaps {
-    typedef bool result_type;
+    using result_type = bool;
     const int n_gaps;
     explicit has_max_n_gaps(int _n_gaps) : n_gaps(_n_gaps) {}
     bool operator()(const cseq& c) {
@@ -497,7 +497,7 @@ famfinder::_famfinder::operator()(tray t) {
     do_turn_check(c);
 
     // FIXME: int noid = opts->realign
-    int noid = false;
+    bool noid = false;
     index->match(vc, c, opts->fs_min, opts->fs_max, opts->fs_msc, opts->fs_msc_max,
                  arb, noid, opts->fs_min_len, opts->fs_req_full,
                  opts->fs_full_len, opts->fs_cover_gene, opts->fs_leave_query_out);
@@ -516,7 +516,7 @@ famfinder::_famfinder::operator()(tray t) {
     c.set_attr(query_arb::fn_family_str, tmp.str());
 
     // remove sequences having too few gaps
-    if (opts->fs_req_gaps) {
+    if (opts->fs_req_gaps != 0) {
         vc.erase(std::remove_if(vc.begin(), vc.end(), 
                                 has_max_n_gaps(opts->fs_req_gaps)), 
                  vc.end());
@@ -530,7 +530,7 @@ famfinder::_famfinder::operator()(tray t) {
     if (vc.size() < opts->fs_req) {
         t.log << "unable to align: too few relatives (" << vc.size() << ");";
         delete t.alignment_reference;
-        t.alignment_reference = 0;
+        t.alignment_reference = nullptr;
         return t;
     } 
 

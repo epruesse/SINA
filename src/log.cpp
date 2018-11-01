@@ -42,7 +42,6 @@ using std::endl;
 
 #include <map>
 using std::map;
-using std::pair;
 
 #include <fstream>
 #include <memory>
@@ -80,8 +79,8 @@ struct counting_type {
 /* Validator handling options of counting_type<T> */
 template<typename T>
 void validate(boost::any& v,
-	      const std::vector<std::string>& xs,
-	      counting_type<T>*, long) {
+	      const std::vector<std::string>&  /*xs*/,
+	      counting_type<T>* /*unused*/, long /*unused*/) {
     if (v.empty()) {
         v = counting_type<T>::increment(counting_type<T>::initial());
     } else {
@@ -98,7 +97,7 @@ template<typename T>
 class counting_value : public po::typed_value<counting_type<T>, char> {
 public:
     /* The store is of type T, but typed_value doesn't know that. */
-    typedef po::typed_value<counting_type<T>, char> super;
+    using super = po::typed_value<counting_type<T>, char>;
     counting_value(T* store_to)
         : super(reinterpret_cast<counting_type<T>*>(store_to))
     {
@@ -111,8 +110,8 @@ public:
     }
 
     /* Same here, need turn any(int) to any(counting<int>) before notify */
-    void notify(const boost::any& value_store) const {
-        const T* value = boost::any_cast<T>(&value_store);
+    void notify(const boost::any& value_store) const override {
+        const auto* value = boost::any_cast<T>(&value_store);
         if (value) {
             boost::any vs(*reinterpret_cast<const counting_type<T>*>(value));
             super::notify(vs);
@@ -136,20 +135,12 @@ po::typed_value<counting_type<T> >* counter() {
 
 
 struct Log::options {
-    options() :
-        quiet_count(0),
-        verbose_count(0),
-        verbosity(spdlog::level::warn),
-        show_diff(false),
-        show_dist(false),
-        colors(false)
-    {}
-    int quiet_count;
-    int verbose_count;
-    level_enum verbosity;
-    bool show_diff;
-    bool show_dist;
-    bool colors;
+    int quiet_count{0};
+    int verbose_count{0};
+    level_enum verbosity{spdlog::level::warn};
+    bool show_diff{false};
+    bool show_dist{false};
+    bool colors{false};
     fs::path origdb;
     fs::path logfile;
 };
@@ -162,7 +153,8 @@ namespace spdlog { namespace level {
 std::ostream& operator<<(std::ostream& out, const level_enum& i) {
     return out << to_c_str(i);
 }
-}}
+} // namespace level
+} // namespace spdlog
 
 void
 Log::get_options_description(po::options_description& main,
@@ -190,7 +182,7 @@ void
 Log::validate_vm(po::variables_map& vm,
                  po::options_description& /*desc*/) {
     // calculate effective log level
-    int verbosity = static_cast<int>(opts->verbosity);
+    auto verbosity = static_cast<int>(opts->verbosity);
     verbosity += opts->quiet_count;
     verbosity -= opts->verbose_count;
     opts->verbosity = static_cast<level_enum>(verbosity);
@@ -205,7 +197,7 @@ Log::validate_vm(po::variables_map& vm,
 
     logger->info("Loglevel set to {}", opts->verbosity);
 
-    if (vm.count("log-file")) {
+    if (vm.count("log-file") != 0u) {
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
             opts->logfile.native(), true);
         file_sink->set_level(std::min(spdlog::level::info, opts->verbosity));
@@ -244,26 +236,21 @@ Log::create_logger(std::string name) {
 /// pipeline stuff ///
 
 struct Log::printer::priv_data {
-    priv_data() : sequence_num(0),
-                  total_sps(0), total_error(0), total_cpm(0),
-                  total_idty(0), total_bps(0), total_score(0),
-                  arb(0)
-    {}
     ~priv_data();
 
-    int sequence_num;
+    int sequence_num{0};
 
     // stats
-    double total_sps;
-    double total_error;
-    double total_cpm;
-    double total_idty;
-    double total_bps;
-    double total_score;
+    double total_sps{0};
+    double total_error{0};
+    double total_cpm{0};
+    double total_idty{0};
+    double total_bps{0};
+    double total_score{0};
 
     std::ofstream out;
 
-    query_arb *arb;
+    query_arb *arb{nullptr};
 
     std::vector<int> helix_pairs;
 };
@@ -275,7 +262,7 @@ Log::printer::printer()
     if (!opts->origdb.empty()) {
         data->arb = query_arb::getARBDB(opts->origdb);
     }
-    if (data->arb) {
+    if (data->arb != nullptr) {
         data->helix_pairs = data->arb->getPairs();
     } 
 
@@ -290,19 +277,9 @@ Log::printer::printer()
     */
 }
 
-Log::printer::printer(const printer& o)
-    : data(o.data)
-{
-}
-
-Log::printer&
-Log::printer::operator=(const printer& o) {
-    data = o.data;
-    return *this;
-}
-
-Log::printer::~printer() {
-}
+Log::printer::printer(const printer& o) = default;
+Log::printer& Log::printer::operator=(const printer& o) = default;
+Log::printer::~printer() = default;
 
 Log::printer::priv_data::~priv_data() {
     if (Log::opts->show_dist) {
@@ -320,8 +297,12 @@ static int calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c
     cseq::iterator it = c.begin();
     cseq::iterator end = c.end();
 
-    while (it != end && it->getPosition() < term_begin) ++it;
-    while (it != end && it->getPosition() < term_end) { ++it, ++n; }
+    while (it != end && it->getPosition() < term_begin) {
+        ++it;
+    }
+    while (it != end && it->getPosition() < term_end) {
+        ++it, ++n;
+    }
 
     return n;
 }
@@ -335,14 +316,14 @@ Log::printer::operator()(tray t) {
 /*
     c.set_attr(fn_qual, std::min(100, std::max(0, (int)(-100 * c.getScore()))));
 */
-    if (t.input_sequence == 0) {
+    if (t.input_sequence == nullptr) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
 
     tmp << "sequence_number: " << t.seqno << endl;
     tmp << "sequence_identifier: " << t.input_sequence->getName() << endl;
 
-    if (!t.aligned_sequence) {
+    if (t.aligned_sequence == nullptr) {
         data->out << tmp.str()
                   << "align_log_slv:" << t.log.str() << endl
                   << query_arb::fn_fullname << ":"
@@ -359,7 +340,7 @@ Log::printer::operator()(tray t) {
 
     c.set_attr(query_arb::fn_nuc, (int)c.size());
     c.set_attr(query_arb::fn_bpscore, (int)(100 * bps));
-    if (c.size()) {
+    if (c.size() != 0u) {
         c.set_attr(query_arb::fn_astart, (int)c.begin()->getPosition());
         c.set_attr(query_arb::fn_astop, (int)((--c.end())->getPosition()));
     }
@@ -376,7 +357,7 @@ Log::printer::operator()(tray t) {
     bool tmp_show_diff = false;
     if (opts->show_dist) {
         cseq o = *t.input_sequence;
-        if (data->arb) {
+        if (data->arb != nullptr) {
             string name = o.getName();
             name = name.substr(0,name.find_first_of(' '));
             o = data->arb->getCseq(name);
@@ -437,20 +418,20 @@ Log::printer::operator()(tray t) {
     }
 
 
-    if ((t.alignment_reference || t.search_result) 
+    if (((t.alignment_reference != nullptr) || (t.search_result != nullptr))
         && (opts->show_diff || tmp_show_diff)) {
 
         std::vector<cseq> *ref = t.alignment_reference;
         cseq *orig = t.input_sequence;
-        if (!ref) {
+        if (ref == nullptr) {
             ref = t.search_result;
             orig = &*ref->rbegin();
             ref->pop_back();
         } 
         
         list<unsigned int> bad_parts = orig->find_differing_parts(*t.aligned_sequence);
-        list<unsigned int>::iterator it = bad_parts.begin();
-        list<unsigned int>::iterator it_end = bad_parts.end();
+        auto it = bad_parts.begin();
+        auto it_end = bad_parts.end();
         ref->push_back(*orig);
         ref->push_back(*t.aligned_sequence);
         while (it != it_end) {

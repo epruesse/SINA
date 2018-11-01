@@ -40,14 +40,7 @@ using std::vector;
 #include <string>
 using std::string;
 
-#include <algorithm>
-using std::sort;
-
 #include <iostream>
-#include <iomanip>
-using std::endl;
-using std::uppercase;
-using std::hex;
 
 #include <unordered_map>
 #include <unordered_set>
@@ -60,7 +53,7 @@ namespace fs = boost::filesystem;
 
 #include <boost/thread/mutex.hpp>
 
-#include <stdio.h>
+#include <cstdio>
 #include <sys/stat.h>
 
 #include "zlib.h"
@@ -78,10 +71,10 @@ kmer_search::get_kmer_search(fs::path& filename, int k) {
     boost::mutex::scoped_lock lock(indices_access);
     std::stringstream str;
     str << filename << "%%k=" << k;
-    if (indices.size() == 0) {
+    if (indices.empty()) {
         atexit(kmer_search::destroy_indices);
     }
-    if (not indices.count(str.str())) {
+    if (indices.count(str.str()) == 0u) {
         indices[str.str()] = new kmer_search(query_arb::getARBDB(filename), k);
     }
     return indices[str.str()];
@@ -89,7 +82,7 @@ kmer_search::get_kmer_search(fs::path& filename, int k) {
 
 void
 kmer_search::destroy_indices() {
-    for (const std::pair<std::string, kmer_search*>& pair: indices) {
+    for (auto& pair: indices) {
         delete pair.second;
     }
 }
@@ -98,7 +91,7 @@ class kmer_search::index {
     friend class kmer_search;
     int k;
     int n_kmers;
-    int n_sequences;
+    int n_sequences{0};
 
     std::vector<std::string> sequence_names;
     std::vector<idset*> kmer_idx;
@@ -107,16 +100,12 @@ class kmer_search::index {
     timer timeit;
 
 public:
-    index(int k_, query_arb* arbdb_) :
-        k(k_),
-        n_kmers(1<<(k_*2)),
-        n_sequences(0),
-        sequence_names(),
-        kmer_idx(1<<(k_*2), NULL),
-        arbdb(arbdb_),
-        timeit()
-    {
-    }
+    index(int k_, query_arb* arbdb_)
+        : k(k_),
+          n_kmers(1<<(k_*2)),
+          kmer_idx(1<<(k_*2), nullptr),
+          arbdb(arbdb_)
+    {}
     ~index() {
         logger->info("Timings for Kmer Search: {}", timeit);
     }
@@ -206,23 +195,22 @@ struct score {
 double
 kmer_search::match(std::vector<cseq>& results,
                    const cseq& query,
-                   int min_match,
+                   int  /*min_match*/,
                    int max_match,
-                   float min_score,
-                   float max_score,
-                   query_arb* arb,
-                   bool noid,
-                   int min_len,
-                   int num_full,
-                   int full_min_len,
-                   int range_cover,
-                   bool leave_query_out) {
+                   float  /*min_score*/,
+                   float  /*max_score*/,
+                   query_arb*  /*arb*/,
+                   bool  /*noid*/,
+                   int  /*min_len*/,
+                   int  /*num_full*/,
+                   int  /*full_min_len*/,
+                   int  /*range_cover*/,
+                   bool  /*leave_query_out*/) {
     find(query, results, max_match);
-    if (results.size() == 0) {
+    if (results.empty()) {
         return 0;
-    } else {
-        return results[0].getScore();
     }
+    return results[0].getScore();
 }
 
 void

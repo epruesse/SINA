@@ -33,16 +33,12 @@ static auto logger = sina::Log::create_logger(module_name);
 #include "mseq.h"
 #include "timer.h"
 #include "log.h"
-#include <set>
 #include <algorithm>
 #include <limits>
 #include <cmath>
 
 using std::vector;
-using std::list;
-using std::set;
 using std::min;
-
 
 using namespace sina;
 
@@ -54,8 +50,7 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
     : num_seqs(seqs_end-seqs_begin), bases_width(seqs_begin->getWidth())
 {
     // Sanity check input
-    for (vector<cseq>::iterator it = seqs_begin;
-         it != seqs_end; ++it) {
+    for (auto it = seqs_begin; it != seqs_end; ++it) {
         if (bases_width != it->getWidth()) {
             logger->critical("Sequence {} ({}/{}): length = {} expected {}",
                              it->getName(), it-seqs_begin, seqs_end - seqs_begin,
@@ -70,21 +65,22 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
     citv.reserve(num_seqs);
     vector<cseq::iterator> citv_end;
     citv_end.reserve(num_seqs);
-    for (vector<cseq>::iterator seq_it = seqs_begin;
-         seq_it != seqs_end; ++seq_it) {
+    for (auto seq_it = seqs_begin; seq_it != seqs_end; ++seq_it) {
         citv.push_back(seq_it->begin());
         citv_end.push_back(seq_it->end());
     }
     aligned_base::idx_type min_next=0;
-    vector<iterator>::size_type nodes_size = std::numeric_limits<value_type::base_type>().max();
+    vector<iterator>::size_type nodes_size = std::numeric_limits<value_type::base_type>::max();
     vector<iterator> nodes(nodes_size);
 
     vector<iterator> last(num_seqs);
     // iterate over alignment columns left to right
     for (unsigned int i=0; i < bases_width; i++) {
-        if (min_next > i) continue;
-        min_next = std::numeric_limits<int>().max();
-        nodes.assign(nodes_size,iterator());
+        if (min_next > i) {
+            continue;
+        }
+        min_next = std::numeric_limits<int>::max();
+        nodes.assign(nodes_size, iterator());
 
         // check all sequences for that column
         for (unsigned int j = 0; j < num_seqs; j++) {
@@ -97,8 +93,9 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
                     newnode = nodes[base];
                     newnode->weight += 1.f;
                 }
-                if (!last[j].isNull())
+                if (!last[j].isNull()) {
                     link(last[j],newnode);
+                }
                 last[j]=newnode;
 
                 ++citv[j];
@@ -108,10 +105,9 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
             }
         }
 
-        for (vector<iterator>::iterator it = nodes.begin();
-             it != nodes.end(); ++it) {
-            if (!it->isNull()) {
-                (*it)->weight = 1.0/(weight+1) + weight * ((*it)->weight/num_seqs);
+        for (auto & node : nodes) {
+            if (!node.isNull()) {
+                node->weight = 1.0/(weight+1) + weight * (node->weight/num_seqs);
                     //std::min(20.0, -log(1 - (*it)->weight/num_seqs));
             }
         }

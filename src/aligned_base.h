@@ -54,7 +54,7 @@ enum base_types_bitmask {
 
 class base_iupac {
 public:
-    typedef unsigned char value_type;
+    using value_type = unsigned char;
     static const value_type iupac_char_to_bmask[256];
     static const unsigned char bmask_to_iupac_rna_char[32];
     static const unsigned char bmask_to_iupac_dna_char[32];
@@ -62,18 +62,15 @@ public:
 
     class bad_character_exception : public std::exception {
     public:
-        bad_character_exception(value_type c) throw()
+        bad_character_exception(value_type c) noexcept
             : character(c)
         {
         }
-        virtual const char* what() const throw() {
+        const char* what() const noexcept override {
             return "Character not IUPAC encoded base or gap";
         }
         value_type character;
     };
-
-    /* empty default */
-    base_iupac() : _data(0) {}
 
     /* construct from char */
     base_iupac(unsigned char c) : _data(iupac_char_to_bmask[c]) {
@@ -85,8 +82,9 @@ public:
     /* assign from char */
     base_iupac& operator=(unsigned char c) {
         _data = iupac_char_to_bmask[c];
-        if (_data == 0 && c != '-' && c != '.')
+        if (_data == 0 && c != '-' && c != '.') {
             throw bad_character_exception(c);
+        }
         return *this;
     }
 
@@ -128,7 +126,7 @@ public:
         _data &= ~BASEM_LC;
     }
     bool isLowerCase() const {
-        return _data & BASEM_LC;
+        return (_data & BASEM_LC) != 0;
     }
 
     int ambig_order() const {
@@ -140,15 +138,15 @@ public:
     }
 
 
-    bool has_A()  const { return _data & BASEM_A;  }
-    bool has_G()  const { return _data & BASEM_G;  }
-    bool has_C()  const { return _data & BASEM_C;  }
-    bool has_TU() const { return _data & BASEM_TU; }
+    bool has_A()  const { return (_data & BASEM_A) != 0;  }
+    bool has_G()  const { return (_data & BASEM_G) != 0;  }
+    bool has_C()  const { return (_data & BASEM_C) != 0;  }
+    bool has_TU() const { return (_data & BASEM_TU) != 0; }
 
 
     bool comp(const base_iupac& rhs) const{
       //optimistic, match if IUPAC suggests match possible
-      return 0xf & _data & rhs._data;
+      return (0xf & _data & rhs._data) != 0;
 
       //this would compute average
       //return 1.f - (2.f/count_bits(_data | rhs._data)) *
@@ -160,9 +158,9 @@ public:
       return !is_ambig() && (0xf & _data) == (0xf & rhs._data); 
     }
 
-    typedef struct {
+    struct matrix_type {
       float v[BASE_MAX*BASE_MAX];
-    } matrix_type;
+    };
 
     // this does an IUPAC aware comparison using the given scoring matrix
     float comp(const base_iupac& rhs, const matrix_type& m) const {
@@ -179,9 +177,9 @@ public:
       // "a &= a-1" unsets least significant bit
       // "a & -a" unsets all but least significant bit
 
-      for(value_type lm = _data & 0xf; lm; lm &= lm-1) {
+      for(value_type lm = _data & 0xf; lm != 0u; lm &= lm-1) {
         unsigned char l = (t >> (((lm & -lm)-1)*4)) & 0xF;
-        for (value_type rm = rhs._data & 0xf; rm; rm &= rm-1) {
+        for (value_type rm = rhs._data & 0xf; rm != 0u; rm &= rm-1) {
           unsigned char r = (t >> (((rm &-rm)-1)*4)) & 0xF;
           rval += m.v[l*BASE_MAX+r];
           c++;
@@ -231,15 +229,15 @@ protected:
     }
 
 private:
-    value_type _data;
+    value_type _data{0};
 };
 
 template<typename T>
 class aligned : public T
 {
 public:
-    typedef unsigned int idx_type;
-    typedef T base_type;
+    using idx_type = unsigned int;
+    using base_type = T;
 
     aligned(idx_type pos=0, base_type base='-')
         : T(base), _idx(pos) {}
@@ -270,13 +268,13 @@ struct aligned_base_reverse_position {
     }
 };
 
-typedef aligned<base_iupac> aligned_base;
+using aligned_base = aligned<base_iupac>;
 }// namespace sina
 
 namespace std {
 template<>
 struct numeric_limits<sina::base_iupac> : numeric_limits<sina::base_iupac::value_type> {};
-}
+} // namespace std
 
 
 std::ostream& operator<<(std::ostream& out, sina::aligned_base ab);

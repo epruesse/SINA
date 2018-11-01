@@ -33,6 +33,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <string>
 using std::string;
 
+#include <utility>
 #include <vector>
 using std::vector;
 
@@ -53,8 +54,8 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 #include <boost/progress.hpp>
+
 #include <boost/algorithm/string.hpp>
-using boost::algorithm::iequals;
 
 #include "alignment_stats.h"
 #include "cseq_comparator.h"
@@ -132,14 +133,14 @@ search_filter::get_options_description(po::options_description& main,
 
 void
 search_filter::validate_vm(boost::program_options::variables_map& vm,
-                           po::options_description& desc) {
-    if (!opts) {
+                           po::options_description&  /*desc*/) {
+    if (opts == nullptr) {
         throw std::logic_error("search options not parsed?!");
     }
  
     // we need a DB to search
     if (opts->pt_database.empty()) {
-        if (vm.count("db") && !vm["db"].as<fs::path>().empty()) {
+        if ((vm.count("db") != 0u) && !vm["db"].as<fs::path>().empty()) {
             opts->pt_database = vm["db"].as<fs::path>();
             if (vm["search-port"].defaulted()) {
                 opts->pt_port = vm["ptport"].as<string>();
@@ -165,7 +166,7 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
 
 }
 
-} // namespace sina;
+} // namespace sina
 
 using namespace sina;
 
@@ -199,25 +200,15 @@ search_filter::search_filter()
     }
 }
 
-search_filter::search_filter(const search_filter& o)
-    : data(o.data)
-{
-}
-
-search_filter& search_filter::operator=(const search_filter& o) {
-    data = o.data;
-    return *this;
-}
-
-search_filter::~search_filter()
-{
-}
+search_filter::search_filter(const search_filter& o) = default;
+search_filter& search_filter::operator=(const search_filter& o) = default;
+search_filter::~search_filter() = default;
 
 template<typename F>
 struct dereference {
-    explicit dereference(F f) : _f(f){}
+    explicit dereference(F f) : _f(std::move(f)){}
     dereference() : _f(){}
-    typedef typename F::result_type  result_type;
+    using result_type = typename F::result_type;
 
     template<typename A, typename B>
     result_type operator()(const A& a,
@@ -234,12 +225,12 @@ struct dereference {
 
 struct iupac_contains {
     struct iupac_compare {
-        typedef bool result_type;
+        using result_type = bool;
         bool operator()(const aligned_base& a, const aligned_base& b) const {
             return a.comp(b);
         }
     };
-    typedef bool result_type;
+    using result_type = bool;
     vector<aligned_base> ref;
     explicit iupac_contains(cseq& c) : ref(c.getAlignedBases()) {}
     bool operator()(cseq& c) {
@@ -250,7 +241,7 @@ struct iupac_contains {
 tray
 search_filter::operator()(tray t) {
     cseq *c;
-    if (t.aligned_sequence) {
+    if (t.aligned_sequence != nullptr) {
         c = t.aligned_sequence;
     } else {
         t.log << "search: no sequence?!;";
@@ -270,8 +261,8 @@ search_filter::operator()(tray t) {
         for (cseq *r: data->sequences) {
             r->setScore(opts->comparator(*c, *r));
         }
-        vector<cseq*>::iterator it = data->sequences.begin();
-        vector<cseq*>::iterator middle = it + opts->max_result;
+        auto it = data->sequences.begin();
+        auto middle = it + opts->max_result;
         const vector<cseq*>::iterator end = data->sequences.end();
 
         
@@ -330,9 +321,11 @@ search_filter::operator()(tray t) {
         data->arb->loadKey(r, "stop");
 
         for (string& s: opts->v_lca_fields) {
-            data->arb->loadKey(r, s.c_str());
-            string tax_path = r.get_attr<string>(s.c_str());
-            if (tax_path == "Unclassified;") continue;
+            data->arb->loadKey(r, s);
+            string tax_path = r.get_attr<string>(s);
+            if (tax_path == "Unclassified;") {
+                continue;
+            }
             vector<string> group_names;
             boost::split(group_names, tax_path, boost::is_any_of(";"));
             if (group_names.back().empty() || group_names.back()  == " ") {
@@ -365,9 +358,9 @@ search_filter::operator()(tray t) {
             reverse(vs.begin(), vs.end());
         }
         int outliers = vc.size() * (1 - opts->lca_quorum);
-        while (outliers >= 0 && group_names.size() > 0) {
-            vector<vector<string> >::iterator it = group_names.begin();
-            if (it->size() == 0) {
+        while (outliers >= 0 && !group_names.empty()) {
+            auto it = group_names.begin();
+            if (it->empty()) {
                 group_names.erase(it);
                 outliers--;
                 continue;
@@ -375,7 +368,9 @@ search_filter::operator()(tray t) {
             string name = it->back();
             ++it;
             for (; it != group_names.end(); ++it) {
-                if (it->size() == 0 || it->back() != name) break;
+                if (it->empty() || it->back() != name) {
+                    break;
+                }
             }
             if (it != group_names.end()) {
                 group_names.erase(it);
