@@ -78,7 +78,7 @@ public:
     void clearSequence();
 
     cseq& append(const char* aligned_rna_sequence);
-    cseq& append(const std::string aligned_rna_sequence);
+    cseq& append(std::string aligned_rna_sequence);
     cseq& append(const aligned_base& a);
 
     //FIXME what does assign do?
