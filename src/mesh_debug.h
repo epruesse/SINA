@@ -117,7 +117,7 @@ mesh_to_svg(MESH& mesh, unsigned int from, unsigned int to, std::ostream& out) {
     for (sit = sit_begin; sit != sit_end; ++sit) {
       sidx_type sidx = get_node_id(mesh._slave, sit);
       out << "f_" << midx << "_" << sidx << " [label=<<TABLE BORDER=\"0\""
-	  << " CELLBORDER=\"1\" CELLSPACING=\"0\">"
+	  << R"( CELLBORDER="1" CELLSPACING="0">)"
 	  << "<TR><TD>" <<  -mesh(midx,sidx).value
 	  << " (" << mesh(midx,sidx).value - 
 	mesh(mesh(midx,sidx).value_midx,
