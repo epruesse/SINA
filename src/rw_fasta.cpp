@@ -388,7 +388,7 @@ rw_fasta::writer::operator()(tray t) {
 
     data->write(c);
 
-    if ((data->copy_relatives != 0u) || false) {
+    if (data->copy_relatives != 0u) {
         std::vector<cseq> *relatives =
             t.search_result != nullptr ? t.search_result : t.alignment_reference;
         if (relatives != nullptr) {

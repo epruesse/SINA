@@ -278,8 +278,8 @@ query_pt::query_pt(const char* portname, const char* dbname,
                    bool fast, int k, int mk, bool norel)
     : data(new priv_data())
 {
-    if (data->servers.count(portname) != 0u) {
-        data->server = data->servers[portname].lock();
+    if (priv_data::servers.count(portname) != 0u) {
+        data->server = priv_data::servers[portname].lock();
     }
 
     if (!data->connect_server(portname)) {
@@ -287,7 +287,7 @@ query_pt::query_pt(const char* portname, const char* dbname,
         if (!data->connect_server(portname)) {
             throw query_pt_exception("Failed to start PT server. Do you have enough memory?");
         }
-        data->servers[portname] = data->server;
+        priv_data::servers[portname] = data->server;
     }
 
     set_find_type_fast(fast);

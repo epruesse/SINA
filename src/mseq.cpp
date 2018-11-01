@@ -74,7 +74,7 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
         citv_end.push_back(seq_it->end());
     }
     aligned_base::idx_type min_next=0;
-    vector<iterator>::size_type nodes_size = std::numeric_limits<value_type::base_type>().max();
+    vector<iterator>::size_type nodes_size = std::numeric_limits<value_type::base_type>::max();
     vector<iterator> nodes(nodes_size);
 
     vector<iterator> last(num_seqs);
@@ -83,7 +83,7 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
         if (min_next > i) {
             continue;
         }
-        min_next = std::numeric_limits<int>().max();
+        min_next = std::numeric_limits<int>::max();
         nodes.assign(nodes_size, iterator());
 
         // check all sequences for that column

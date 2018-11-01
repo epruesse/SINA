@@ -366,7 +366,7 @@ BOOST_DATA_TEST_CASE(kmer_iterable_prefix_generator_test,
         do {
             current_prefix = kmers[i] >> (k-prefix_len)*2;
             should_be_valid = valid[i] && current_prefix == prefix;
-        } while (should_be_valid == false && ++i);
+        } while (!should_be_valid && ++i);
         BOOST_CHECK_EQUAL(kmer, kmers[i]);
         BOOST_CHECK_MESSAGE(kmer == kmers[i], ""
                             << " i=" << i
@@ -407,7 +407,7 @@ BOOST_DATA_TEST_CASE(kmer_iterable_unique_prefix_generator_test,
         do {
             current_prefix = kmers[i] >> (k-prefix_len)*2;
             should_be_valid = valid[i] && current_prefix == prefix;
-        } while (should_be_valid == false && ++i);
+        } while (!should_be_valid && ++i);
         BOOST_CHECK_EQUAL(kmer, kmers[i]);
         BOOST_CHECK_MESSAGE(kmer == kmers[i], ""
                             << " i=" << i
