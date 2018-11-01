@@ -56,7 +56,6 @@ using std::stringstream;
 
 #include <exception>
 using std::exception;
-using std::logic_error;
 
 #include <algorithm>
 using std::find_if;
@@ -64,9 +63,6 @@ using std::find_if;
 #ifdef HAVE_TBB
 #  include "tbb/tbb_allocator.h"
 #endif
-
-#include <boost/bind.hpp>
-using boost::bind;
 
 #include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
