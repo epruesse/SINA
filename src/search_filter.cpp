@@ -166,7 +166,7 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
 
 }
 
-} // namespace sina;
+} // namespace sina
 
 using namespace sina;
 

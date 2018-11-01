@@ -73,7 +73,7 @@ private:
   int weighted_columns{0};
 };
   
-}
+} // namespace sina
 #endif //_ALIGNMENT_STATS_H_
 
 /*

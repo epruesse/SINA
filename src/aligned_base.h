@@ -274,7 +274,7 @@ using aligned_base = aligned<base_iupac>;
 namespace std {
 template<>
 struct numeric_limits<sina::base_iupac> : numeric_limits<sina::base_iupac::value_type> {};
-}
+} // namespace std
 
 
 std::ostream& operator<<(std::ostream& out, sina::aligned_base ab);

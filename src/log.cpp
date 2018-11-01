@@ -153,7 +153,8 @@ namespace spdlog { namespace level {
 std::ostream& operator<<(std::ostream& out, const level_enum& i) {
     return out << to_c_str(i);
 }
-}}
+} // namespace level
+} // namespace spdlog
 
 void
 Log::get_options_description(po::options_description& main,

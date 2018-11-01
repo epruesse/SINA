@@ -86,7 +86,7 @@ tray::destroy() {
 }
 
 
-};
+} // namespace sina;
 
 
 /*

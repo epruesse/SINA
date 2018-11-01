@@ -280,7 +280,7 @@ void aligner::validate_vm(boost::program_options::variables_map& /*vm*/,
                           po::options_description& /*desc*/) {
 }
 
-} // namespace sina;
+} // namespace sina
 
 using namespace sina;
 

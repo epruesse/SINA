@@ -203,7 +203,7 @@ public:
 };
 
 
-} // namespace sina::kmer
+} // namespace kmer
 
 using kmer_generator = kmer::generator;
 using unique_kmer_generator = kmer::unique_filter<kmer_generator>;

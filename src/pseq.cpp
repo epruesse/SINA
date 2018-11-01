@@ -38,7 +38,7 @@ operator<<(std::ostream& out, const aligned_base_profile& ab)
     tmp <<  ab.getBase().getString() << "(" << ab.getPosition() << ")";
     return out << tmp.str();
 }
-}
+} // namespace sina
 
 using namespace sina;
 pseq::pseq(std::vector<cseq>::iterator seqs_it,
