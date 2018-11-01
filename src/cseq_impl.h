@@ -103,45 +103,45 @@ get_node_id(cseq& c, const cseq::iterator& it){
 
 inline cseq::iterator
 cseq::begin() {
-    return iterator(bases.begin());
+    return {bases.begin()};
 }
 
 inline cseq::const_iterator
 cseq::begin() const {
-    return const_iterator(bases.begin());
+    return {bases.begin()};
 }
 
 inline cseq::const_reverse_iterator
 cseq::rbegin() const {
-    return const_reverse_iterator(bases.rbegin());
+    return {bases.rbegin()};
 }
 
 
 inline cseq::iterator
 cseq::end() {
-    return iterator(bases.end());
+    return {bases.end()};
 }
 
 inline cseq::const_iterator
 cseq::end() const {
-    return const_iterator(bases.end());
+    return {bases.end()};
 }
 inline cseq::const_reverse_iterator
 cseq::rend() const {
-    return const_reverse_iterator(bases.rend());
+    return {bases.rend()};
 }
 
 inline cseq::iterator
 cseq::getIterator(cseq::vidx_type i) {
   // this is weird. FIXME
-    return iterator(std::lower_bound(bases.begin(),
-                                bases.end(),aligned_base(i,'.')));
+    return {std::lower_bound(bases.begin(),
+                                bases.end(),aligned_base(i,'.'))};
 }
 
 inline cseq::const_iterator
 cseq::getIterator(cseq::vidx_type i) const {
-    return const_iterator(lower_bound(bases.begin(),
-                                      bases.end(),aligned_base(i,'.')));
+    return {lower_bound(bases.begin(),
+                                      bases.end(),aligned_base(i,'.'))};
 }
 
 

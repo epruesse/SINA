@@ -458,7 +458,7 @@ cseq_comparator::make_from_variables_map(po::variables_map& vm,
             ("only fractional identity can be distance corrected");
     }
 
-    return cseq_comparator(iupac, dist, cover, filter_lc);
+    return {iupac, dist, cover, filter_lc};
 }
 
 

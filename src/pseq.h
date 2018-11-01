@@ -197,22 +197,22 @@ get_node_id(pseq& p, const pseq::iterator& i)  {
 
 inline pseq::iterator
 pseq::begin() {
-  return iterator(profile.begin());
+  return {profile.begin()};
 }
 
 inline pseq::iterator
 pseq::end() {
-  return iterator(profile.end());
+  return {profile.end()};
 }
 
 inline pseq::const_iterator
 pseq::begin() const {
-  return const_iterator(profile.begin());
+  return {profile.begin()};
 }
 
 inline pseq::const_iterator
 pseq::end() const {
-  return const_iterator(profile.end());
+  return {profile.end()};
 }
 
 inline  pseq::pn_iterator
