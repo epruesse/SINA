@@ -610,10 +610,9 @@ query_arb::loadCache(std::vector<std::string>& keys) {
             [&](cseq sequence) -> void
             {
                 tkeys.start();
-                for(vector<string>::iterator it = keys.begin();
-                    it != keys.end(); ++it) {
-                    if (not sequence.get_attrs().count(*it)) {
-                        ::loadKey(sequence, *it, gbspec);
+                for(auto & key : keys) {
+                    if (not sequence.get_attrs().count(key)) {
+                        ::loadKey(sequence, key, gbspec);
                     }
                 }
                 data.sequence_cache[sequence.getName()] = sequence;
@@ -637,9 +636,8 @@ query_arb::getCacheContents() {
     vector<cseq*> tmp;
     boost::mutex::scoped_lock lock_cache(data.sequence_cache_access);
     tmp.reserve(data.sequence_cache.size());
-    for (priv_data::sequence_cache_type::iterator it = data.sequence_cache.begin();
-         it != data.sequence_cache.end(); ++it) {
-        tmp.push_back(&it->second);
+    for (auto & it : data.sequence_cache) {
+        tmp.push_back(&it.second);
     }
     return tmp;
 }
@@ -653,9 +651,8 @@ vector<string>
 query_arb::getSequenceNames() {
     vector<string> tmp;
     tmp.reserve(data.gbdata_cache.size());
-    for (priv_data::gbdata_cache_type::iterator it = data.gbdata_cache.begin();
-         it != data.gbdata_cache.end(); ++it) {
-        tmp.push_back(it->first);
+    for (auto & it : data.gbdata_cache) {
+        tmp.push_back(it.first);
     }
     return tmp;
 }

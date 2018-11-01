@@ -242,8 +242,8 @@ cseq::getBases() const {
 
 // for_each(bases.begin(), bases.end(),
     //         basestr += bind<char>(&aligned_base::getBase,boost::lambda::_1));
-    for (uint i=0; i < bases.size(); i++) {
-        basestr += bases[i].getBase();
+    for (auto base : bases) {
+        basestr += base.getBase();
     }
 
     return basestr;
@@ -455,17 +455,16 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
     for (unsigned int i = 0; i < maxlen; i+=100) {
         int len = maxlen - i;
         len = std::min(100,len);
-        for (std::map<string,list<int> >::iterator it = mymap.begin(); 
-             it != mymap.end(); ++it) {
+        for (auto & it : mymap) {
             if (colors) {
-                ofs << color_code(it->first.substr(i, len)) << " ";
+                ofs << color_code(it.first.substr(i, len)) << " ";
             } else {
-                ofs << it->first.substr(i, len) << " ";
+                ofs << it.first.substr(i, len) << " ";
             }
             bool range=false, is_last=false, is_secondlast=false;
             int last=-2;
-            for (std::list<int>::iterator jt = it->second.begin();
-                 jt != it->second.end(); ++jt) {
+            for (std::list<int>::iterator jt = it.second.begin();
+                 jt != it.second.end(); ++jt) {
                 if (range) {
                     if (*jt != last+1) {
                         ofs << last;

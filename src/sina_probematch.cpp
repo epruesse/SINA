@@ -96,13 +96,12 @@ int main(int argc, const char **argv) {
   }
 
   // iterate over sequences
-  for (std::vector<cseq*>::iterator it = sequences.begin();
-       it != sequences.end(); ++it) {
+  for (auto & sequence : sequences) {
 
     // iterate over matches of probe
     typedef find_iterator<cseq::iterator> cseq_find_iterator;
     for (cseq_find_iterator jt =
-	   make_find_iterator(**it, first_finder(probe, iupac_compare()));
+	   make_find_iterator(*sequence, first_finder(probe, iupac_compare()));
 	 jt != cseq_find_iterator(); ++jt) {
 
       // count ambiguities in match
@@ -113,9 +112,9 @@ int main(int argc, const char **argv) {
 
       // print match
       std::cout
-	<< (*it)->get_attr<std::string>("acc") << "\t"
-	<< (*it)->get_attr<int>("start") << "\t"
-	<< (*it)->get_attr<int>("stop") << "\t"
+	<< sequence->get_attr<std::string>("acc") << "\t"
+	<< sequence->get_attr<int>("start") << "\t"
+	<< sequence->get_attr<int>("stop") << "\t"
 	<< jt->begin()->getPosition() << "\t"
 	<< jt->end()->getPosition() << "\t"
 	<< iupac_count

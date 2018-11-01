@@ -108,10 +108,9 @@ mseq::mseq(std::vector<cseq>::iterator seqs_begin,
             }
         }
 
-        for (vector<iterator>::iterator it = nodes.begin();
-             it != nodes.end(); ++it) {
-            if (!it->isNull()) {
-                (*it)->weight = 1.0/(weight+1) + weight * ((*it)->weight/num_seqs);
+        for (auto & node : nodes) {
+            if (!node.isNull()) {
+                node->weight = 1.0/(weight+1) + weight * (node->weight/num_seqs);
                     //std::min(20.0, -log(1 - (*it)->weight/num_seqs));
             }
         }

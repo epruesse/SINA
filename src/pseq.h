@@ -67,8 +67,8 @@ public:
   {
     if (b.ambig_order() > 0) {
       float val = 1.f / b.ambig_order();
-      for (int i=0; i<BASE_MAX; i++) {
-        bases[i]=0.f; // c++0x would come in handy here...
+      for (float & base : bases) {
+        base=0.f;
       }
       if (b.has_A())  bases[BASE_A] = val;
       if (b.has_G())  bases[BASE_G] = val;

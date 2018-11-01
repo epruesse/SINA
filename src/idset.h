@@ -236,8 +236,8 @@ public:
     }
     
     virtual void increment(inc_t& t) const override {
-        for (const_iterator it = begin(); it != end(); ++it) {
-            t[*it]++;
+        for (idset::value_type it : *this) {
+            t[it]++;
         }
     }
 };
@@ -262,8 +262,8 @@ public:
     
     virtual void increment(inc_t& t) const override {
         value_type last = 0;
-        for (const_iterator it = begin(); it != end(); ++it) {
-            last += *it;
+        for (idset::value_type it : *this) {
+            last += it;
             ++t[last];
         }
     }

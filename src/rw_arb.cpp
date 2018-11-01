@@ -170,9 +170,8 @@ rw_arb::reader::reader(fs::path infile)
     } else {
         stringstream *tmp = new stringstream();
         vector<string> cache = data->arb->getSequenceNames();
-        for (vector<string>::iterator it = cache.begin();
-              it != cache.end(); ++it) {
-            *tmp << *it << std::endl;
+        for (auto & it : cache) {
+            *tmp << it << std::endl;
         }
         data->in = tmp;
     }
