@@ -197,7 +197,7 @@ Log::validate_vm(po::variables_map& vm,
 
     logger->info("Loglevel set to {}", opts->verbosity);
 
-    if (vm.count("log-file")) {
+    if (vm.count("log-file") != 0u) {
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
             opts->logfile.native(), true);
         file_sink->set_level(std::min(spdlog::level::info, opts->verbosity));
@@ -262,7 +262,7 @@ Log::printer::printer()
     if (!opts->origdb.empty()) {
         data->arb = query_arb::getARBDB(opts->origdb);
     }
-    if (data->arb) {
+    if (data->arb != nullptr) {
         data->helix_pairs = data->arb->getPairs();
     } 
 
@@ -323,7 +323,7 @@ Log::printer::operator()(tray t) {
     tmp << "sequence_number: " << t.seqno << endl;
     tmp << "sequence_identifier: " << t.input_sequence->getName() << endl;
 
-    if (!t.aligned_sequence) {
+    if (t.aligned_sequence == nullptr) {
         data->out << tmp.str()
                   << "align_log_slv:" << t.log.str() << endl
                   << query_arb::fn_fullname << ":"
@@ -340,7 +340,7 @@ Log::printer::operator()(tray t) {
 
     c.set_attr(query_arb::fn_nuc, (int)c.size());
     c.set_attr(query_arb::fn_bpscore, (int)(100 * bps));
-    if (c.size()) {
+    if (c.size() != 0u) {
         c.set_attr(query_arb::fn_astart, (int)c.begin()->getPosition());
         c.set_attr(query_arb::fn_astop, (int)((--c.end())->getPosition()));
     }
@@ -357,7 +357,7 @@ Log::printer::operator()(tray t) {
     bool tmp_show_diff = false;
     if (opts->show_dist) {
         cseq o = *t.input_sequence;
-        if (data->arb) {
+        if (data->arb != nullptr) {
             string name = o.getName();
             name = name.substr(0,name.find_first_of(' '));
             o = data->arb->getCseq(name);
@@ -418,12 +418,12 @@ Log::printer::operator()(tray t) {
     }
 
 
-    if ((t.alignment_reference || t.search_result) 
+    if (((t.alignment_reference != nullptr) || (t.search_result != nullptr))
         && (opts->show_diff || tmp_show_diff)) {
 
         std::vector<cseq> *ref = t.alignment_reference;
         cseq *orig = t.input_sequence;
-        if (!ref) {
+        if (ref == nullptr) {
             ref = t.search_result;
             orig = &*ref->rbegin();
             ref->pop_back();

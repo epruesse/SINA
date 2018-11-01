@@ -114,33 +114,33 @@ void validate(boost::any& v,
 std::ostream& operator<<(std::ostream& out,
                          const boost::any& a) {
     using boost::any_cast;
-    if (any_cast<bool>(&a)) {
+    if (any_cast<bool>(&a) != nullptr) {
         out << any_cast<bool>(a);
-    } else if (any_cast<int>(&a)) {
+    } else if (any_cast<int>(&a) != nullptr) {
         out << any_cast<int>(a);
-    } else if (any_cast<long>(&a)) {
+    } else if (any_cast<long>(&a) != nullptr) {
         out << any_cast<long>(a);
-    } else if (any_cast<float>(&a)) {
+    } else if (any_cast<float>(&a) != nullptr) {
         out << any_cast<float>(a);
-    } else if (any_cast<string>(&a)) {
+    } else if (any_cast<string>(&a) != nullptr) {
         out << any_cast<string>(a);
-    } else if (any_cast<TURN_TYPE>(&a)) {
+    } else if (any_cast<TURN_TYPE>(&a) != nullptr) {
         out << any_cast<TURN_TYPE>(a);
-    } else if (any_cast<OVERHANG_TYPE>(&a)) {
+    } else if (any_cast<OVERHANG_TYPE>(&a) != nullptr) {
         out << any_cast<OVERHANG_TYPE>(a);
-    } else if (any_cast<INSERTION_TYPE>(&a)) {
+    } else if (any_cast<INSERTION_TYPE>(&a) != nullptr) {
         out << any_cast<INSERTION_TYPE>(a);
-    } else if (any_cast<LOWERCASE_TYPE>(&a)) {
+    } else if (any_cast<LOWERCASE_TYPE>(&a) != nullptr) {
         out << any_cast<LOWERCASE_TYPE>(a);
-    } else if (any_cast<FASTA_META_TYPE>(&a)) {
+    } else if (any_cast<FASTA_META_TYPE>(&a) != nullptr) {
         out << any_cast<FASTA_META_TYPE>(a);
-    } else if (any_cast<SEQUENCE_DB_TYPE>(&a)) {
+    } else if (any_cast<SEQUENCE_DB_TYPE>(&a) != nullptr) {
         out << any_cast<SEQUENCE_DB_TYPE>(a);
-    } else if (any_cast<CMP_IUPAC_TYPE>(&a)) {
+    } else if (any_cast<CMP_IUPAC_TYPE>(&a) != nullptr) {
         out << any_cast<CMP_IUPAC_TYPE>(a);
-    } else if (any_cast<CMP_DIST_TYPE>(&a)) {
+    } else if (any_cast<CMP_DIST_TYPE>(&a) != nullptr) {
         out << any_cast<CMP_DIST_TYPE>(a);
-    } else if (any_cast<CMP_COVER_TYPE>(&a)) {
+    } else if (any_cast<CMP_COVER_TYPE>(&a) != nullptr) {
         out << any_cast<CMP_COVER_TYPE>(a);
     } else {
         out << "UNKNOWN TYPE: '" << a.type().name()<<"'";
@@ -223,7 +223,7 @@ void get_options_description(po::options_description& main,
 }
 
 void validate_vm(po::variables_map& vm, po::options_description all_od) {
-    if (vm.count("has-cli-vers")) {
+    if (vm.count("has-cli-vers") != 0u) {
         std::cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
                   << " present" << std::endl;
         const char* supported_versions[]{"1", "2", "ARB5.99"};
@@ -237,7 +237,7 @@ void validate_vm(po::variables_map& vm, po::options_description all_od) {
         exit(EXIT_FAILURE);
     }
 
-    if (vm.count("version")) {
+    if (vm.count("version") != 0u) {
         std::cerr << PACKAGE_STRING
 #ifdef PACKAGE_BUILDINFO
                   << " (" << PACKAGE_BUILDINFO << ")"
@@ -283,7 +283,7 @@ void show_help(po::options_description* od,
               << "[--search-db search.arb] [options]"
               << std::endl << std::endl
               << *od << std::endl;
-    if (adv) {
+    if (adv != nullptr) {
         std::cerr << *adv << std::endl;
     }
     exit(EXIT_SUCCESS);
@@ -312,10 +312,10 @@ parse_options(int argc, char** argv) {
     try {
         po::store(po::parse_command_line(argc,argv,all_od),vm);
 
-        if (vm.count("help")) {
+        if (vm.count("help") != 0u) {
             show_help(&od);
         }
-        if (vm.count("help-all")) {
+        if (vm.count("help-all") != 0u) {
             show_help(&od, &adv_od);
         }
 
@@ -338,7 +338,7 @@ parse_options(int argc, char** argv) {
                   << e.what() << std::endl
                   << "Use \"--help\" to show options" << std::endl
                   << std::endl;
-        if (vm.count("show-conf")) {
+        if (vm.count("show-conf") != 0u) {
             show_conf(vm);
         }
         exit(EXIT_FAILURE);
@@ -350,7 +350,7 @@ parse_options(int argc, char** argv) {
 int real_main(int argc, char** argv) {
     po::variables_map vm = parse_options(argc, argv);
     logger->warn("This is {}.", PACKAGE_STRING);
-    if (vm.count("show-conf")) {
+    if (vm.count("show-conf") != 0u) {
          show_conf(vm);
     }
 
@@ -472,7 +472,7 @@ int real_main(int argc, char** argv) {
     default:
         throw logic_error("output type undefined");
     }
-    if (node) {
+    if (node != nullptr) {
         tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
         last_node = node;

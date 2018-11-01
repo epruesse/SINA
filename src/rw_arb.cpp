@@ -186,7 +186,7 @@ rw_arb::reader::operator()(tray& t) {
     t.seqno = ++data->seqno;
     t.input_sequence = nullptr; // we may get initialized tray
 
-    while (not t.input_sequence) {
+    while (t.input_sequence == nullptr) {
         if (data->in->bad()) {
             return false;
         }
@@ -238,7 +238,7 @@ struct rw_arb::writer::priv_data {
     {
     }
     ~priv_data() {
-        if (!arb) { // might never have been initialized
+        if (arb == nullptr) { // might never have been initialized
             return;
         }
         logger->info("wrote {} sequences ({} excluded, {} relatives)",
@@ -274,10 +274,10 @@ rw_arb::writer::operator()(tray t) {
 
     data->arb->putCseq(c);
 
-    if (data->copy_relatives) {
+    if (data->copy_relatives != 0u) {
         // FIXME: we should copy if reference is an arb database
-        auto* relatives = t.search_result ? t.search_result : t.alignment_reference;
-        if (relatives) {
+        auto* relatives = t.search_result != nullptr ? t.search_result : t.alignment_reference;
+        if (relatives != nullptr) {
             int i = data->copy_relatives;
             for (auto& seq : *relatives) {
                 if (data->relatives_written.insert(seq.getName()).second) {
