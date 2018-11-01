@@ -129,7 +129,7 @@ struct base_comp_pessimistic {
 };
 
 struct filter_none {
-    bool filtered(const aligned_base&) const {
+    bool filtered(const aligned_base& /*unused*/) const {
         return false;
     }
 };
@@ -285,7 +285,7 @@ cseq_comparator::operator()(const cseq& query, const cseq& target) {
 void
 validate(boost::any& v,
 	 const std::vector<std::string>& values,
-	 CMP_IUPAC_TYPE*, int) {
+	 CMP_IUPAC_TYPE* /*unused*/, int /*unused*/) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
     if (istarts_with("optimistic", s)) {
@@ -316,7 +316,7 @@ operator<<(std::ostream& out, const CMP_IUPAC_TYPE& t) {
 void
 validate(boost::any& v,
 	 const std::vector<std::string>& values,
-	 CMP_DIST_TYPE*, int) {
+	 CMP_DIST_TYPE* /*unused*/, int /*unused*/) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
     if (iequals(s, "none")) {
@@ -347,7 +347,7 @@ operator<<(std::ostream& out, const CMP_DIST_TYPE& t) {
 void
 validate(boost::any& v,
 	 const std::vector<std::string>& values,
-	 CMP_COVER_TYPE*, int) {
+	 CMP_COVER_TYPE* /*unused*/, int /*unused*/) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
     if (iequals(s, "abs")) {

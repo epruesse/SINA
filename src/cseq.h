@@ -87,7 +87,7 @@ public:
 
     void setWidth(vidx_type newWidth);
     //FIXME what does fix_duplicate_positions do?
-    void fix_duplicate_positions(std::ostream&, bool lowercase, bool remove);
+    void fix_duplicate_positions(std::ostream& /*log*/, bool lowercase, bool remove);
     //FIXME cseq does not inherit anything. why does the empty sort method exist?
     void sort() {} // does nothing, cseq is always sorted by positions
     void reverse();
@@ -127,7 +127,7 @@ public:
     iterator getIterator(cseq::vidx_type i);
     const_iterator getIterator(cseq::vidx_type i) const;
 
-    char operator [](vidx_type);
+    char operator [](vidx_type i);
     const aligned_base& getById(idx_type i) const { return bases[i]; } 
 
     // meta-data
@@ -155,7 +155,7 @@ public:
     const std::map<std::string,variant>& get_attrs() const { return attributes; }
 
 
-    friend std::ostream& operator<<(std::ostream& out, const cseq&);
+    friend std::ostream& operator<<(std::ostream& out, const cseq& c);
 
     bool operator==(const cseq& rhs) const {
         return name == rhs.name && bases == rhs.bases &&
@@ -167,7 +167,7 @@ public:
     }
     bool operator<(const cseq& rhs) const { return score < rhs.score; }
     bool operator>(const cseq& rhs) const { return score > rhs.score; }
-    std::list<unsigned int> find_differing_parts(const cseq&) const;
+    std::list<unsigned int> find_differing_parts(const cseq& right) const;
 protected:
 
 private:
@@ -184,7 +184,7 @@ private:
 template<>
 inline cseq::variant cseq::get_attr<cseq::variant>(std::string attr) { return attributes[attr]; }
 
-std::ostream& operator<<(std::ostream& out, const cseq&);
+std::ostream& operator<<(std::ostream& out, const cseq& c);
 
 
 

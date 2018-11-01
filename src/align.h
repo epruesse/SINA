@@ -44,27 +44,27 @@ enum OVERHANG_TYPE {
     OVERHANG_REMOVE,
     OVERHANG_EDGE
 };
-std::ostream& operator<<(std::ostream&, const sina::OVERHANG_TYPE&);
-void validate(boost::any&, const std::vector<std::string>&,
-              sina::OVERHANG_TYPE*,int);
+std::ostream& operator<<(std::ostream& out, const sina::OVERHANG_TYPE& t);
+void validate(boost::any& v, const std::vector<std::string>& values,
+              sina::OVERHANG_TYPE* /*unused*/, int /*unused*/);
 
 enum LOWERCASE_TYPE {
     LOWERCASE_NONE,
     LOWERCASE_ORIGINAL,
     LOWERCASE_UNALIGNED
 };
-std::ostream& operator<<(std::ostream&, const sina::LOWERCASE_TYPE&);
-void validate(boost::any&, const std::vector<std::string>&,
-              sina::LOWERCASE_TYPE*,int);
+std::ostream& operator<<(std::ostream& out, const sina::LOWERCASE_TYPE& t);
+void validate(boost::any& v, const std::vector<std::string>& values,
+              sina::LOWERCASE_TYPE* /*unused*/, int /*unused*/);
 
 enum INSERTION_TYPE {
   INSERTION_SHIFT,
   INSERTION_FORBID,
   INSERTION_REMOVE
 };
-std::ostream& operator<<(std::ostream&, const sina::INSERTION_TYPE&);
-void validate(boost::any&, const std::vector<std::string>&,
-              sina::INSERTION_TYPE*,int);
+std::ostream& operator<<(std::ostream& out, const sina::INSERTION_TYPE& t);
+void validate(boost::any& v, const std::vector<std::string>& values,
+              sina::INSERTION_TYPE* /*unused*/, int /*unused*/);
 
 
 class aligner {
@@ -72,15 +72,15 @@ class aligner {
 public:
     static struct options *opts;
     aligner();
-    aligner(const aligner&);
+    aligner(const aligner& rhs);
     ~aligner();
-    aligner& operator=(const aligner&);
-    tray operator()(tray);
+    aligner& operator=(const aligner& rhs);
+    tray operator()(tray t);
 
     static void get_options_description(boost::program_options::options_description& all,
                                         boost::program_options::options_description& adv);
-    static void validate_vm(boost::program_options::variables_map&,
-                            boost::program_options::options_description&);
+    static void validate_vm(boost::program_options::variables_map& /*unused*/,
+                            boost::program_options::options_description& /*unused*/);
 };
 
 

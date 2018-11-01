@@ -105,10 +105,10 @@ auto logger = sina::Log::create_logger("align");
 namespace sina {
 
 template<typename SCORING_SCHEME, typename MASTER>
-void choose_transition(cseq&, cseq&, MASTER&, SCORING_SCHEME&, ostream&);
+void choose_transition(cseq& c, cseq& orig, MASTER& m, SCORING_SCHEME& s, ostream& log);
 
 template<typename transition, typename MASTER>
-void do_align(cseq&, cseq&, MASTER&, transition&, ostream&);
+void do_align(cseq& c, cseq& orig, MASTER& m, transition& tr, ostream& log);
 
 struct aligner::options {
     bool realign;
@@ -135,7 +135,7 @@ struct aligner::options *aligner::opts;
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              OVERHANG_TYPE* /*tt*/, int) {
+              OVERHANG_TYPE* /*tt*/, int /*unused*/) {
   using namespace boost::program_options;
   validators::check_first_occurrence(v);
   const std::string& s = validators::get_single_string(values);
@@ -168,7 +168,7 @@ std::ostream& operator<<(std::ostream& out, const OVERHANG_TYPE& t) {
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              LOWERCASE_TYPE* /*tt*/, int) {
+              LOWERCASE_TYPE* /*tt*/, int /*unused*/) {
   using namespace boost::program_options;
   validators::check_first_occurrence(v);
   const std::string& s = validators::get_single_string(values);
@@ -201,7 +201,7 @@ std::ostream& operator<<(std::ostream& out, const LOWERCASE_TYPE& t) {
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              INSERTION_TYPE* /*tt*/, int) {
+              INSERTION_TYPE* /*tt*/, int /*unused*/) {
   using namespace boost::program_options;
   validators::check_first_occurrence(v);
   const std::string& s = validators::get_single_string(values);

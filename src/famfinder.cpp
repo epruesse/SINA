@@ -113,7 +113,7 @@ struct famfinder::options *famfinder::opts;
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              ENGINE_TYPE* /*tt*/, int) {
+              ENGINE_TYPE* /*tt*/, int /*unused*/) {
     using namespace boost::program_options;
     validators::check_first_occurrence(v);
     const std::string& s = validators::get_single_string(values);
@@ -137,7 +137,7 @@ std::ostream& operator<<(std::ostream& out, const ENGINE_TYPE& t) {
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              TURN_TYPE* /*tt*/, int) {
+              TURN_TYPE* /*tt*/, int /*unused*/) {
     using namespace boost::program_options;
     validators::check_first_occurrence(v);
     const std::string& s = validators::get_single_string(values);
@@ -291,15 +291,15 @@ class famfinder::_famfinder {
     query_arb *arb;
     vector<alignment_stats> vastats;
     
-    void do_turn_check(cseq&);
-    int turn_check(const cseq&, bool);
+    void do_turn_check(cseq& /*c*/);
+    int turn_check(const cseq& /*query*/, bool /*all*/);
     void select_astats(tray &t);
     
 public:
     explicit _famfinder(int n);
     _famfinder(const _famfinder&);
     ~_famfinder();
-    tray operator()(tray);
+    tray operator()(tray /*t*/);
     std::string getName() const {return "famfinder";}
 };
 

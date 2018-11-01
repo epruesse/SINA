@@ -47,16 +47,16 @@ private:
 
 public:
     search_filter();
-    search_filter(const search_filter&);
-    search_filter& operator=(const search_filter&);
+    search_filter(const search_filter& o);
+    search_filter& operator=(const search_filter& o);
     ~search_filter();
 
     tray operator()(tray t);
 
     static void get_options_description(boost::program_options::options_description& main,
                                         boost::program_options::options_description& adv);
-    static void validate_vm(boost::program_options::variables_map&,
-                            boost::program_options::options_description&);
+    static void validate_vm(boost::program_options::variables_map& vm,
+                            boost::program_options::options_description& desc);
 };
 
 } // namespace sina

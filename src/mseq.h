@@ -66,9 +66,9 @@ private:
 class mseq : public dag<mseq_node>
 {
 public:
-  mseq(std::vector<cseq>::iterator,
-       std::vector<cseq>::iterator,
-       float);
+  mseq(std::vector<cseq>::iterator seqs_begin,
+       std::vector<cseq>::iterator seqs_end,
+       float weight);
 
   unsigned int getWidth() { 
     return bases_width; 

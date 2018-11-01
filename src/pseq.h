@@ -143,7 +143,7 @@ public:
   using pn_iterator = iterator;
   using value_type = aligned_base_profile;
 
-  pseq(std::vector<cseq>::iterator, std::vector<cseq>::iterator);
+  pseq(std::vector<cseq>::iterator seqs_it, std::vector<cseq>::iterator seqs_end);
 
   idx_type size() const { return profile.size(); }
   idx_type getWidth() const { return width; }
@@ -248,11 +248,11 @@ prev_begin(const pseq& p, const pseq::iterator& it) {
   return it;
 }
 inline pseq::iterator
-prev_end(const pseq& /*c*/, const pseq::iterator& it) {
+prev_end(const pseq& c, const pseq::iterator& it) {
   return it;
 }
 inline pseq::iterator
-next_begin(const pseq& /*c*/, const pseq::iterator& it) {
+next_begin(const pseq& c, const pseq::iterator& it) {
   return it+1;
 }
 inline pseq::iterator

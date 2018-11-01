@@ -90,24 +90,24 @@ enum CMP_COVER_TYPE {
  * for boost_program_options
  */
 void 
-validate(boost::any&, const std::vector<std::string>&,
-         CMP_IUPAC_TYPE*, int);
+validate(boost::any& v, const std::vector<std::string>& values,
+         CMP_IUPAC_TYPE* /*unused*/, int /*unused*/);
 
 /**
  * validator interpreting CLI encoding of CMP_DIST_TYPE
  * for boost_program_options
  */
 void 
-validate(boost::any&, const std::vector<std::string>&,
-         CMP_DIST_TYPE*, int);
+validate(boost::any& v, const std::vector<std::string>& values,
+         CMP_DIST_TYPE* /*unused*/, int /*unused*/);
 
 /**
  * validator interpreting CLI encoding of CMP_COVER_TYPE
  * for boost_program_options
  */
 void 
-validate(boost::any&, const std::vector<std::string>&,
-         CMP_COVER_TYPE*, int);
+validate(boost::any& v, const std::vector<std::string>& values,
+         CMP_COVER_TYPE* /*unused*/, int /*unused*/);
 
 
 class cseq_comparator {
@@ -167,19 +167,19 @@ private:
  * ostream output operator for CMP_IUPAC_TYPE
  */
 std::ostream& 
-operator<<(std::ostream&, const CMP_IUPAC_TYPE&);
+operator<<(std::ostream& out, const CMP_IUPAC_TYPE& t);
 
 /**
  * ostream output operator for CMP_IUPAC_TYPE
  */
 std::ostream& 
-operator<<(std::ostream&, const CMP_DIST_TYPE&);
+operator<<(std::ostream& out, const CMP_DIST_TYPE& t);
 
 /**
  * ostream output operator for CMP_IUPAC_TYPE
  */
 std::ostream& 
-operator<<(std::ostream&, const CMP_COVER_TYPE&);
+operator<<(std::ostream& out, const CMP_COVER_TYPE& t);
 
 } // namespace sina
 

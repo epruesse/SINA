@@ -78,7 +78,7 @@ public:
     pn_iterator pn_last_end();
 
 
-    template<typename C> void sort(C&);
+    template<typename C> void sort(C& comp);
     void sort(); 
     void reduce_edges();
 
@@ -235,41 +235,41 @@ public:
 
 template<typename T>
 inline typename dag<T>::pn_iterator 
-prev_begin(const dag<T>&, const typename dag<T>::iterator& i)
+prev_begin(const dag<T>& /*unused*/, const typename dag<T>::iterator& i)
 {
   return i.prev_begin();
 }
 
 template<typename T>
 inline typename dag<T>::pn_iterator 
-prev_end(const dag<T>&, const typename dag<T>::iterator& i)
+prev_end(const dag<T>& /*unused*/, const typename dag<T>::iterator& i)
 {
   return i.prev_end();
 }
 
 template<typename T>
 inline typename dag<T>::pn_iterator 
-next_begin(const dag<T>&, const typename dag<T>::iterator& i)
+next_begin(const dag<T>& /*unused*/, const typename dag<T>::iterator& i)
 {
   return i.next_begin();
 }
 
 template<typename T>
 inline typename dag<T>::pn_iterator 
-next_end(const dag<T>&, const typename dag<T>::iterator& i)
+next_end(const dag<T>& /*unused*/, const typename dag<T>::iterator& i)
 {
   return i.next_end();
 }
 
 template<typename T>
 inline const typename dag<T>::idx_type
-get_node_id(const dag<T>&, typename dag<T>::iterator i) {
+get_node_id(const dag<T>& /*unused*/, typename dag<T>::iterator i) {
     return i.get_node().id();
 }
 
 template<typename T>
 inline const typename dag<T>::idx_type
-get_node_id(const dag<T>&, typename dag<T>::pn_iterator i) {
+get_node_id(const dag<T>& /*unused*/, typename dag<T>::pn_iterator i) {
     return i.get_node().id();
 }
 

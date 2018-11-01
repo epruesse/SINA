@@ -44,9 +44,9 @@ enum FASTA_META_TYPE {
     FASTA_META_COMMENT=2,
     FASTA_META_CSV=3
 };
-std::ostream& operator<<(std::ostream&, const sina::FASTA_META_TYPE&);
-void validate(boost::any&, const std::vector<std::string>&,
-              sina::FASTA_META_TYPE*, int);
+std::ostream& operator<<(std::ostream& out, const sina::FASTA_META_TYPE& m);
+void validate(boost::any& v, const std::vector<std::string>& values,
+              sina::FASTA_META_TYPE* /*unused*/, int /*unused*/);
 
 class rw_fasta {
 public:
@@ -54,11 +54,11 @@ public:
         struct priv_data;
         std::shared_ptr<priv_data> data;
     public:
-        explicit reader(const boost::filesystem::path&);
-        reader(const reader&);
-        reader& operator=(const reader&);
+        explicit reader(const boost::filesystem::path& infile);
+        reader(const reader& r);
+        reader& operator=(const reader& r);
         ~reader();
-        bool operator()(tray&);
+        bool operator()(tray& t);
     };
 
     class writer {
@@ -66,16 +66,16 @@ public:
         std::shared_ptr<priv_data> data;
     public:
         writer(const boost::filesystem::path& outfile, unsigned int copy_relatives);
-        writer(const writer&);
-        writer& operator=(const writer&);
+        writer(const writer& o);
+        writer& operator=(const writer& o);
         ~writer();
-        tray operator()(tray);
+        tray operator()(tray t);
     };
 
     static void get_options_description(boost::program_options::options_description& main,
                                         boost::program_options::options_description& adv);
-    static void validate_vm(boost::program_options::variables_map&,
-                            boost::program_options::options_description&);
+    static void validate_vm(boost::program_options::variables_map& /*unused*/,
+                            boost::program_options::options_description& /*unused*/);
 
 private:
     struct options;

@@ -50,7 +50,7 @@ struct timeval {
 namespace sina {
 
 struct timestamp : private timeval {
-    timestamp(int) {
+    timestamp(int /*unused*/) {
         tv_sec = 0;
         tv_usec = 0;
     }

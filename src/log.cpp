@@ -81,7 +81,7 @@ struct counting_type {
 template<typename T>
 void validate(boost::any& v,
 	      const std::vector<std::string>& xs,
-	      counting_type<T>*, long) {
+	      counting_type<T>* /*unused*/, long /*unused*/) {
     if (v.empty()) {
         v = counting_type<T>::increment(counting_type<T>::initial());
     } else {

@@ -95,7 +95,7 @@ std::ostream& operator<<(std::ostream& out,
 // make above type parseable by boost::program_options
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              SEQUENCE_DB_TYPE* /*db*/, int) {
+              SEQUENCE_DB_TYPE* /*db*/, int /*unused*/) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
     if (iequals(s, "NONE")) {

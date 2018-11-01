@@ -197,7 +197,7 @@ mesh_to_svg(MESH& mesh, unsigned int from, unsigned int to, const char* outfile)
 
 
 struct default_weight {
-    int operator[](int) { return 1; }
+    int operator[](int /*unused*/) { return 1; }
 };
 
 template<typename L, typename R>

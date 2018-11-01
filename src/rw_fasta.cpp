@@ -93,7 +93,7 @@ std::ostream& operator<<(std::ostream& out, const sina::FASTA_META_TYPE& m) {
 }
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              sina::FASTA_META_TYPE* /*m*/, int) {
+              sina::FASTA_META_TYPE* /*m*/, int /*unused*/) {
     po::validators::check_first_occurrence(v);
     const std::string &s = po::validators::get_single_string(values);
     if (iequals(s, "none")) {

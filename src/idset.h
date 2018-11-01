@@ -137,7 +137,7 @@ public:
  */
 class vlimap_abs : public idset {
 public:
-    vlimap_abs(int) {}
+    vlimap_abs(int /*unused*/) {}
 
     /* once-forward iterator over contents */
     class const_iterator {

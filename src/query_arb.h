@@ -62,7 +62,7 @@ private:
 
 
 class query_arb{
-    query_arb(boost::filesystem::path&);
+    query_arb(boost::filesystem::path& arbfile);
     ~query_arb();
 
  public:
@@ -121,16 +121,16 @@ class query_arb{
      */
     const boost::filesystem::path& getFileName() const;
 
-    void setProtectionLevel(int);
+    void setProtectionLevel(int p);
 
     int getSeqCount() const;
     std::vector<std::string> getSequenceNames();
 
     cseq& getCseq(std::string name);
-    void putCseq(const cseq&);
-    void putSequence(const cseq&);//calls write
-    void loadKey(cseq&, std::string);
-    void storeKey(cseq&, std::string);
+    void putCseq(const cseq& seq);
+    void putSequence(const cseq& seq);//calls write
+    void loadKey(cseq& c, std::string key);
+    void storeKey(cseq& c, std::string key);
 
     long getAlignmentWidth();
 
@@ -139,7 +139,7 @@ class query_arb{
     std::vector<alignment_stats> getAlignmentStats();
 
     void loadCache();
-    void loadCache(std::vector<std::string>&);
+    void loadCache(std::vector<std::string>& keys);
     std::vector<cseq*> getCacheContents();
 
 private:
@@ -155,7 +155,7 @@ private:
      */
     bool hasErrors() const;
     void setMark();
-    void setMark(const std::string&);
+    void setMark(const std::string& name);
     void setMark(const cseq& cs);
 
     void copySequence(query_arb& qa, const cseq& cs, bool m); //calls write

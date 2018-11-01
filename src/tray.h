@@ -48,8 +48,8 @@ public:
     alignment_stats *astats{nullptr};
     
     tray();
-    tray(const tray&);
-    tray& operator=(const tray&);
+    tray(const tray& o);
+    tray& operator=(const tray& o);
     ~tray();
     void destroy();
 };
