@@ -71,10 +71,10 @@ jobs:
             EXTRA_CONFIG_ARGS: --enable-code-coverage
       - run:
           name: Building
-          command: make -C ~/build -j$(getconf _NPROCESSORS_ONLN`) all
+          command: make -C ~/build -j$(getconf _NPROCESSORS_ONLN) all
       - run:
           name: Running Unit Tests
-          command: make -C ~/build -j$(getconf _NPROCESSORS_ONLN`) check-code-coverage
+          command: make -C ~/build -j$(getconf _NPROCESSORS_ONLN) check-code-coverage
       - run:
           name: Copying logs
           when: always
