@@ -138,7 +138,8 @@ src_libsina_la_LIBADD = \
 sina_libs = \
     src/libsina.la \
     $(ARB_PROBE_LIBS) \
-    $(ARB_HELIX_LIBS)
+    $(ARB_HELIX_LIBS) \
+    $(CODE_COVERAGE_LIBS)
 
 src_sina_probematch_LDADD = $(sina_libs)
 src_kmer_test_LDADD = $(sina_libs)
@@ -151,6 +152,16 @@ arb_message$(EXEEXT): $(ARBHOME)/bin/arb_message$(EXEXT)
 arb_tcp.dat: $(ARBHOME)/lib/arb_tcp.dat
 	cp $< $@
 
+
+@CODE_COVERAGE_RULES@
+CODE_COVERAGE_DIRECTORY = $(top_builddir)/src
+CODE_COVERAGE_OUTPUT_DIRECTORY = $(top_builddir)/coverage
+CODE_COVERAGE_OUTPUT_FILE =  $(top_builddir)/coverage.info
+header_paths = $(abspath $(patsubst -I%,%,$(filter -I%,$(AM_CPPFLAGS) $(CPPFLAGS))))
+CODE_COVERAGE_IGNORE_PATTERN = \
+  $(patsubst %,%/\*,$(header_paths) /usr) \
+  \*/c++/\* \
+  \*unit_tests\*
 
 ### DOCUMENTATION ###
 
