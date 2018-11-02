@@ -74,7 +74,16 @@ jobs:
           command: make -C ~/build all
       - run:
           name: Running Unit Tests
-          command: make -C ~/build check-code-coverage
+          command: |
+            make -C ~/build check-filtered P=unit_tests
+            cd ~/build
+            bash <(curl -s https://codecov.io/bash) -cF unittests
+      - run:
+          name: Running Integration Tests
+          command: |
+            make -C ~/build check-filtered P=^tests
+            cd ~/build
+            bash <(curl -s https://codecov.io/bash) -cF integration
       - run:
           name: Copying logs
           when: always
@@ -82,10 +91,6 @@ jobs:
             ls -la $JUNIT_REPORT_PATH
             mkdir -p $ARTIFACT_PATH/tests
             find ~/build -name \*.log -exec cp {} $ARTIFACT_PATH/tests \;
-      - run:
-          name: Updating coverage
-          command: |
-            bash <(curl -s https://codecov.io/bash) -s ~/build
       - store_test_results:
           path: /tmp/reports
       - store_artifacts:
