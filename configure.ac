@@ -16,7 +16,13 @@ AM_SILENT_RULES([yes])
 # only run AR check if AM_PROG_AR defined 
 # (automake > 1.11 needs it somehow, older ones don't have it)
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+
+# AC_PROG_CXX sets -O2, which we don't want if debug enabled, so we store this
+# as default flags for later decision
+saved_CXXFLAGS="$CXXFLAGS"
 AC_PROG_CXX
+default_CXXFLAGS="$CXXFLAGS"
+CXXFLAGS="$saved_CXXFLAGS"
 AC_PROG_LIBTOOL
 AC_PROG_SED
 AC_PROG_LN_S
@@ -25,7 +31,6 @@ AC_PROG_MKDIR_P
 LT_INIT([shared static])
 
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
-
 
 # Check for C++ and required features
 
@@ -68,8 +73,6 @@ AH_TEMPLATE(REDI_EVISCERATE_PSTREAMS,
              set to supress Wundef warnings])
 AC_DEFINE(REDI_EVISCERATE_PSTREAMS, [0])
 
-# Allways show warnings
-CXXFLAGS="$CXXFLAGS -w"
 # Add coverage option
 AX_CODE_COVERAGE
 AM_COND_IF([CODE_COVERAGE_ENABLED], [
@@ -129,6 +132,10 @@ AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
   AC_DEFINE([DEBUG])
 ],[
   CPPFLAGS="$CPPFLAGS -DNDEBUG"
+  # add default flags (-O2 -g) if we are not building for coverage
+  AM_COND_IF([CODE_COVERAGE_ENABLED], [], [
+    CXXFLAGS="$default_CXXFLAGS $CXXFLAGS"
+  ])
 ])
 
 # Add option to disable building docs (needs latex...)
@@ -251,6 +258,8 @@ AX_BOOST_UNIT_TEST_FRAMEWORK
 #  missing_libs="$missing_libs\n BOOST Unit Test Framework (libboost_unit_test_framework)"
 #fi
 
+# Allways show warnings
+CXXFLAGS="$CXXFLAGS -w"
 
 # Generate output
 
