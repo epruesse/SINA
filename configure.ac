@@ -70,6 +70,38 @@ AC_DEFINE(REDI_EVISCERATE_PSTREAMS, [0])
 
 # Allways show warnings
 CXXFLAGS="$CXXFLAGS -w"
+# Add coverage option
+AX_CODE_COVERAGE
+AM_COND_IF([CODE_COVERAGE_ENABLED], [
+  AC_CACHE_CHECK([for coverage libs], [_cv_coverage_libs], [
+    _cv_coverage_libs=no
+    save_LIBS=$LIBS
+    res=
+    AC_LANG_CONFTEST([AC_LANG_CALL([], [main])])
+    for lib in '' "$CODE_COVERAGE_LIBS"; do
+      if test -z "$lib"; then
+        res="none required"
+      else
+        res=$CODE_COVERAGE_LIBS
+        LIBS="-l$lib $save_LIBS"
+      fi
+      AC_LINK_IFELSE([], [_cv_coverage_libs=$res])
+      AS_IF([test -n "$_cv_coverage_libs"], [break])
+    done
+    LIBS=$save_LIBS
+  ])
+  AC_MSG_NOTICE([here - $_cv_coverage_libs])
+  AS_IF([test x"$_cv_coverage_libs" != x"no"], [
+    AS_IF([test x"$_cv_coverage_libs" == x"none required"], [
+      CODE_COVERAGE_LIBS=
+    ],[
+      CODE_COVERAGE_LIBS=$_cv_coverage_libs
+    ])
+  ], [
+    missing_libs="$missing_libs
+    coverage libs ($CODE_COVERAGE_LIBS)"
+  ])
+])
 
 # Export all symbols to get helpful backtraces
 # (don't on Darwin, ld doesn't support these options there)
@@ -111,8 +143,6 @@ AX_ARG_ENABLE([profiling], [add profiling information to build],
   LDFLAGS="$LDFLAGS -pg"
 ])
 
-# Add coverage option
-AX_CODE_COVERAGE
 
 # Add buildno option
 AC_ARG_WITH([buildinfo], AS_HELP_STRING([--with-buildinfo=<NO>]),
@@ -242,7 +272,7 @@ AC_MSG_NOTICE([  host:   $host])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([  debug:     $enable_debug])
 AC_MSG_NOTICE([  profiling: $enable_profiling])
-AC_MSG_NOTICE([  coverage:  $enable_coverage])
+AC_MSG_NOTICE([  coverage:  $CODE_COVERAGE_ENABLED])
 AC_MSG_NOTICE([  buildinfo: $PACKAGE_BUILDINFO])
 AC_MSG_NOTICE([  docs:      $enable_docs])
 AC_MSG_NOTICE([])
@@ -255,6 +285,14 @@ AC_MSG_NOTICE([  CC:       $CC])
 AC_MSG_NOTICE([  CXX:      $CXX])
 AC_MSG_NOTICE([  LD:       $LD])
 AC_MSG_NOTICE([])
+AM_COND_IF([CODE_COVERAGE_ENABLED], [
+AC_MSG_NOTICE([  CODE COVERAGE:])
+AC_MSG_NOTICE([    CPPFLAGS:        $CODE_COVERAGE_CPPFLAGS])
+AC_MSG_NOTICE([    CFLAGS:          $CODE_COVERAGE_CFLAGS])
+AC_MSG_NOTICE([    CXXFLAGS:        $CODE_COVERAGE_CXXFLAGS])
+AC_MSG_NOTICE([    LIBS:            $CODE_COVERAGE_LIBS])
+AC_MSG_NOTICE([])
+])
 AC_MSG_NOTICE([  ARB:               ${ARBHOME}])
 AC_MSG_NOTICE([    CPPFLAGS:        ${ARB_CPPFLAGS}])
 AC_MSG_NOTICE([    LDFLAGS:         ${ARB_LDFLAGS}])
