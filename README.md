@@ -4,6 +4,7 @@
 [![Bioconda](https://img.shields.io/conda/vn/Bioconda/sina.svg)](https://bioconda.github.io/recipes/sina/README.html)
 [![Build Status Travis](https://img.shields.io/travis/epruesse/SINA.svg?label=build%20(TravisCI))](https://travis-ci.org/epruesse/SINA)
 [![Build Status CircleCI](https://img.shields.io/circleci/project/github/epruesse/SINA.svg?label=build%20(CircleCI))](https://circleci.com/gh/epruesse/SINA)
+[![Codecov](https://img.shields.io/codecov/c/github/epruesse/sina.svg)](https://codecov.io/gh/epruesse/SINA)
 
 SINA is a tool to add sequences to an existing multiple sequence alignment. It needs about 1 second on a single core to add one 16S full length sequence (about 100k/h on a 32-core workstation). It was developed to create the multi-million sequence alignment that is the core of the SILVA SSU and LSU rRNA databases.
 
