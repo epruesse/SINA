@@ -6,7 +6,7 @@ references:
       MINICONDA: ~/miniconda
       JUNIT_REPORT_PATH: /tmp/reports/ # trailing slash required
       ARTIFACT_PATH: /tmp/artifacts/
-      MAKEFLAGS: -j2
+      MAKEFLAGS: -j8
 
   configure: &configure
     name: Running Configure
@@ -71,10 +71,10 @@ jobs:
             EXTRA_CONFIG_ARGS: --enable-code-coverage
       - run:
           name: Building
-          command: make -C ~/build -j$(getconf _NPROCESSORS_ONLN) all
+          command: make -C ~/build all
       - run:
           name: Running Unit Tests
-          command: make -C ~/build -j$(getconf _NPROCESSORS_ONLN) check-code-coverage
+          command: make -C ~/build check-code-coverage
       - run:
           name: Copying logs
           when: always
