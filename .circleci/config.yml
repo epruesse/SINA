@@ -76,8 +76,8 @@ jobs:
           name: Running Unit Tests
           command: |
             cd ~/build
-            find -name \*.gcda | xargs rm
-            rm coverage.info
+            find -name \*.gcda | xargs rm -f
+            rm -f coverage.info
             make check-filtered P=unit_tests
             make code-coverage-capture
             bash <(curl -s https://codecov.io/bash) -X gcov -F unittest
@@ -85,8 +85,8 @@ jobs:
           name: Running Integration Tests
           command: |
             cd ~/build
-            find -name \*.gcda | xargs rm
-            rm coverage.info
+            find -name \*.gcda | xargs rm -f
+            rm -f coverage.info
             make check-filtered P=^tests
             make code-coverage-capture
             bash <(curl -s https://codecov.io/bash) -X gcov -F integration
