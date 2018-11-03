@@ -75,15 +75,21 @@ jobs:
       - run:
           name: Running Unit Tests
           command: |
-            make -C ~/build check-filtered P=unit_tests
             cd ~/build
-            bash <(curl -s https://codecov.io/bash) -cF unittests
+            find -name \*.gcda | xargs rm
+            rm coverage.info
+            make check-filtered P=unit_tests
+            make code-coverage-capture
+            bash <(curl -s https://codecov.io/bash) -X gcov -F unittest
       - run:
           name: Running Integration Tests
           command: |
-            make -C ~/build check-filtered P=^tests
             cd ~/build
-            bash <(curl -s https://codecov.io/bash) -cF integration
+            find -name \*.gcda | xargs rm
+            rm coverage.info
+            make check-filtered P=^tests
+            make code-coverage-capture
+            bash <(curl -s https://codecov.io/bash) -X gcov -F integration
       - run:
           name: Copying logs
           when: always
