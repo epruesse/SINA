@@ -81,7 +81,7 @@ jobs:
             make check-filtered P=unit_tests
             make code-coverage-capture
             bash <(curl -s https://codecov.io/bash) -X gcov -F unittest \
-              -n Unit-Linux-CircleCI
+              -R ~/project -n Unit-Linux-CircleCI
       - run:
           name: Running Integration Tests
           command: |
@@ -91,7 +91,7 @@ jobs:
             make check-filtered P=^tests
             make code-coverage-capture
             bash <(curl -s https://codecov.io/bash) -X gcov -F integration \
-              -n Integration-Linux-CircleCI
+              -R ~/project -n Integration-Linux-CircleCI
       - run:
           name: Copying logs
           when: always
