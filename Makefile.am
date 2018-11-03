@@ -161,7 +161,8 @@ header_paths = $(abspath $(patsubst -I%,%,$(filter -I%,$(AM_CPPFLAGS) $(CPPFLAGS
 CODE_COVERAGE_IGNORE_PATTERN = \
   $(patsubst %,%/\*,$(header_paths) /usr) \
   \*/c++/\* \
-  \*unit_tests\*
+  \*unit_tests\* \
+  \*include\*
 
 ### DOCUMENTATION ###
 
