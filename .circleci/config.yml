@@ -68,12 +68,14 @@ jobs:
       - run:
           <<: *configure
           environment:
-            EXTRA_CONFIG_ARGS: --enable-code-coverage
-      - run:
+            EXTRA_CONFIG_ARGS: --enable-code-coverage --enable-debug
+      - run: &build
           name: Building
-          command: make -C ~/build all
+          command: |
+            make -C ~/build clean
+            make -C ~/build all
       - run:
-          name: Running Unit Tests
+          name: Running Unit Tests (w/ debug)
           command: |
             cd ~/build
             find -name \*.gcda | xargs rm -f
@@ -83,7 +85,13 @@ jobs:
             bash <(curl -s https://codecov.io/bash) -X gcov -F unittest \
               -R ~/project -n Unit-Linux-CircleCI
       - run:
-          name: Running Integration Tests
+          <<: *configure
+          environment:
+            EXTRA_CONFIG_ARGS: --enable-code-coverage
+      - run:
+          <<: *build
+      - run:
+          name: Running Integration Tests (w/o debug)
           command: |
             cd ~/build
             find -name \*.gcda | xargs rm -f

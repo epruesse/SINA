@@ -115,9 +115,15 @@ AM_COND_IF([CODE_COVERAGE_ENABLED], [
 
 # Add debug option
 AH_TEMPLATE([DEBUG])
+AH_TEMPLATE([NDEBUG])
 AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
 [
-  CPPFLAGS="$CPPFLAGS -DDEBUG"
+  AM_COND_IF([CODE_COVERAGE_ENABLED], [
+    AC_MSG_WARN([Code Coverage enabled: using -DNDEBUG instead of -DDEBUG])
+    AC_DEFINE([NDEBUG])
+  ],[
+    AC_DEFINE([DEBUG])
+  ])
   CXXFLAGS="$(echo $CXXFLAGS | sed 's/-O@<:@@<:@:alnum:@:>@@:>@*//g')"
   CXXFLAGS="$CXXFLAGS -O0 -ggdb3"
   AX_CHECK_COMPILE_FLAG([-fsanitize=address],[ 
@@ -129,13 +135,9 @@ AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
   AX_CHECK_LINK_FLAG([-fsanitize=address],[
     LDFLAGS="$LDFLAGS -fsanitize=address"
   ])
-  AC_DEFINE([DEBUG])
 ],[
   CPPFLAGS="$CPPFLAGS -DNDEBUG"
-  # add default flags (-O2 -g) if we are not building for coverage
-  AM_COND_IF([CODE_COVERAGE_ENABLED], [], [
-    CXXFLAGS="$default_CXXFLAGS $CXXFLAGS"
-  ])
+  CXXFLAGS="$default_CXXFLAGS $CXXFLAGS"
 ])
 
 # Add option to disable building docs (needs latex...)
