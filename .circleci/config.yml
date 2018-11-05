@@ -68,13 +68,38 @@ jobs:
       - run:
           <<: *configure
           environment:
+            EXTRA_CONFIG_ARGS: --enable-code-coverage --enable-debug
+      - run: &build
+          name: Building
+          command: |
+            make -C ~/build clean
+            make -C ~/build all
+      - run:
+          name: Running Unit Tests (w/ debug)
+          command: |
+            cd ~/build
+            find -name \*.gcda | xargs rm -f
+            rm -f coverage.info
+            make check-filtered P=unit_tests
+            make code-coverage-capture
+            bash <(curl -s https://codecov.io/bash) -X gcov -F unittest \
+              -R ~/project -n Unit-Linux-CircleCI
+      - run:
+          <<: *configure
+          environment:
             EXTRA_CONFIG_ARGS: --enable-code-coverage
       - run:
-          name: Building
-          command: make -C ~/build all
+          <<: *build
       - run:
-          name: Running Unit Tests
-          command: make -C ~/build check-code-coverage
+          name: Running Integration Tests (w/o debug)
+          command: |
+            cd ~/build
+            find -name \*.gcda | xargs rm -f
+            rm -f coverage.info
+            make check-filtered P=^tests
+            make code-coverage-capture
+            bash <(curl -s https://codecov.io/bash) -X gcov -F integration \
+              -R ~/project -n Integration-Linux-CircleCI
       - run:
           name: Copying logs
           when: always
@@ -82,10 +107,6 @@ jobs:
             ls -la $JUNIT_REPORT_PATH
             mkdir -p $ARTIFACT_PATH/tests
             find ~/build -name \*.log -exec cp {} $ARTIFACT_PATH/tests \;
-      - run:
-          name: Updating coverage
-          command: |
-            bash <(curl -s https://codecov.io/bash) -s ~/build
       - store_test_results:
           path: /tmp/reports
       - store_artifacts:

@@ -16,7 +16,13 @@ AM_SILENT_RULES([yes])
 # only run AR check if AM_PROG_AR defined 
 # (automake > 1.11 needs it somehow, older ones don't have it)
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+
+# AC_PROG_CXX sets -O2, which we don't want if debug enabled, so we store this
+# as default flags for later decision
+saved_CXXFLAGS="$CXXFLAGS"
 AC_PROG_CXX
+default_CXXFLAGS="$CXXFLAGS"
+CXXFLAGS="$saved_CXXFLAGS"
 AC_PROG_LIBTOOL
 AC_PROG_SED
 AC_PROG_LN_S
@@ -25,7 +31,6 @@ AC_PROG_MKDIR_P
 LT_INIT([shared static])
 
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
-
 
 # Check for C++ and required features
 
@@ -68,8 +73,38 @@ AH_TEMPLATE(REDI_EVISCERATE_PSTREAMS,
              set to supress Wundef warnings])
 AC_DEFINE(REDI_EVISCERATE_PSTREAMS, [0])
 
-# Allways show warnings
-CXXFLAGS="$CXXFLAGS -w"
+# Add coverage option
+AX_CODE_COVERAGE
+AM_COND_IF([CODE_COVERAGE_ENABLED], [
+  AC_CACHE_CHECK([for coverage libs], [_cv_coverage_libs], [
+    _cv_coverage_libs=no
+    save_LIBS=$LIBS
+    res=
+    AC_LANG_CONFTEST([AC_LANG_CALL([], [main])])
+    for lib in '' "$CODE_COVERAGE_LIBS"; do
+      if test -z "$lib"; then
+        res="none required"
+      else
+        res=$CODE_COVERAGE_LIBS
+        LIBS="-l$lib $save_LIBS"
+      fi
+      AC_LINK_IFELSE([], [_cv_coverage_libs=$res])
+      AS_IF([test -n "$_cv_coverage_libs"], [break])
+    done
+    LIBS=$save_LIBS
+  ])
+  AC_MSG_NOTICE([here - $_cv_coverage_libs])
+  AS_IF([test x"$_cv_coverage_libs" != x"no"], [
+    AS_IF([test x"$_cv_coverage_libs" == x"none required"], [
+      CODE_COVERAGE_LIBS=
+    ],[
+      CODE_COVERAGE_LIBS=$_cv_coverage_libs
+    ])
+  ], [
+    missing_libs="$missing_libs
+    coverage libs ($CODE_COVERAGE_LIBS)"
+  ])
+])
 
 # Export all symbols to get helpful backtraces
 # (don't on Darwin, ld doesn't support these options there)
@@ -80,9 +115,15 @@ CXXFLAGS="$CXXFLAGS -w"
 
 # Add debug option
 AH_TEMPLATE([DEBUG])
+AH_TEMPLATE([NDEBUG])
 AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
 [
-  CPPFLAGS="$CPPFLAGS -DDEBUG"
+  AM_COND_IF([CODE_COVERAGE_ENABLED], [
+    AC_MSG_WARN([Code Coverage enabled: using -DNDEBUG instead of -DDEBUG])
+    AC_DEFINE([NDEBUG])
+  ],[
+    AC_DEFINE([DEBUG])
+  ])
   CXXFLAGS="$(echo $CXXFLAGS | sed 's/-O@<:@@<:@:alnum:@:>@@:>@*//g')"
   CXXFLAGS="$CXXFLAGS -O0 -ggdb3"
   AX_CHECK_COMPILE_FLAG([-fsanitize=address],[ 
@@ -94,9 +135,9 @@ AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
   AX_CHECK_LINK_FLAG([-fsanitize=address],[
     LDFLAGS="$LDFLAGS -fsanitize=address"
   ])
-  AC_DEFINE([DEBUG])
 ],[
   CPPFLAGS="$CPPFLAGS -DNDEBUG"
+  CXXFLAGS="$default_CXXFLAGS $CXXFLAGS"
 ])
 
 # Add option to disable building docs (needs latex...)
@@ -111,8 +152,6 @@ AX_ARG_ENABLE([profiling], [add profiling information to build],
   LDFLAGS="$LDFLAGS -pg"
 ])
 
-# Add coverage option
-AX_CODE_COVERAGE
 
 # Add buildno option
 AC_ARG_WITH([buildinfo], AS_HELP_STRING([--with-buildinfo=<NO>]),
@@ -221,6 +260,8 @@ AX_BOOST_UNIT_TEST_FRAMEWORK
 #  missing_libs="$missing_libs\n BOOST Unit Test Framework (libboost_unit_test_framework)"
 #fi
 
+# Allways show warnings
+CXXFLAGS="$CXXFLAGS -w"
 
 # Generate output
 
@@ -242,7 +283,7 @@ AC_MSG_NOTICE([  host:   $host])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([  debug:     $enable_debug])
 AC_MSG_NOTICE([  profiling: $enable_profiling])
-AC_MSG_NOTICE([  coverage:  $enable_coverage])
+AC_MSG_NOTICE([  coverage:  $CODE_COVERAGE_ENABLED])
 AC_MSG_NOTICE([  buildinfo: $PACKAGE_BUILDINFO])
 AC_MSG_NOTICE([  docs:      $enable_docs])
 AC_MSG_NOTICE([])
@@ -255,6 +296,14 @@ AC_MSG_NOTICE([  CC:       $CC])
 AC_MSG_NOTICE([  CXX:      $CXX])
 AC_MSG_NOTICE([  LD:       $LD])
 AC_MSG_NOTICE([])
+AM_COND_IF([CODE_COVERAGE_ENABLED], [
+AC_MSG_NOTICE([  CODE COVERAGE:])
+AC_MSG_NOTICE([    CPPFLAGS:        $CODE_COVERAGE_CPPFLAGS])
+AC_MSG_NOTICE([    CFLAGS:          $CODE_COVERAGE_CFLAGS])
+AC_MSG_NOTICE([    CXXFLAGS:        $CODE_COVERAGE_CXXFLAGS])
+AC_MSG_NOTICE([    LIBS:            $CODE_COVERAGE_LIBS])
+AC_MSG_NOTICE([])
+])
 AC_MSG_NOTICE([  ARB:               ${ARBHOME}])
 AC_MSG_NOTICE([    CPPFLAGS:        ${ARB_CPPFLAGS}])
 AC_MSG_NOTICE([    LDFLAGS:         ${ARB_LDFLAGS}])

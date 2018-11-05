@@ -161,7 +161,8 @@ header_paths = $(abspath $(patsubst -I%,%,$(filter -I%,$(AM_CPPFLAGS) $(CPPFLAGS
 CODE_COVERAGE_IGNORE_PATTERN = \
   $(patsubst %,%/\*,$(header_paths) /usr) \
   \*/c++/\* \
-  \*unit_tests\*
+  \*unit_tests\* \
+  \*include\*
 
 ### DOCUMENTATION ###
 
@@ -282,11 +283,27 @@ check_DATA = test_data/ltp_reduced.arb
 
 TESTS = $(check_PROGRAMS) $(test_scripts)
 
+## add `make check-filtered P=<pattern>`
+P ?= /
+# call contains, MATCH, WORDS - filters by substr
+contains = $(foreach v,$(2),$(if $(findstring $(1),$(v)),$(v),))
+# call strip_term - removes leading ^ and trailing $
+strip_term = $(patsubst ^%,%,$(patsubst %$$,%,$(1)))
+# call add_term - adds leading ^ and trailing $
+add_term = $(patsubst %,^%$$,$(1))
+# call contains_term MATCH WORDS - filters by substr with ^ and $ matching start/end
+contains_term = $(call strip_term,$(call contains,$(1),$(call add_term,$(2))))
+filtered_tests = $(call contains_term,$(P),$(TEST_LOGS))
+check-filtered:
+	$(MAKE) $(AM_MAKEFLAGS) check TEST_LOGS="$(filtered_tests)"
+.PHONY: check-filtered
+
+## pass ARGS to tests
 TEST_ARGS := $(check_DATA) $(TEST_EXTRA_ARGS)
 export TEST_ARGS
-
 $(test_scripts): $(bin_PROGRAMS) $(check_DATA)
 
+## unzip source test data into build folder
 test_data/%: test_data/%.xz
 	mkdir -p $$(dirname $@)
 	unxz -c $< > $@
