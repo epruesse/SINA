@@ -126,19 +126,24 @@ AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
   ])
   CXXFLAGS="$(echo $CXXFLAGS | sed 's/-O@<:@@<:@:alnum:@:>@@:>@*//g')"
   CXXFLAGS="$CXXFLAGS -O0 -ggdb3"
-  AX_CHECK_COMPILE_FLAG([-fsanitize=address],[ 
-    CXXFLAGS="$CXXFLAGS -fsanitize=address"
-  ])
   AX_CHECK_COMPILE_FLAG([-fno-omit-frame-pointer],[
     CXXFLAGS="$CXXFLAGS -fno-omit-frame-pointer"
-  ])
-  AX_CHECK_LINK_FLAG([-fsanitize=address],[
-    LDFLAGS="$LDFLAGS -fsanitize=address"
   ])
 ],[
   CPPFLAGS="$CPPFLAGS -DNDEBUG"
   CXXFLAGS="$default_CXXFLAGS $CXXFLAGS"
 ])
+
+# Add address sanitizer option
+AX_ARG_ENABLE([asan], [enable AddressSanitizer], [
+  AX_CHECK_COMPILE_FLAG([-fsanitize=address],[
+    CXXFLAGS="$CXXFLAGS -fsanitize=address"
+  ])
+  AX_CHECK_LINK_FLAG([-fsanitize=address],[
+    LDFLAGS="$LDFLAGS -fsanitize=address"
+  ])
+])
+
 
 # Add option to disable building docs (needs latex...)
 AX_ARG_DISABLE([docs], [don't build documentation])
