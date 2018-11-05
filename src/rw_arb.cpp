@@ -109,7 +109,7 @@ rw_arb::get_options_description(po::options_description& /*main*/,
          "use every n-th sequence (1)" )
         ("select-skip",
          po::value<int>(&opts->select_skip)->default_value(0,""),
-         "skip the first n seuqences (0)")
+         "skip the first n sequences (0)")
         ("extra-fields",
          po::value<string>(&opts->extra_fields)->default_value(""),
          "load additional fields, colon separated")
