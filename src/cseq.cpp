@@ -45,10 +45,6 @@ using namespace sina;
 
 static auto logger = Log::create_logger("cseq");
 
-cseq::cseq() = default;
-cseq::cseq(const cseq& orig) = default;
-cseq& cseq::operator=(const cseq& rhs) = default;
-
 cseq::cseq(const char *_name, float _score, const char *_data) 
     : name(_name), score(_score)
 {
@@ -93,70 +89,48 @@ cseq::append(const aligned_base& ab) {
                       ab.getBase(), ab.getPosition(), alignment_width);
 
         bases.emplace_back(alignment_width, ab.getBase());
-        //FIXME shoudln't this increase the alignment_width as well?
     } 
 
-    return *this;
-}
-
-cseq&
-cseq::assign(vector<unsigned char>& dat) {
-    if (dat[0] == '#') {
-        assignFromCompressed(&dat.front(), dat.size());
-    } else {
-        if (dat.back() != '0') {
-            dat.push_back('0');
-        }
-//        append((char*)&dat.front());
-    #warning fix cseq::assign
-    }
     return *this;
 }
 
 
 void
 cseq::setWidth(vidx_type newWidth) {
-    if (bases.empty() || newWidth >= bases.back().getPosition()) {
+    if (bases.empty() || newWidth >= bases.back().getPosition() + 1) {
         // modify at will if changing only number of trailing gaps
         alignment_width = newWidth;
         return;
     }
 
-    int bases_size=bases.size();
-    int skip=1;
-    
+    // we can't shrink to less than 0 gaps
+    if (newWidth < size()) {
+        logger->critical("cannot shrink aligment width to {} - got {} bases",
+                         newWidth, size());
+        throw std::runtime_error(
+                "Attempted to shrink alignment width below base count"
+            );
+    }
+
     // find the number of bases from the right where
     // <position-of-base> + <number-of-following-bases>
     // is at most <width-of-alignment>
-    for(; skip<bases_size; skip++) {
-        if (bases[bases_size - skip].getPosition() + skip
-            <= alignment_width) {
+    int skip;
+    for(skip = 0; skip < size(); skip++) {
+        if (bases[size() - skip - 1].getPosition() + skip < newWidth) {
             break;
         }
     }
 
-    // make sure we can safely go on
-    if (skip > bases_size) {
-        logger->error("cannot shrink aligment width to {} - got {} bases",
-                      newWidth, bases_size);
-        return;
+    for (int i = skip; i > 0; --i) {
+        bases[size() - i].setPosition(newWidth - i);
     }
-
-    for (; skip>0; skip--) {
-        bases[bases_size - skip].setPosition(alignment_width-skip);
-    }
+    alignment_width = newWidth;
 
     logger->warn("moved last {} bases to shrink alignment to {} columns",
                  skip, alignment_width);
 }
 
-
-string
-cseq::getNameScore() const {
-    stringstream tmp;
-    tmp << name << "(" << score << ")";
-    return tmp.str();
-}
 
 string
 cseq::getAligned(bool nodots, bool dna) const {
@@ -173,34 +147,20 @@ cseq::getAligned(bool nodots, bool dna) const {
     unsigned int cursor = 0;
     for (; it != it_end; ++it) {
         unsigned int pos = it->getPosition();
-        if (cursor > pos) {
-            stringstream recent;
-            int i=0;
-            int left = (it_end - it) - 1;
-            for (auto jt = it + std::min(2,left);
-                 jt != bases.begin() && i<10; --jt, ++i) {
-                recent << " " << *jt;
-            }
 
-            logger->error("broken sequence! C={} P={} L={} B={} P={}",
-                          cursor, pos, left, *it, recent.str());
-            throw runtime_error("Internal error");
-        }
-
+        // advance cursor by filling with gap character
         aligned.append(pos - cursor, dot);
+        // (only the first "gap" is dots)
+        dot = '-';
         cursor = pos;
 
-        dot = '-'; // (only the first "gap" is dots)
+        // print base
         if (dna) {
             aligned.append(1, it->getBase().iupac_dna());
         } else {
             aligned.append(1, it->getBase().iupac_rna());
         }
         cursor++;
-        if (cursor != aligned.size()) {
-            logger->error("broken sequence! c={} a={}", cursor, aligned.size());
-            throw runtime_error("Internal error");
-        }
     }
 
     if (cursor < alignment_width) {
@@ -218,8 +178,6 @@ cseq::getBases() const {
     string basestr;
     basestr.reserve(bases.size());
 
-// for_each(bases.begin(), bases.end(),
-    //         basestr += bind<char>(&aligned_base::getBase,boost::lambda::_1));
     for (auto base : bases) {
         basestr += base.getBase();
     }
@@ -358,32 +316,42 @@ typename RandIt::value_type group_by(RandIt& a, RandIt& b) {
 string color_code(const string& in) {
     string::const_iterator in_end = in.end();
     stringstream tmp;
+    bool colored = false;
     for (string::const_iterator it = in.begin(); it != in_end; ++it) {
         switch(*it) {
                 case 'a':
                 case 'A':
                     tmp << "\033[34m";
+                    colored = true;
                     break;
                 case 'g':
                 case 'G':
                     tmp << "\033[35m";
+                    colored = true;
                     break;
                 case 'c':
                 case 'C':
                     tmp << "\033[32m";
+                    colored = true;
                     break;
                 case 't':
                 case 'T':
                 case 'u':
                 case 'U':
                     tmp << "\033[33m";
+                    colored = true;
                     break;
                 default:
-                    tmp << "\033[0m";
+                    if (colored) {
+                        tmp << "\033[0m";
+                        colored = false;
+                    }
         }
         tmp << *it;
     }
-    tmp << "\033[0m";
+    if (colored) {
+        tmp << "\033[0m";
+    }
     return tmp.str();
 }
 
@@ -405,20 +373,20 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
     vector<string> out(seqs.size());
 
     char outchar[seqs.size()];
-    vector<cseq*>::size_type jmax = seqs.size();
+    auto jmax = seqs.size();
 
-    for (cseq::idx_type i = from_pos; i < to_pos; ++i) {
+    for (auto i = from_pos; i <= to_pos; ++i) {
         bool gap = true;
-        for (vector<cseq*>::size_type j = 0; j < jmax; ++j) {
-            outchar[j] = seqs[j].operator[](i);
+        for (auto j = 0; j < jmax; ++j) {
+            outchar[j] = seqs[j][i];
             if (outchar[j] != '-') {
                 gap = false;
             }
         }
 
         if (!gap || i == to_pos-1 ) {
-            for (vector<cseq*>::size_type j = 0; j < jmax; ++j) {
-                out[j].append(1,outchar[j]);
+            for (auto j = 0; j < jmax; ++j) {
+                out[j].append(1, outchar[j]);
             }
         }
     }
@@ -428,7 +396,7 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
     size_t maxlen = 0;
     for (auto it = out.begin(); it != out.end(); ++it) {
         maxlen = std::max(maxlen, it->size());
-        mymap[*it].push_back(it-out.begin());
+        mymap[*it].push_back(it - out.begin());
     }
 
     ofs << "Dumping pos " << from_pos << " through " << to_pos << ":" << endl;
@@ -480,12 +448,6 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
         }
         ofs << endl;
     }
-}
-
-void
-cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs, bool color_code) {
-    cseq::idx_type imax = seqs[0].getWidth();
-    cseq::write_alignment(ofs, seqs, 0, imax, color_code);
 }
 
 void

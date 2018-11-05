@@ -93,7 +93,7 @@ int main(int argc, const char** argv) {
     if (self == family.end()) {
       logger->info("{}:", seqNames[i]);
       for (auto & i : family) {
-	logger->info(i.getNameScore());
+	logger->info("{} ({})", i.getName(), i.getScore());
       }
     }
   }
