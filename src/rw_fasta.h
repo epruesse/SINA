@@ -54,7 +54,8 @@ public:
         struct priv_data;
         std::shared_ptr<priv_data> data;
     public:
-        explicit reader(const boost::filesystem::path& infile);
+        reader(const boost::filesystem::path& infile,
+               std::vector<std::string>& fields);
         reader(const reader& r);
         reader& operator=(const reader& r);
         ~reader();
@@ -65,7 +66,9 @@ public:
         struct priv_data;
         std::shared_ptr<priv_data> data;
     public:
-        writer(const boost::filesystem::path& outfile, unsigned int copy_relatives);
+        writer(const boost::filesystem::path& outfile,
+               unsigned int copy_relatives,
+               std::vector<std::string>& fields);
         writer(const writer& o);
         writer& operator=(const writer& o);
         ~writer();

@@ -75,8 +75,6 @@ struct rw_arb::options {
     string select_file;
     int select_step;
     int select_skip;
-    string extra_fields;
-    vector<string> v_extra_fields;
     string pt_database;
 };
 struct rw_arb::options *rw_arb::opts;
@@ -110,9 +108,6 @@ rw_arb::get_options_description(po::options_description& /*main*/,
         ("select-skip",
          po::value<int>(&opts->select_skip)->default_value(0,""),
          "skip the first n sequences (0)")
-        ("extra-fields",
-         po::value<string>(&opts->extra_fields)->default_value(""),
-         "load additional fields, colon separated")
         ;
 
     adv.add(od);
@@ -121,7 +116,6 @@ rw_arb::get_options_description(po::options_description& /*main*/,
 void
 rw_arb::validate_vm(po::variables_map& /*vm*/,
                     po::options_description& /*desc*/) {
-    split(opts->v_extra_fields, opts->extra_fields, is_any_of(":,"));
 }
 
 
@@ -132,6 +126,11 @@ struct rw_arb::reader::priv_data {
     query_arb* arb{nullptr};
     istream *in{nullptr};
     int seqno{0};
+    vector<string>& v_fields;
+    priv_data(vector<string>& fields)
+        : v_fields(fields)
+    {
+    }
 
     ~priv_data() {
         logger->info("read {} sequences", seqno);
@@ -144,8 +143,9 @@ rw_arb::reader::~reader() = default;
 rw_arb::reader& rw_arb::reader::operator=(const reader& o) = default;
 
 
-rw_arb::reader::reader(fs::path infile)
-    : data(new priv_data())
+rw_arb::reader::reader(fs::path infile,
+                       vector<string>& fields)
+    : data(new priv_data(fields))
 {
     data->arb = query_arb::getARBDB(infile);
 
@@ -197,13 +197,8 @@ rw_arb::reader::operator()(tray& t) {
                           e.character, name);
         }
     }
-    for (auto f: {"full_name"}) {
+    for (const auto& f: data->v_fields) {
         data->arb->loadKey(*t.input_sequence, f);
-    }
-    if (!opts->extra_fields.empty()) {
-        for (string& f: opts->v_extra_fields) {
-            data->arb->loadKey(*t.input_sequence, f);
-        }
     }
 
     logger->debug("loaded sequence {}", t.input_sequence->getName());
@@ -220,13 +215,16 @@ struct rw_arb::writer::priv_data {
     int excluded;
     std::unordered_set<string> relatives_written;
     unsigned long copy_relatives;
+    vector<string>& v_fields;
     priv_data(fs::path& arb_fname_,
-              unsigned long copy_relatives_)
+              unsigned long copy_relatives_,
+              vector<string>& fields)
         : arb(nullptr),
           arb_fname(arb_fname_),
           count(0),
           excluded(0),
-          copy_relatives(copy_relatives_)
+          copy_relatives(copy_relatives_),
+          v_fields(fields)
     {
     }
     ~priv_data() {
@@ -246,8 +244,9 @@ rw_arb::writer::writer(const writer& o) = default;
 rw_arb::writer::~writer() = default;
 rw_arb::writer& rw_arb::writer::operator=(const writer& o) = default;
 
-rw_arb::writer::writer(fs::path outfile, unsigned int copy_relatives)
-    :  data(new priv_data(outfile, copy_relatives))
+rw_arb::writer::writer(fs::path outfile, unsigned int copy_relatives,
+                       vector<string>& fields)
+    :  data(new priv_data(outfile, copy_relatives, fields))
 {
     data->arb = query_arb::getARBDB(outfile); // might throw
     data->arb->setProtectionLevel(opts->prot_lvl);

@@ -35,6 +35,9 @@ using std::ifstream;
 #include <string>
 using std::string;
 
+#include <vector>
+using std::vector;
+
 #include <tuple>
 using std::tuple;
 using std::get;
@@ -45,6 +48,7 @@ namespace po = boost::program_options;
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
+#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 using boost::algorithm::iequals;
 
@@ -92,7 +96,7 @@ std::ostream& operator<<(std::ostream& out,
 
 // make above type parseable by boost::program_options
 void validate(boost::any& v,
-              const std::vector<std::string>& values,
+              const vector<string>& values,
               SEQUENCE_DB_TYPE* /*db*/, int /*unused*/) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
@@ -173,6 +177,8 @@ struct options {
     unsigned int num_pt_servers;
     unsigned int max_trays;
     string has_cli_vers;
+    string fields;
+    vector<string> v_fields;
 };
 
 static options opts;
@@ -199,6 +205,8 @@ void get_options_description(po::options_description& main,
         ("has-cli-vers", po::value<string>(&opts.has_cli_vers), "verify support of cli version")
         ("no-align", po::bool_switch(&opts.noalign),
          "disable alignment stage (same as prealigned)")
+        ("fields,f", po::value<string>(&opts.fields),
+         "select fields to write")
         ;
 
     main.add_options()
@@ -276,6 +284,16 @@ void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od
             opts.outtype = SEQUENCE_DB_FASTA;
         }
     }
+
+    // Split copy_fields
+    boost::split(opts.v_fields, opts.fields, boost::is_any_of(":,"));
+    if (opts.v_fields.back().empty()) {
+        opts.v_fields.pop_back();
+    }
+    if (opts.fields.find(query_arb::fn_fullname) == string::npos) {
+        opts.v_fields.push_back(query_arb::fn_fullname);
+    }
+
 }
 
 void show_help(po::options_description* od,
@@ -359,7 +377,7 @@ int real_main(int argc, char** argv) {
     tbb::task_scheduler_init init(vm["threads"].as<unsigned int>());
 
     tf::graph g;  // Main data flow graph (pipeline)
-    std::vector<std::unique_ptr<tf::graph_node>> nodes; // Nodes (for cleanup)
+    vector<std::unique_ptr<tf::graph_node>> nodes; // Nodes (for cleanup)
     tf::sender<tray> *last_node; // Last tray producing node
 
     using source_node = tf::source_node<tray>;
@@ -371,10 +389,14 @@ int real_main(int argc, char** argv) {
     source_node *source; // will be activated once graph complete
     switch (opts.intype) {
     case SEQUENCE_DB_ARB:
-        source = new source_node(g, rw_arb::reader(opts.in), false);
+        source = new source_node(g, rw_arb::reader(opts.in,
+                                                   opts.v_fields),
+                                 false);
         break;
     case SEQUENCE_DB_FASTA:
-        source = new source_node(g, rw_fasta::reader(opts.in), false);
+        source = new source_node(g, rw_fasta::reader(opts.in,
+                                                     opts.v_fields),
+                                 false);
         break;
     default:
         throw logic_error("input type undefined");
@@ -463,10 +485,14 @@ int real_main(int argc, char** argv) {
     // Make node writing sequences
     switch(opts.outtype) {
     case SEQUENCE_DB_ARB:
-        node = new filter_node(g, 1, rw_arb::writer(opts.out, opts.copy_relatives));
+        node = new filter_node(g, 1, rw_arb::writer(opts.out,
+                                                    opts.copy_relatives,
+                                                    opts.v_fields));
         break;
     case SEQUENCE_DB_FASTA:
-        node = new filter_node(g, 1, rw_fasta::writer(opts.out, opts.copy_relatives));
+        node = new filter_node(g, 1, rw_fasta::writer(opts.out,
+                                                      opts.copy_relatives,
+                                                      opts.v_fields));
         break;
     case SEQUENCE_DB_NONE:
         node = nullptr;
