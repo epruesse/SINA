@@ -232,7 +232,7 @@ rw_fasta::reader::operator()(tray& t) {
         }
         
         // set name to text between first '>' and first ' '
-        unsigned int blank = line.find_first_of(' ');
+        unsigned int blank = line.find_first_of(" \t");
         if (blank == 0) {
             blank = line.size();
         }
