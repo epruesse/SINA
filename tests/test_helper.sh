@@ -9,6 +9,7 @@ test_num=0
 test_count=$(grep -c "begin_test" "$0")
 echo "1..$test_count"
 
+do_clean=yes
 test_helper_tmpdirs_=()
 trap test_helper_cleanup_ EXIT
 script_error_disable_=
@@ -37,10 +38,22 @@ maketmpdir() {
 }
 
 test_helper_cleanup_() {
-    for dir in "${test_helper_tmpdirs_[@]}"; do
-	echo "Removing $dir"
-	rm -rf "$dir"
-    done
+    if test x"$do_clean" == x"yes"; then
+	for dir in "${test_helper_tmpdirs_[@]}"; do
+	    echo "Removing $dir"
+	    rm -rf "$dir"
+	done
+    else
+	test_name=$(basename $0)
+	for dir in "${test_helper_tmpdirs_[@]}"; do
+	    tgt=test_failures/$test_name
+	    echo "Copying $dir to $tgt"
+	    rm -rf $tgt
+	    mkdir -p $tgt
+	    mv "$dir"/* $tgt
+	    rm -rf "$dir"
+	done
+    fi
 }
 
 capture_stdout() {
@@ -73,6 +86,7 @@ begin_test() {
 
 end_test() {
     if [ -n "$test_err" ]; then
+	do_clean=no
 	echo -n "not "
     fi
     echo "ok $test_num - $test_name"
