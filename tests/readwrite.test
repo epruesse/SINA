@@ -77,8 +77,8 @@ begin_test "Meta Data in FASTA header"
 capture_stdouterr "$SINA -i $T/test.arb -o $T/test.fasta --meta-fmt header -f acc"
 assert_exit_success
 assert_output_contains "align 12 sequences"
-grep "^>" test.fasta | sed 's/.*\[acc=\([^]]*\)\].*/\1/' | sort -u > $T/accs.txt
-capture_stdout "wc -l accs.txt"
+grep "^>" $T/test.fasta | sed 's/.*\[acc=\([^]]*\)\].*/\1/' | sort -u > $T/accs.txt
+capture_stdout "wc -l $T/accs.txt"
 assert_output_contains "12"
 end_test
 
@@ -86,14 +86,14 @@ begin_test "Meta Data in sidecar CSV"
 capture_stdouterr "$SINA -i $T/test.arb -o $T/test.fasta --meta-fmt csv -f acc"
 assert_exit_success
 assert_output_contains "align 12 sequences"
-cut -d, -f2 test.csv | tail -n+2 | sort  > $T/accs2.txt
-assert_exit_success "cmp acc.txt acc2.txt"
+cut -d, -f2 $T/test.csv | tail -n+2 | sort  > $T/accs2.txt
+assert_exit_success "cmp $T/acc.txt $T/acc2.txt"
 end_test
 
 begin_test "Meta Data in FASTA comments"
 capture_stdouterr "$SINA -i $T/test.arb -o $T/test.fasta --meta-fmt comment -f acc"
 assert_exit_success
 assert_output_contains "align 12 sequences"
-sed -n 's/^; acc=//p' test.fasta | sort > $T/accs2.txt
-assert_exit_success "cmp acc.txt acc2.txt"
+sed -n 's/^; acc=//p' $T/test.fasta | sort > $T/accs2.txt
+assert_exit_success "cmp $T/acc.txt $T/acc2.txt"
 end_test
