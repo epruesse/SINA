@@ -433,7 +433,10 @@ rw_fasta::writer::priv_data::write(cseq& c) {
 
         for (auto& ap: attrs) {
             if (ap.first == query_arb::fn_family) {
-                continue;
+                continue; // alignment family is too much
+            }
+            if (ap.first == query_arb::fn_fullname) {
+                continue; // already written as description in header
             }
             out << "; " << ap.first << "="
                 << boost::apply_visitor(lexical_cast_visitor<string>(),
@@ -449,7 +452,7 @@ rw_fasta::writer::priv_data::write(cseq& c) {
             out_csv << "name";
             for (auto& ap: attrs) {
               if (ap.first == query_arb::fn_family) {
-                  continue;
+                  continue; // alignment family is too much
               }
               out_csv << "," << escape_string(ap.first);
             }
