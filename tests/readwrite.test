@@ -23,6 +23,14 @@ capture_stderr "gunzip -c $T/test.fasta.gz | cmp - $T/test.fasta"
 assert_exit_success
 end_test
 
+begin_test "Copy ARB to FASTA (TEST_ARB->STDOUT)"
+capture_stdouterr "$SINA -i $T/ref.arb -o - --select-step 1000 > $T/test2.fasta"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+capture_stderr "cmp $T/test.fasta $T/test2.fasta"
+assert_exit_success
+end_test
+
 begin_test "Copy ARB to ARB (TEST_ARB->test.arb)"
 capture_stdouterr "$SINA -i $T/ref.arb -o $T/test.arb --select-step 1000"
 assert_exit_success
