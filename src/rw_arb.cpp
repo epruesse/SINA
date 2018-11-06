@@ -197,7 +197,9 @@ rw_arb::reader::operator()(tray& t) {
                           e.character, name);
         }
     }
-
+    for (auto f: {"full_name"}) {
+        data->arb->loadKey(*t.input_sequence, f);
+    }
     if (!opts->extra_fields.empty()) {
         for (string& f: opts->v_extra_fields) {
             data->arb->loadKey(*t.input_sequence, f);
