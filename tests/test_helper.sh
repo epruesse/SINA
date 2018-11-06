@@ -33,7 +33,7 @@ maketmpdir() {
     local tmp
     tmp=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
     test_helper_tmpdirs_+=($tmp)
-    echo $tmp
+    eval $1=$tmp
 }
 
 test_helper_cleanup_() {

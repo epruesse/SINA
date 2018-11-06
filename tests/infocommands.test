@@ -2,7 +2,7 @@
 . $(dirname $0)/test_helper.sh
 
 TEST_ARB=$TEST_ARGS
-T=$(maketmpdir)
+maketmpdir T
 
 SINA="./src/sina"
 
