@@ -412,13 +412,19 @@ rw_fasta::writer::priv_data::write(cseq& c) {
         break;
     case FASTA_META_HEADER:
         for (auto& ap: attrs) {
-            if (ap.first == query_arb::fn_family || ap.first == query_arb::fn_fullname) {
-                continue;
+            if (ap.first == query_arb::fn_family) {
+                continue; // alignment family is too much
             }
-            out << " [" << ap.first << "="
-                << boost::apply_visitor(lexical_cast_visitor<string>(),
-                                        ap.second)
-                << "]";
+            if (ap.first == query_arb::fn_fullname) {
+                continue; // already written as description in header
+            }
+            string val = boost::apply_visitor(lexical_cast_visitor<string>(),
+                                              ap.second);
+            if (!val.empty()) {
+                out << " [" << ap.first << "="
+                    << val
+                    << "]";
+            }
         }
         out << std::endl;
         break;
