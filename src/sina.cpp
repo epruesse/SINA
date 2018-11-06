@@ -206,7 +206,7 @@ void get_options_description(po::options_description& main,
         ("help-all,H", "show full help (long)")
         ("in,i", po::value<fs::path>(&opts.in)->default_value("-"),
          "input file (arb or fasta)")
-        ("out,o", po::value<fs::path>(&opts.out)->default_value("-"),
+        ("out,o", po::value<fs::path>(&opts.out)->default_value(""),
          "output file (arb or fasta)")
         ("add-relatives", po::value<unsigned int>(&opts.copy_relatives)->default_value(0, ""),
          "add the ARG nearest relatives for each sequence to output")
@@ -257,9 +257,13 @@ void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od
         throw logic_error("Input type NONE invalid - need something to process");
     }
 
-    // If infile is ARB, default to writing into same DB
-    if (opts.out == "-" && opts.intype == SEQUENCE_DB_ARB) {
-        opts.out = opts.in;
+    // Output default is infile if that is ARB, else "-"
+    if (opts.out == "") {
+        if (opts.intype == SEQUENCE_DB_ARB) {
+            opts.out = opts.in;
+        } else {
+            opts.out = "-";
+        }
     }
 
     // Autodetect / validate outtype selection
