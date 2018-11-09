@@ -177,7 +177,10 @@ CASE(test_setWidth) {
     test_data(c, "", 0, "-AGCURYKMSWBDHVN");
     c.setWidth(15);
     test_data(c, "", 0, "AGCURYKMSWBDHVN");
+}
 
+CASE(test_setWidth_throw) {
+    cseq c("", 0, rna_aligned.c_str());
     THROW(c.setWidth(14), std::exception);
 }
 
