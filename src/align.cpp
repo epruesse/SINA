@@ -297,22 +297,6 @@ make_datetime() {
         return string(buf);
 }
 
-static int
-calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c) {
-    int n = 0;
-    cseq::iterator it = c.begin();
-    cseq::iterator end = c.end();
-
-    while (it != end && it->getPosition() < term_begin) {
-        ++it;
-    }
-    while (it != end && it->getPosition() < term_end) {
-        ++it, ++n;
-    }
-
-    return n;
-}
-
 struct not_icontains {
     using result_type = bool;
     const string bases;
