@@ -154,12 +154,12 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
     opts->comparator = cseq_comparator::make_from_variables_map(vm, "search-");
 
     boost::split(opts->v_lca_fields, opts->lca_fields,
-                 boost::is_any_of(":"));
+                 boost::is_any_of(":,"));
     if (opts->v_lca_fields.back().empty()) {
         opts->v_lca_fields.pop_back();
     }
     boost::split(opts->v_copy_fields, opts->copy_fields,
-                 boost::is_any_of(":"));
+                 boost::is_any_of(":,"));
     if (opts->v_copy_fields.back().empty()) {
         opts->v_copy_fields.pop_back();
     }

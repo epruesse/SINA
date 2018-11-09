@@ -37,10 +37,11 @@ using std::string;
 
 #include <iostream>
 
-#define EQUAL BOOST_CHECK_EQUAL
-#define EQUAL_COLLECTIONS BOOST_CHECK_EQUAL_COLLECTIONS
 #define CASE BOOST_AUTO_TEST_CASE
 #define FIXTURE_CASE BOOST_FIXTURE_TEST_CASE
+#define EQUAL BOOST_CHECK_EQUAL
+#define EQUAL_COLLECTIONS BOOST_CHECK_EQUAL_COLLECTIONS
+#define THROW BOOST_CHECK_THROW
 
 BOOST_AUTO_TEST_SUITE(cseq_test);
 
@@ -51,18 +52,11 @@ const string rna_aligned_dots = "..A-G---CUR-YKM-S---WBD-HVN...";
 const float score = 15.f;
 
 
-/*
-
-  TODO:
-  - dot vs gap
-
-*/
-
 #define test_empty(cs)                         \
     EQUAL((cs).size(), 0);                     \
     EQUAL((cs).getWidth(), 0);                 \
     EQUAL((cs).getBases(), string());          \
-    EQUAL((cs).getAlignedNoDots(), string());  \
+    EQUAL((cs).getAligned(true), string());    \
     EQUAL((cs).end() - c.begin(), 0);          \
     EQUAL((cs).rend() - c.rbegin(), 0);        \
     EQUAL((cs).getName(), string());           \
@@ -77,7 +71,7 @@ const float score = 15.f;
         EQUAL((cs).size(), unaligned.size());                   \
         EQUAL((cs).getWidth(), aligned.size());                 \
         EQUAL((cs).getBases(), unaligned);                      \
-        EQUAL((cs).getAlignedNoDots(), aligned);                \
+        EQUAL((cs).getAligned(true), aligned);                  \
         EQUAL((cs).end() - (cs).begin(), unaligned.size());     \
         EQUAL((cs).rend() - (cs).rbegin(), unaligned.size());   \
         EQUAL((cs).getName(), name);                            \
@@ -96,6 +90,13 @@ CASE(test_constructur_normal) {
     cseq c(name.c_str(), score, rna.c_str());
 
     test_data(c, name, score, rna);
+}
+
+CASE(test_constructor_copy) {
+    cseq c("", 0, rna.c_str());
+    cseq d = c;
+
+    test_data(d, "", 0, rna);
 }
 
 CASE(test_append,
@@ -146,8 +147,68 @@ CASE(test_setWidth) {
 
     c.setWidth(0);
     test_data(c, "", 0, "");
+
+    c.append(rna_aligned);
+    c.setWidth(rna_aligned.size() + 20);
+    test_data(c, "", 0, rna_aligned + twentygaps);
+    c.setWidth(rna_aligned.size());
+    test_data(c, "", 0, rna_aligned);
+    c.setWidth(27);
+    test_data(c, "", 0, "--A-G---CUR-YKM-S---WBD-HVN");
+    c.setWidth(26);
+    test_data(c, "", 0, "--A-G---CUR-YKM-S---WBDHVN");
+    c.setWidth(25);
+    test_data(c, "", 0, "--A-G---CUR-YKM-S--WBDHVN");
+    c.setWidth(23);
+    test_data(c, "", 0, "--A-G---CUR-YKM-SWBDHVN");
+    c.setWidth(22);
+    test_data(c, "", 0, "--A-G---CUR-YKMSWBDHVN");
+    c.setWidth(21);
+    test_data(c, "", 0, "--A-G---CURYKMSWBDHVN");
+    c.setWidth(20);
+    test_data(c, "", 0, "--A-G--CURYKMSWBDHVN");
+    c.setWidth(19);
+    test_data(c, "", 0, "--A-G-CURYKMSWBDHVN");
+    c.setWidth(18);
+    test_data(c, "", 0, "--A-GCURYKMSWBDHVN");
+    c.setWidth(17);
+    test_data(c, "", 0, "--AGCURYKMSWBDHVN");
+    c.setWidth(16);
+    test_data(c, "", 0, "-AGCURYKMSWBDHVN");
+    c.setWidth(15);
+    test_data(c, "", 0, "AGCURYKMSWBDHVN");
 }
 
+CASE(test_setWidth_throw) {
+    cseq c("", 0, rna_aligned.c_str());
+    THROW(c.setWidth(14), std::runtime_error);
+}
+
+CASE(test_dna) {
+    string rna = boost::to_lower_copy(rna_aligned);
+    string dna = boost::replace_all_copy(rna, "u", "t");
+    string DNA = boost::replace_all_copy(rna_aligned, "U", "T");
+    string RNA = rna_aligned;
+    cseq c("", 0, rna.c_str());
+    cseq d("", 0, dna.c_str());
+    EQUAL(c.getAligned(true, true), dna);
+    EQUAL(c.getAligned(true, false), rna);
+    EQUAL(d.getAligned(true, true), dna);
+    EQUAL(d.getAligned(true, false), rna);
+    c.upperCaseAll();
+    d.upperCaseAll();
+    EQUAL(c.getAligned(true, true), DNA);
+    EQUAL(c.getAligned(true, false), RNA);
+    EQUAL(d.getAligned(true, true), DNA);
+    EQUAL(d.getAligned(true, false), RNA);
+}
+
+CASE(test_operator_access) {
+    cseq c("", 0, rna_aligned.c_str());
+    for (unsigned int i = 0; i < c.size(); ++i) {
+        EQUAL(rna_aligned[i], c[i]);
+    }
+}
 
 CASE(test_reverse) {
     string name("testtt");
@@ -165,7 +226,7 @@ CASE(test_lowercase) {
     string rna_aligned_lower = boost::to_lower_copy(rna_aligned);
     string rna_lower = boost::to_lower_copy(rna);
     cseq c("", 0, rna_lower.c_str());
-    EQUAL(c.getAlignedNoDots(), rna_lower);
+    EQUAL(c.getAligned(true), rna_lower);
 }
 
 CASE(test_uppercase){
@@ -174,10 +235,10 @@ CASE(test_uppercase){
     string rna_lower = boost::to_lower_copy(rna);
     cseq c("", 0, rna_lower.c_str());
     c.upperCaseAll();
-    EQUAL(c.getAlignedNoDots(), rna);
+    EQUAL(c.getAligned(true), rna);
     c.append(rna_aligned_lower);
     c.upperCaseAll();
-    EQUAL(c.getAlignedNoDots(), rna + rna_aligned);
+    EQUAL(c.getAligned(true), rna + rna_aligned);
 }
 
 CASE(test_complement)
@@ -256,11 +317,67 @@ FIXTURE_CASE(test_decompress_aligned, compression_data) {
 }
 
 
-CASE(test_dots){
+CASE(test_dots) {
     cseq c("",0,rna_aligned.c_str());
     EQUAL(c.getAligned(false),rna_aligned_dots);
 }
 
+
+CASE(test_write_alignment) {
+    std::stringstream out;
+    std::vector<cseq> vs{
+        {"1", 0, rna_aligned.c_str()},
+        {"2", 0, rna_aligned.c_str()}
+    };
+    cseq::write_alignment(out, vs, 0, rna_aligned.size()-1, false);
+    EQUAL(out.str(),
+          "Dumping pos 0 through 29:\n"
+          "AGCURYKMSWBDHVN-  0-1 <---(## NEW ##)  <---(%% ORIG %%) \n\n"
+        );
+
+    out.str(std::string());
+    cseq::write_alignment(out, vs, 0, rna_aligned.size()-1, true);
+    EQUAL(out.str(),
+          "Dumping pos 0 through 29:\n"
+          "\033[34mA"
+          "\033[35mG"
+          "\033[32mC"
+          "\033[33mU"
+          "\033[0mR"
+          "YKMSWBDHVN-  0-1 <---(## NEW ##)  <---(%% ORIG %%) \n\n"
+        );
+
+    out.str(std::string());
+    cseq::write_alignment(out, vs, 0, rna_aligned.size(), false);
+    EQUAL(out.str(), "cseq::write_alignment(): range out of bounds!\n");
+
+    out.str(std::string());
+    vs = std::vector<cseq>{{"1", 0, "ACGU"}};
+    cseq::write_alignment(out, vs, 0, 3, true);
+    EQUAL(out.str(),
+          "Dumping pos 0 through 3:\n"
+          "\033[34mA"
+          "\033[32mC"
+          "\033[35mG"
+          "\033[33mU"
+          "\033[0m"
+          "  0 <---(## NEW ##) \n\n");
+}
+
+CASE(test_write_alignment_empty) {
+    std::stringstream out;
+    std::vector<cseq> vs;
+    cseq::write_alignment(out, vs, 0, 0, false);
+    EQUAL(out.str(), "cseq::write_alignment(): no sequences?\n");
+}
+
+CASE(test_ostream_operator) {
+    const char* name = "test_name";
+    cseq c(name);
+    std::stringstream out;
+    out << c << "";
+    EQUAL(out.str(), name);
+}
 
 BOOST_AUTO_TEST_SUITE_END(); // cseq_test
 

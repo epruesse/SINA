@@ -164,14 +164,21 @@ struct rw_fasta::reader::priv_data {
     fs::path filename;
     int lineno;
     int seqno;
-    priv_data(fs::path filename_) : filename(std::move(filename_)), lineno(0), seqno(0) {}
+    vector<string>& v_fields;
+
+    priv_data(fs::path filename_, vector<string>& fields)
+        : filename(std::move(filename_)),
+          lineno(0),
+          seqno(0),
+          v_fields(fields)
+    {}
     ~priv_data() {
         logger->info("read {} sequences from {} lines", seqno-1, lineno-1);
     }
 };
 
-rw_fasta::reader::reader(const fs::path& infile)
-    : data(new priv_data(infile))
+rw_fasta::reader::reader(const fs::path& infile, vector<string>& fields)
+    : data(new priv_data(infile, fields))
 {
     if (infile == "-") {
         data->file.open(STDIN_FILENO, bi::never_close_handle);
@@ -232,7 +239,7 @@ rw_fasta::reader::operator()(tray& t) {
         }
         
         // set name to text between first '>' and first ' '
-        unsigned int blank = line.find_first_of(' ');
+        unsigned int blank = line.find_first_of(" \t");
         if (blank == 0) {
             blank = line.size();
         }
@@ -295,8 +302,13 @@ struct rw_fasta::writer::priv_data {
     int excluded;
     std::unordered_set<string> relatives_written;
     unsigned long copy_relatives;
-    priv_data(unsigned int copy_relatives_)
-        : count(0), excluded(0), copy_relatives(copy_relatives_)
+    vector<string>& v_fields;
+    priv_data(unsigned int copy_relatives_,
+              vector<string>& fields)
+        : count(0),
+          excluded(0),
+          copy_relatives(copy_relatives_),
+          v_fields(fields)
     {}
     ~priv_data() {
         logger->info("wrote {} sequences ({} excluded, {} relatives)",
@@ -305,8 +317,10 @@ struct rw_fasta::writer::priv_data {
     void write(cseq& c);
 };
 
-rw_fasta::writer::writer(const fs::path& outfile, unsigned int copy_relatives)
-    : data(new priv_data(copy_relatives))
+rw_fasta::writer::writer(const fs::path& outfile,
+                         unsigned int copy_relatives,
+                         vector<string>& fields)
+    : data(new priv_data(copy_relatives, fields))
 {
     if (outfile == "-") {
         data->file.open(STDOUT_FILENO, bi::never_close_handle);
@@ -412,13 +426,19 @@ rw_fasta::writer::priv_data::write(cseq& c) {
         break;
     case FASTA_META_HEADER:
         for (auto& ap: attrs) {
-            if (ap.first == query_arb::fn_family || ap.first == query_arb::fn_fullname) {
-                continue;
+            if (ap.first == query_arb::fn_family) {
+                continue; // alignment family is too much
             }
-            out << " [" << ap.first << "="
-                << boost::apply_visitor(lexical_cast_visitor<string>(),
-                                        ap.second)
-                << "]";
+            if (ap.first == query_arb::fn_fullname) {
+                continue; // already written as description in header
+            }
+            string val = boost::apply_visitor(lexical_cast_visitor<string>(),
+                                              ap.second);
+            if (!val.empty()) {
+                out << " [" << ap.first << "="
+                    << val
+                    << "]";
+            }
         }
         out << std::endl;
         break;
@@ -427,7 +447,10 @@ rw_fasta::writer::priv_data::write(cseq& c) {
 
         for (auto& ap: attrs) {
             if (ap.first == query_arb::fn_family) {
-                continue;
+                continue; // alignment family is too much
+            }
+            if (ap.first == query_arb::fn_fullname) {
+                continue; // already written as description in header
             }
             out << "; " << ap.first << "="
                 << boost::apply_visitor(lexical_cast_visitor<string>(),
@@ -443,7 +466,7 @@ rw_fasta::writer::priv_data::write(cseq& c) {
             out_csv << "name";
             for (auto& ap: attrs) {
               if (ap.first == query_arb::fn_family) {
-                  continue;
+                  continue; // alignment family is too much
               }
               out_csv << "," << escape_string(ap.first);
             }

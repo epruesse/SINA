@@ -2,7 +2,7 @@
 . $(dirname $0)/test_helper.sh
 
 TEST_ARB=$TEST_ARGS
-T=$(maketmpdir)
+maketmpdir T
 
 cp $TEST_ARB $T/ref.arb
 
@@ -20,6 +20,14 @@ capture_stdouterr "$SINA -i $T/ref.arb -o $T/test.fasta.gz --select-step 1000"
 assert_exit_success
 assert_output_contains "align 12 sequences"
 capture_stderr "gunzip -c $T/test.fasta.gz | cmp - $T/test.fasta"
+assert_exit_success
+end_test
+
+begin_test "Copy ARB to FASTA (TEST_ARB->STDOUT)"
+capture_stdouterr "$SINA -i $T/ref.arb -o - --select-step 1000 > $T/test2.fasta"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+capture_stderr "cmp $T/test.fasta $T/test2.fasta"
 assert_exit_success
 end_test
 
@@ -65,3 +73,27 @@ assert_exit_success
 assert_output_contains "align 12 sequences"
 end_test
 
+begin_test "Meta Data in FASTA header"
+capture_stdouterr "$SINA -i $T/test.arb -o $T/test.fasta --meta-fmt header -f acc"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+grep "^>" $T/test.fasta | sed 's/.*\[acc=\([^]]*\)\].*/\1/' | sort -u > $T/accs.txt
+capture_stdout "wc -l $T/accs.txt"
+assert_output_contains "12"
+end_test
+
+begin_test "Meta Data in sidecar CSV"
+capture_stdouterr "$SINA -i $T/test.arb -o $T/test.fasta --meta-fmt csv -f acc"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+cut -d, -f2 $T/test.csv | tail -n+2 | sort  > $T/accs2.txt
+assert_exit_success "cmp $T/acc.txt $T/acc2.txt"
+end_test
+
+begin_test "Meta Data in FASTA comments"
+capture_stdouterr "$SINA -i $T/test.arb -o $T/test.fasta --meta-fmt comment -f acc"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+sed -n 's/^; acc=//p' $T/test.fasta | sort > $T/accs2.txt
+assert_exit_success "cmp $T/acc.txt $T/acc2.txt"
+end_test

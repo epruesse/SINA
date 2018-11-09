@@ -71,47 +71,71 @@ public:
     // Constructors / assignment operator
 
     cseq(const char* _name, float _score = 0.f, const char* _data = nullptr);
-    cseq();
-    cseq& operator=(const cseq& rhs); 
-    cseq(const cseq& orig);
+    cseq() = default;
+    cseq& operator=(const cseq& rhs) = default;
+    cseq(const cseq& orig) = default;
 
-    // writing methods
+    /* remove sequence */
     void clearSequence();
 
+    /* append bases to alignment */
     cseq& append(const char* str);
     cseq& append(const std::string& str);
     cseq& append(const aligned_base& ab);
 
-    //FIXME what does assign do?
-    cseq& assign(std::vector<unsigned char> &dat);
-  void assignFromCompressed(const void *data, size_t len);
+    /* get size in bases */
+    vidx_type size() const { return bases.size(); }
 
+    /* get aligned base vector */
+    std::vector<aligned_base> getAlignedBases() { return bases; }
+
+    /* get aligned base vector */
+    const std::vector<aligned_base>& const_getAlignedBases() const { return bases; }
+
+    /* get size in columns */
+    vidx_type getWidth() const { return alignment_width; }
+
+    /* set number of columns
+     *  - shifts bases inwards from the right as needed
+     *  - throws if newWidth smaller than size()
+     */
     void setWidth(vidx_type newWidth);
-    //FIXME what does fix_duplicate_positions do?
-    void fix_duplicate_positions(std::ostream& /*log*/, bool lowercase, bool remove);
-    //FIXME cseq does not inherit anything. why does the empty sort method exist?
-    void sort() {} // does nothing, cseq is always sorted by positions
-    void reverse();
-    void complement();
-    void upperCaseAll();
 
+    /* handle insertions (multiple bases with identical position)
+     * created during alignment */
+    void fix_duplicate_positions(std::ostream& /*log*/, bool lowercase, bool remove);
+
+    /* does nothing, cseq is always sorted by positions */
+    void sort() {}
+
+    /* reverse the sequence */
+    void reverse();
+
+    /* complement all bases */
+    void complement();
+
+    /* convert all bases to upper case */
+    void upperCaseAll();
 
     // eval methods
 
-    std::vector<aligned_base> getAlignedBases() { return bases; }
-    const std::vector<aligned_base>& const_getAlignedBases() const { return bases; }
     void setAlignedBases(const std::vector<aligned_base>& vab) { bases = vab; }
     std::string getAligned(bool nodots=false, bool dna=false) const;
-    std::string getAlignedNoDots() const {return getAligned(true);}
     std::string getBases() const;
-    std::string getName() const { return name; }
-    void setName(std::string n) { name=std::move(n); }
-    std::string getNameScore() const;
-    // fixme: handle "-" and "." correctly
-    //FIXME where is the difference between size and width? why is there a difference?
-    vidx_type size() const { return bases.size(); }
-    vidx_type getWidth() const { return alignment_width; }
 
+    /* get sequence name */
+    std::string getName() const { return name; }
+
+    /* set sequence name */
+    void setName(std::string n) { name=std::move(n); }
+
+    /* get sequence score */
+    float getScore() const { return score; }
+
+    /* set sequence score */
+    void setScore(float f) { score = f; }
+
+    void assignFromCompressed(const void *data, size_t len);
     void compressAligned(std::vector<unsigned char> &out);
 
     //Fixme how is the score calculated?
@@ -131,17 +155,11 @@ public:
     char operator [](vidx_type i);
     const aligned_base& getById(idx_type i) const { return bases[i]; } 
 
-    // meta-data
-
-    float getScore() const { return score; }
-    void setScore(float f) { score = f; }
 
     // io operations dealing with vector<*cseq>
     static void write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
                                 cseq::idx_type from_pos, cseq::idx_type to_pos,
                                 bool colors = false);
-    static void write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
-                                bool color_code = false);
 
     template<typename T>
     void set_attr(const std::string& key, T val) {
