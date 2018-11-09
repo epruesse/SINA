@@ -37,10 +37,10 @@ using std::string;
 
 #include <iostream>
 
-#define EQUAL BOOST_CHECK_EQUAL
-#define EQUAL_COLLECTIONS BOOST_CHECK_EQUAL_COLLECTIONS
 #define CASE BOOST_AUTO_TEST_CASE
 #define FIXTURE_CASE BOOST_FIXTURE_TEST_CASE
+#define EQUAL BOOST_CHECK_EQUAL
+#define EQUAL_COLLECTIONS BOOST_CHECK_EQUAL_COLLECTIONS
 #define THROW BOOST_CHECK_THROW
 
 BOOST_AUTO_TEST_SUITE(cseq_test);
@@ -181,7 +181,7 @@ CASE(test_setWidth) {
 
 CASE(test_setWidth_throw) {
     cseq c("", 0, rna_aligned.c_str());
-    THROW(c.setWidth(14), std::exception);
+    THROW(c.setWidth(14), std::runtime_error);
 }
 
 CASE(test_dna) {
