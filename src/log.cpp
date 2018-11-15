@@ -313,9 +313,6 @@ static int calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c
 tray
 Log::printer::operator()(tray t) {
     stringstream tmp;
-/*
-    c.set_attr(fn_qual, std::min(100, std::max(0, (int)(-100 * c.getScore()))));
-*/
     if (t.input_sequence == nullptr) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
