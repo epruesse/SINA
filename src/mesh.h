@@ -612,32 +612,27 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
         }
     }
 
-    if (s!=send) { // we have righthand side overhang of slave
-        int n = send-s;
-        cutoff_tail= n;
-        int last_base_pos = mesh._master.getById(m).getPosition()+1;
-        std::string bases = mesh._slave.getBases().substr(mesh._slave.size()-n,n);
-        if (lowercase == LOWERCASE_UNALIGNED) {
-            std::transform(bases.begin(), bases.end(), bases.begin(), ::tolower);
+    // handle right hand overhang
+    cutoff_tail = send - s;
+    if (cutoff_tail && overhang_pos != OVERHANG_REMOVE) {
+        int pos;
+        if (overhang_pos = OVERHANG_ATTACH) {
+            pos = alig_width - mesh._master.getById(m).getPosition() + 1;
+        } else { // OVERHANG_EDGE
+            pos = 0;
         }
+        auto it = mesh._slave.rbegin();
+        auto end = it + cutoff_tail;
 
-        switch(overhang_pos) {
-        case OVERHANG_ATTACH:
-            out.append(bases);
-            out.setWidth(std::max((master_idx_type)0,alig_width-last_base_pos));
-            out.reverse();
-            break;
-        case OVERHANG_REMOVE:
-            // do nothing with those bases
-            break;
-        case OVERHANG_EDGE:
-            // place overhang at edge of alignment
-            out.append(bases);
-            out.reverse();
-            break;
+        if (lowercase == LOWERCASE_UNALIGNED) {
+            for (; it != end; ++it) {
+                out.append(aligned_base(pos++, it->getBase().setLowerCase()));
+            }
+        } else {
+            for (; it != end; ++it) {
+                out.append(aligned_base(pos++, it->getBase()));
+            }
         }
-    } else {
-        cutoff_tail=0;
     }
 
     // calculate score

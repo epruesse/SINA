@@ -105,8 +105,8 @@ cseq::setWidth(vidx_type newWidth) {
 
     // we can't shrink to less than 0 gaps
     if (newWidth < size()) {
-        logger->critical("cannot shrink aligment width to {} - got {} bases",
-                         newWidth, size());
+        logger->critical("Cannot shrink '{}' aligment width to {} - got {} bases",
+                         getName(), newWidth, size());
         throw std::runtime_error(
                 "Attempted to shrink alignment width below base count"
             );
