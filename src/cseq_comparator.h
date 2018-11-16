@@ -42,7 +42,8 @@ namespace sina {
  */
 enum CMP_IUPAC_TYPE {
     CMP_IUPAC_OPTIMISTIC,
-    CMP_IUPAC_PESSIMISTIC
+    CMP_IUPAC_PESSIMISTIC,
+    CMP_IUPAC_EXACT
 };
 
 /**

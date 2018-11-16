@@ -161,6 +161,10 @@ public:
       return !is_ambig() && (0xf & _data) == (0xf & rhs._data); 
     }
 
+    bool comp_exact(const base_iupac& rhs) const {
+      return _data == rhs._data;
+    }
+
     struct matrix_type {
       float v[BASE_MAX*BASE_MAX];
     };

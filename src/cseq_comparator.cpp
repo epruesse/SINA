@@ -128,6 +128,12 @@ struct base_comp_pessimistic {
     }
 };
 
+struct base_comp_exact {
+    bool operator()(const base_iupac& a, const base_iupac& b) const {
+        return a.comp_exact(b);
+    }
+};
+
 struct filter_none {
     bool filtered(const aligned_base& /*unused*/) const {
         return false;
@@ -221,6 +227,13 @@ cseq_comparator::operator()(const cseq& query, const cseq& target) {
             traverse(query, target, m.func<base_comp_pessimistic, filter_none>());
         }
         break;
+    case CMP_IUPAC_EXACT:
+        if (filter_lc_rule) {
+            traverse(query, target, m.func<base_comp_exact, filter_lowercase>());
+        } else {
+            traverse(query, target, m.func<base_comp_exact, filter_none>());
+        }
+        break;
     default:
         throw std::logic_error("unknown iupac rule");
     }
@@ -292,6 +305,8 @@ validate(boost::any& v,
         v = CMP_IUPAC_OPTIMISTIC;
     } else if (istarts_with("pessimistic", s)) {
         v = CMP_IUPAC_PESSIMISTIC;
+    } else if (istarts_with("exact", s)) {
+        v = CMP_IUPAC_EXACT;
     } else {
         throw po::invalid_option_value
             ("iupac matching must be either optimistic or pessimistic");
@@ -306,6 +321,9 @@ operator<<(std::ostream& out, const CMP_IUPAC_TYPE& t) {
         break;
     case CMP_IUPAC_PESSIMISTIC:
         out << "pessimistic";
+        break;
+    case CMP_IUPAC_EXACT:
+        out << "exact";
         break;
     default:
         out << "UNDEFINED!";
@@ -419,7 +437,7 @@ cseq_comparator::get_options_description(const char* prefix) {
     od.add_options()
         ((p + "iupac").c_str(),
          po::value<CMP_IUPAC_TYPE>()->default_value(CMP_IUPAC_OPTIMISTIC, ""),
-         "strategy for comparing ambiguous bases [pessimistic|*optimistic*]")
+         "strategy for comparing ambiguous bases [pessimistic|*optimistic*|exact]")
         
         ((p + "correction").c_str(),
          po::value<CMP_DIST_TYPE>()->default_value(CMP_DIST_NONE,""),
