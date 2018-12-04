@@ -44,6 +44,7 @@ using std::string;
 using std::vector;
 
 #include "cseq.h"
+#include "cseq_comparator.h"
 #include "log.h"
 
 #ifndef TEST
@@ -409,6 +410,7 @@ query_pt::match(std::vector<cseq> &family, const cseq& queryc,
     int skipped_broken = 0;
     int skipped_min_len = 0;
     int skipped_noid = 0;
+    cseq_comparator cmp(CMP_IUPAC_OPTIMISTIC, CMP_DIST_NONE, CMP_COVER_QUERY, false);
 
     if (query_str.size() < 20) {
         logger->warn("Sequence {} too short ({} bp) for PT server search",
@@ -510,9 +512,9 @@ match_retry:
                     sequence_broken=true;
                 }
                 seq.setScore(f_relscore);
-                /*if (max_score <= 2 && queryc.identity_with(seq) <= max_score) {
+                if (max_score <= 2 && cmp(queryc, seq) > max_score) {
                     skipped_max_score ++;
-                    } else*/
+                } else
                 if (sequence_broken) {
                     skipped_broken ++;
                 } else if ((long)seq.size() < min_len) {
@@ -568,7 +570,7 @@ match_retry:
 
             cseq seq = arb->getCseq(f_name);
             seq.setScore(f_relscore);
-            if (max_score >= 2 /*|| queryc.identity_with(seq) <= max_score FIXME*/) {
+            if (max_score >= 2 || cmp(queryc, seq) <= max_score) {
                 bool keep = false;
                 if ((num_full != 0) && (long)seq.size() > full_min_len) {
                     num_full--;
@@ -595,7 +597,7 @@ match_retry:
     }
 
     if ((skipped_max_score != 0) || (skipped_broken != 0) || (skipped_min_len != 0) || (skipped_noid != 0)) {
-        logger->warn("Skipped {} sequences ({} id < {}, {} broken, {} len < {}, {} noid)",
+        logger->warn("Skipped {} sequences ({}x id > {}, {}x broken, {}x len < {}, {}x noid)",
                      skipped_max_score + skipped_broken + skipped_min_len + skipped_noid,
                      skipped_max_score, max_score,
                      skipped_broken,
