@@ -10,7 +10,7 @@
 set -x
 
 CONDA_PACKAGES="autoconf automake libtool toolchain pkg-config boost arb-bio-devel"
-CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib libiconv"
+CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib libiconv bc"
 
 CONDA_BASEURL=https://repo.continuum.io/miniconda
 
