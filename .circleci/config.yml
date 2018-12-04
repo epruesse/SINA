@@ -6,7 +6,7 @@ references:
       MINICONDA: ~/miniconda
       JUNIT_REPORT_PATH: /tmp/reports/ # trailing slash required
       ARTIFACT_PATH: /tmp/artifacts/
-      MAKEFLAGS: -j8
+      MAKEFLAGS: -j2
 
   configure: &configure
     name: Running Configure
@@ -73,7 +73,7 @@ jobs:
           name: Building
           command: |
             make -C ~/build clean
-            make -C ~/build all
+            make -C ~/build all -j8
       - run:
           name: Running Unit Tests (w/ debug)
           command: |
@@ -96,7 +96,7 @@ jobs:
             cd ~/build
             find -name \*.gcda | xargs rm -f
             rm -f coverage.info
-            make -j2 check-filtered P=^tests
+            make check-filtered P=^tests
             make code-coverage-capture
             bash <(curl -s https://codecov.io/bash) -X gcov -F integration \
               -R ~/project -n Integration-Linux-CircleCI
