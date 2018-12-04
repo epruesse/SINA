@@ -243,7 +243,6 @@ struct Log::printer::priv_data {
 
     // stats
     double total_sps{0};
-    double total_error{0};
     double total_cpm{0};
     double total_idty{0};
     double total_bps{0};
@@ -285,10 +284,9 @@ Log::printer::~printer() = default;
 Log::printer::priv_data::~priv_data() {
     logger->info("avg_score: {}", total_score / sequence_num);
     if (Log::opts->show_dist) {
-        logger->info("avg_sps: {}", total_sps / sequence_num);
-        logger->info("avg_cpm: {}", total_cpm / sequence_num);
-        logger->info("avg_idty: {}", total_idty / sequence_num);
-        logger->info("avg_error: {}", total_error / sequence_num);
+        logger->warn("avg_sps: {}", total_sps / sequence_num);
+        logger->warn("avg_cpm: {}", total_cpm / sequence_num);
+        logger->warn("avg_idty: {}", total_idty / sequence_num);
         logger->info("avg_bps: {}", total_bps / sequence_num);
     }
 }

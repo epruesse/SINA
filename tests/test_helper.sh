@@ -137,3 +137,13 @@ assert_output_count() {
 "
     fi
 }
+
+assert_output_value() {
+    val=$(echo "$output" | sed -n 's/.*'$1'//p')
+    if (( $(echo "$val $2" | bc -l ) )); then
+	:
+    else
+	test_err="{$test_err# value for key $2 ($val) did not match $2
+"
+    fi
+}
