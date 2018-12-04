@@ -96,7 +96,7 @@ jobs:
             cd ~/build
             find -name \*.gcda | xargs rm -f
             rm -f coverage.info
-            make check-filtered P=^tests
+            make -j2 check-filtered P=^tests
             make code-coverage-capture
             bash <(curl -s https://codecov.io/bash) -X gcov -F integration \
               -R ~/project -n Integration-Linux-CircleCI
