@@ -55,6 +55,7 @@ using std::map;
 #include "spdlog/sinks/basic_file_sink.h"
 
 #include "cseq.h"
+#include "cseq_comparator.h"
 #include "query_arb.h"
 #include "query_arb.h"
 
@@ -282,13 +283,13 @@ Log::printer& Log::printer::operator=(const printer& o) = default;
 Log::printer::~printer() = default;
 
 Log::printer::priv_data::~priv_data() {
+    logger->info("avg_score: {}", total_score / sequence_num);
     if (Log::opts->show_dist) {
         logger->info("avg_sps: {}", total_sps / sequence_num);
         logger->info("avg_cpm: {}", total_cpm / sequence_num);
         logger->info("avg_idty: {}", total_idty / sequence_num);
         logger->info("avg_error: {}", total_error / sequence_num);
         logger->info("avg_bps: {}", total_bps / sequence_num);
-        logger->info("avg_score: {}", total_score / sequence_num);
     }
 }
 
@@ -317,127 +318,98 @@ Log::printer::operator()(tray t) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
 
-    tmp << "sequence_number: " << t.seqno << endl;
-    tmp << "sequence_identifier: " << t.input_sequence->getName() << endl;
+    logger->info("sequence_number: {}", t.seqno);
+    logger->info("sequence_identifier: {}", t.input_sequence->getName());
 
     if (t.aligned_sequence == nullptr) {
-        data->out << tmp.str()
-                  << "align_log_slv:" << t.log.str() << endl
-                  << query_arb::fn_fullname << ":"
-                  << t.input_sequence->get_attr<string>(query_arb::fn_fullname) << endl
-                  << "alignment failed!" << endl << endl;
+        logger->info("{}: {}", query_arb::fn_align_log, t.log.str());
+        logger->info("{}: {}", query_arb::fn_fullname,
+                     t.input_sequence->get_attr<string>(query_arb::fn_fullname));
+        logger->info("alignment failed!");
         return t;
     }
-    t.aligned_sequence->set_attr("align_log_slv", 
-                                 t.log.str());
+    ++data->sequence_num;
+    cseq& aligned = *t.aligned_sequence;
 
-    cseq& c = *t.aligned_sequence;
+    float bps = aligned.calcPairScore(data->helix_pairs);
+    data->total_bps += bps;
+    aligned.set_attr(query_arb::fn_bpscore, (int)(100 * bps));
+    aligned.set_attr(query_arb::fn_align_log, t.log.str());
+    aligned.set_attr(query_arb::fn_nuc, (int)aligned.size());
 
-    float bps = c.calcPairScore(data->helix_pairs);
-
-    c.set_attr(query_arb::fn_nuc, (int)c.size());
-    c.set_attr(query_arb::fn_bpscore, (int)(100 * bps));
-    if (c.size() != 0u) {
-        c.set_attr(query_arb::fn_astart, (int)c.begin()->getPosition());
-        c.set_attr(query_arb::fn_astop, (int)((--c.end())->getPosition()));
+    if (aligned.size() != 0u) {
+        aligned.set_attr(query_arb::fn_astart, (int)aligned.begin()->getPosition());
+        aligned.set_attr(query_arb::fn_astop, (int)((--aligned.end())->getPosition()));
+    } else {  // shouldn't happen, but let's be careful
+        aligned.set_attr(query_arb::fn_astart, 0);
+        aligned.set_attr(query_arb::fn_astop, 0);
     }
 
-    tmp << "sequence_score: " << c.getScore() << endl;
+    logger->info("sequence_score: {}", aligned.getScore());
+    data->total_score += aligned.getScore();
 
-    const std::map<string,cseq::variant>& attrs = c.get_attrs();
-    for (auto& ap: attrs) {
-        tmp << ap.first << ": "
-            << boost::apply_visitor(lexical_cast_visitor<string>(), 
-                                    ap.second) << endl;
+    for (auto& ap: aligned.get_attrs()) {
+        string val = boost::apply_visitor(lexical_cast_visitor<string>(),
+                                          ap.second);
+        logger->info("{}: {}", ap.first, val);
     }
 
-    bool tmp_show_diff = false;
+    std::vector<cseq> ref;
+    if (t.alignment_reference != nullptr) {
+        ref = *t.alignment_reference;
+    } else if (t.search_result != nullptr) {
+        ref = *t.search_result;
+    }
+
     if (opts->show_dist) {
-        cseq o = *t.input_sequence;
-        if (data->arb != nullptr) {
-            string name = o.getName();
-            name = name.substr(0,name.find_first_of(' '));
-            o = data->arb->getCseq(name);
-            tmp << "len-orig: " << o.size() << endl 
-                << "len-alig: " << c.size() << endl;
+        cseq& orig = *t.input_sequence;
+        if (data->arb != nullptr) {  // we have a comparison db
+            string name = orig.getName();
+            orig = data->arb->getCseq(name);
+            logger->info("len-orig: {}", orig.size());
+            logger->info("len-alig: {}", aligned.size());
         }
-        /*
-        boost::tuple<int,int,int> p = c.compare_simple(o);
-        double sps = (double) p.get<0>() / o.size();
-        double error = (double) (p.get<1>()+p.get<2>()) / o.size();
-        tmp << "sps: " << sps << endl
-            << "error: " << error << endl
-            << "matches: " << p.get<0>() << endl
-            << "mismatches: " << p.get<1>() << endl
-            << "overhang: " << p.get<2>() << endl;
-            ;
-        if (((float)c.size() / o.size()) > 0.5) {
-            total_sps += sps;
-            total_error += error;
-        } else {
-            tmp << "more than 50% of sequence unaligned. not counting towards sps total." << endl;
-            }*/
+        cseq_comparator cmp(CMP_IUPAC_EXACT, CMP_DIST_NONE,
+                            CMP_COVER_QUERY, false);
+        float sps = cmp(orig, aligned);
 
-//        if (bps > 0) {
-        tmp << "bps: " << bps << endl;
-        data->total_bps += bps;
-//        }
+        logger->log((sps > 0.9999) ? spdlog::level::info : spdlog::level::warn,
+                    "orig_idty: {}", sps);
+        data->total_sps += sps;
 
-        /*
-        if (t.alignment_reference || t.search_result) {
-            std::vector<cseq> *ref = t.alignment_reference;
-            if (!ref) ref = t.search_result;
-            if (ref->size() > 0) {
-                BOOST_FOREACH(cseq &r, *ref) {
-                    r.setScore(o.identity_with(r));
-                }
-                std::sort(ref->begin(), ref->end());
-
-                double idty = ref->rbegin()->getScore();
-                total_idty += idty;
-
-                double achieved_idty = c.identity_with(*ref->rbegin());
-                
-                boost::tuple<int,int,int> q = ref->rbegin()->compare_simple(o);
-                double cpm = (c.size()-q.get<0>()>0)?(double)(p.get<0>() - q.get<0>())/(c.size() - q.get<0>()):1;
-                total_cpm += cpm;
-                tmp 
-                    << "cpm: " << cpm << endl
-                    << "idty: "  << idty << endl
-                    << "achieved_idty: " << achieved_idty << endl
-                    ;
-            } else {
-                tmp << "reference / search result empty?" << endl;
+        if (!ref.empty()) {
+            cseq_comparator cmp(CMP_IUPAC_OPTIMISTIC, CMP_DIST_NONE,
+                                CMP_COVER_QUERY, false);
+            for (auto& r : ref) {
+                r.setScore(cmp(orig, r));
             }
+            std::sort(ref.begin(), ref.end());
+            cseq &closest = *ref.rbegin();
+
+            float orig_idty = closest.getScore();
+            data->total_idty += orig_idty;
+            logger->info("orig_closest_idty: {}", orig_idty);
+
+            float aligned_idty = cmp(aligned, closest);
+            logger->info("closest_idty: {}", aligned_idty);
+            float cpm = orig_idty - aligned_idty;
+            logger->info("cpm: {}", cpm);
+
+            data->total_cpm += cpm;
+        } else {
+            tmp << "reference / search result empty?" << endl;
         }
-        */
-        data->total_score += c.getScore();
     }
 
-
-    if (((t.alignment_reference != nullptr) || (t.search_result != nullptr))
-        && (opts->show_diff || tmp_show_diff)) {
-
-        std::vector<cseq> *ref = t.alignment_reference;
-        cseq *orig = t.input_sequence;
-        if (ref == nullptr) {
-            ref = t.search_result;
-            orig = &*ref->rbegin();
-            ref->pop_back();
-        } 
-        
-        list<unsigned int> bad_parts = orig->find_differing_parts(*t.aligned_sequence);
-        auto it = bad_parts.begin();
-        auto it_end = bad_parts.end();
-        ref->push_back(*orig);
-        ref->push_back(*t.aligned_sequence);
-        while (it != it_end) {
-            cseq::idx_type begin = *it++;
-            cseq::idx_type end   = *it++;
-            cseq::write_alignment(tmp,*ref, begin, end, opts->colors);
+    if (opts->show_diff) {
+        cseq& orig = *t.input_sequence;
+        ref.push_back(orig);
+        ref.push_back(aligned);
+        for (auto part : orig.find_differing_parts(aligned)) {
+            cseq::write_alignment(tmp, ref, part.first, part.second, opts->colors);
         }
-        ref->pop_back();
-        ref->pop_back();
+        ref.pop_back();
+        ref.pop_back();
         tmp << endl << endl;
     }
 
