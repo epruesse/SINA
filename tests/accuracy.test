@@ -6,10 +6,18 @@ maketmpdir T
 
 cp $TEST_ARB $T/ref.arb
 
-SINA="./src/sina -i $T/ref.arb --db $T/ref.arb  --orig-db $T/ref.arb -o /dev/null --show-dist"
+SINA="./src/sina"
+
+begin_test "PREP"
+capture_stdouterr "$SINA -i $T/ref.arb -o $T/ext.arb --select-step 10 --prealigned"
+assert_exit_success
+end_test
+
+SINA="./src/sina -i $T/ext.arb --db $T/ext.arb  --orig-db $T/ext.arb -o /dev/null --show-dist"
+
 
 begin_test "prealigned"
-capture_stdouterr "$SINA --select-step 250 --prealigned"
+capture_stdouterr "$SINA --select-step 25 --prealigned"
 assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_contains "avg_sps: 1"
@@ -19,7 +27,7 @@ end_test
 
 
 begin_test "align copy"
-capture_stdouterr "$SINA --select-step 1000"
+capture_stdouterr "$SINA --select-step 100"
 assert_exit_success
 assert_output_contains "align 12 sequences"
 assert_output_contains "avg_sps: 1"
@@ -28,27 +36,37 @@ assert_output_contains "avg_idty: 1"
 end_test
 
 begin_test "realign"
-capture_stdouterr "$SINA --select-step 250 --realign"
+capture_stdouterr "$SINA --select-step 25 --realign"
 assert_exit_success
 assert_output_contains "align 48 sequences"
-assert_output_value avg_sps: ">0.996"
-assert_output_value avg_cpm: "<0.0001"
-assert_output_value avg_cpm: ">-0.0001"
-assert_output_value avg_idty: ">0.97"
+# needs more refs:
+# assert_output_value avg_sps: ">0.996"
+# assert_output_value avg_cpm: "<0.0001"
+# assert_output_value avg_cpm: ">-0.0001"
+# assert_output_value avg_idty: ">0.96"
+assert_output_value avg_sps: ">0.993"
+assert_output_value avg_cpm: "<0.0003"
+assert_output_value avg_cpm: ">-0.0003"
+assert_output_value avg_idty: ">0.93"
 end_test
 
 begin_test "realign remove query"
-capture_stdouterr "$SINA --select-step 250 --realign --fs-leave-query-out"
+capture_stdouterr "$SINA --select-step 25 --realign --fs-leave-query-out"
 assert_exit_success
 assert_output_contains "align 48 sequences"
-assert_output_value avg_sps: ">0.996"
-assert_output_value avg_cpm: "<0.0001"
-assert_output_value avg_cpm: ">-0.0001"
-assert_output_value avg_idty: ">0.96"
+# needs more refs:
+# assert_output_value avg_sps: ">0.996"
+# assert_output_value avg_cpm: "<0.0001"
+# assert_output_value avg_cpm: ">-0.0001"
+# assert_output_value avg_idty: ">0.96"
+assert_output_value avg_sps: ">0.993"
+assert_output_value avg_cpm: "<0.0003"
+assert_output_value avg_cpm: ">-0.0003"
+assert_output_value avg_idty: ">0.93"
 end_test
 
 begin_test "realign msc 0.9"
-capture_stdouterr "$SINA --select-step 250 --realign --fs-leave-query-out --fs-msc-max 0.9"
+capture_stdouterr "$SINA --select-step 25 --realign --fs-leave-query-out --fs-msc-max 0.9"
 assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.99"
@@ -59,7 +77,7 @@ assert_output_value avg_idty: ">0.88"
 end_test
 
 begin_test "realign msc 0.8"
-capture_stdouterr "$SINA --select-step 250 --realign --fs-leave-query-out --fs-msc-max 0.8"
+capture_stdouterr "$SINA --select-step 25 --realign --fs-leave-query-out --fs-msc-max 0.8"
 assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.97"
@@ -70,7 +88,7 @@ assert_output_value avg_idty: ">0.78"
 end_test
 
 begin_test "realign msc 0.7"
-capture_stdouterr "$SINA --select-step 250 --realign --fs-leave-query-out --fs-msc-max 0.7"
+capture_stdouterr "$SINA --select-step 25 --realign --fs-leave-query-out --fs-msc-max 0.7"
 assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.96"
