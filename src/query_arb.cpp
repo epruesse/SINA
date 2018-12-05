@@ -128,6 +128,7 @@ const char* query_arb::fn_bpscore    = "align_bp_score_slv";
 const char* query_arb::fn_family_str = "align_family_slv";
 
 const char* query_arb::fn_family     = "NONE";
+const char* query_arb::fn_align_log  = "align_log_slv";
 
 
 // Global lock -- ARB database access is not guaranteed to be thread safe.

@@ -111,19 +111,22 @@ public:
         return static_cast<base_types>(__builtin_ctz(_data & 0xf));
     }
 
-    void complement() {
+    base_iupac& complement() {
         _data = ((_data & BASEM_G) << (BASE_C - BASE_G)) |
             ((_data & BASEM_C) >> (BASE_C - BASE_G)) |
             ((_data & BASEM_A) << (BASE_TU - BASE_A)) |
             ((_data & BASEM_TU) >> (BASE_TU - BASE_A)) |
             (_data & BASEM_LC);
+        return *this;
     }
 
-    void setLowerCase() {
+    base_iupac& setLowerCase() {
         _data |= BASEM_LC;
+        return *this;
     }
-    void setUpperCase() {
+    base_iupac&  setUpperCase() {
         _data &= ~BASEM_LC;
+        return *this;
     }
     bool isLowerCase() const {
         return (_data & BASEM_LC) != 0;
@@ -156,6 +159,10 @@ public:
 
     bool comp_pessimistic(const base_iupac& rhs) const {
       return !is_ambig() && (0xf & _data) == (0xf & rhs._data); 
+    }
+
+    bool comp_exact(const base_iupac& rhs) const {
+      return _data == rhs._data;
     }
 
     struct matrix_type {

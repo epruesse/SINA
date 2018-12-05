@@ -186,8 +186,7 @@ public:
     }
     bool operator<(const cseq& rhs) const { return score < rhs.score; }
     bool operator>(const cseq& rhs) const { return score > rhs.score; }
-    std::list<unsigned int> find_differing_parts(const cseq& right) const;
-protected:
+    std::vector<std::pair<unsigned int, unsigned int>> find_differing_parts(const cseq& right) const;
 
 private:
     std::string name;

@@ -276,7 +276,8 @@ test_scripts = \
     tests/readwrite.test \
     tests/align.test \
     tests/search.test \
-    tests/infocommands.test		
+    tests/infocommands.test \
+    tests/accuracy.test
 
 
 check_DATA = test_data/ltp_reduced.arb

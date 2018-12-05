@@ -137,3 +137,16 @@ assert_output_count() {
 "
     fi
 }
+
+assert_output_value() {
+    # convert 8.4e-10 to 8.4*10^-10 (from https://stackoverflow.com/questions/12882611)
+    snot2bc='s/([+-]?[0-9.]+)[eE]\+?(-?)([0-9]+)/(\1*10^\2\3)/g'
+
+    val=$(echo "$output" | sed -n 's/.*'$1'//p' | sed -E "$snot2bc")
+    if (( $(echo "$val $2" | bc -l ) )); then
+	:
+    else
+	test_err="{$test_err# value for key $1 ($val) did not match $2
+"
+    fi
+}

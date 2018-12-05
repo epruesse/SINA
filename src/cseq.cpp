@@ -105,8 +105,8 @@ cseq::setWidth(vidx_type newWidth) {
 
     // we can't shrink to less than 0 gaps
     if (newWidth < size()) {
-        logger->critical("cannot shrink aligment width to {} - got {} bases",
-                         newWidth, size());
+        logger->critical("Cannot shrink '{}' aligment width to {} - got {} bases",
+                         getName(), newWidth, size());
         throw std::runtime_error(
                 "Attempted to shrink alignment width below base count"
             );
@@ -595,15 +595,16 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
     }
 }
 
-std::list<unsigned int>
+std::vector<std::pair<unsigned int, unsigned int>>
 cseq::find_differing_parts(const cseq& right) const {
     using bases_it = std::vector<aligned_base>::const_iterator;
     auto l_it = bases.begin(), l_end = bases.end();
     auto r_it = right.bases.begin(), r_end = right.bases.end();
     
-    std::list<unsigned int> start_stops;
+    std::vector<std::pair<unsigned int, unsigned int>> result;
     int score = 0;
     bool bad = false;
+    unsigned int start = 0;
 
     int lpos = l_it->getPosition();
     int rpos = r_it->getPosition();
@@ -631,21 +632,21 @@ cseq::find_differing_parts(const cseq& right) const {
         if (score > 0) {
             if (!bad) {
                 int rpos = std::max(right.bases.begin(), r_it - 2)->getPosition();
-                start_stops.push_back(std::min(lpos,rpos));
+                start = std::min(lpos, rpos);
                 bad=true;
             } else {
                 if (--score <= 0 && lpos == rpos) {
-                    start_stops.push_back(lpos);
+                    result.push_back({start, lpos});
                     bad=false;
                 }
             }
         }
     }
     if (bad) {
-        start_stops.push_back(std::min(lpos,rpos));
+        result.push_back({start, std::min(lpos, rpos)});
     }
     
-    return start_stops;
+    return result;
 }
 
 
@@ -732,58 +733,6 @@ cseq::calcPairScore(const std::vector<int>& pairs) {
 
     return score;
 }
-
-/*
-
-struct counter {
-    int agap, bgap, match, mismatch;
-    counter() : agap(0), bgap(0), match(0), mismatch(0) {}
-    void agap(const aligned_base&) { agap++; }
-    void bgap(const aligned_base&) { bgap++; }
-    void match(const aligned_base&) { match++; }
-    void mismatch(const aligned_base&, const aligned_base&) { mismatch++; }
-};
-
-struct iupac_compare {
-    using value_type = bool;
-    bool operator()(const aligned_base& a, const aliged_base& b) const {
-        return a.comp(b);
-    }
-}
-
-
-
-cseq_compare(const cseq& a, const cseq& b) {
-    bases_it a_it = a.bases.begin();
-    bases_it a_end = a.bases.end();
-    bases_it b_it = b.bases.begin();
-    bases_it b_end = b.bases.end();
-    
-    int a_pos = a_it->getPosition();
-    int b_pos = b_it->getPosition();
-    while (a_it != a_end || b_it != b_end) {
-        while (a_pos > b_pos && b_it != b_end) {
-            BGAP(*b_it);
-            b_pos = ++b_it;
-        }
-        while (b_pos > a_pos && a_it != a_end) {
-            AGAP(*a_it);
-            a_pos = ++a_it;
-        }
-        while (a_pos == b_pos && a_it != a_end && b_it != b_end) {
-            if (COMPARE(*a_it,*b_it)) {
-                MATCH(*a_it);
-            } else {
-                MISMATCH(*a_it, *b_it);
-            }
-            a_pos = ++a_it;
-            b_pos = ++b_it;
-        }
-    }
-}
-             
-*/
-
 
 /*
   Local Variables:

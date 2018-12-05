@@ -297,22 +297,6 @@ make_datetime() {
         return string(buf);
 }
 
-static int
-calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c) {
-    int n = 0;
-    cseq::iterator it = c.begin();
-    cseq::iterator end = c.end();
-
-    while (it != end && it->getPosition() < term_begin) {
-        ++it;
-    }
-    while (it != end && it->getPosition() < term_end) {
-        ++it, ++n;
-    }
-
-    return n;
-}
-
 struct not_icontains {
     using result_type = bool;
     const string bases;
@@ -524,18 +508,13 @@ sina::do_align(cseq& c, cseq& orig, MASTER &m,
     c.set_attr(query_arb::fn_qual, (int)std::min(100.f, std::max(0.f, 100.f * c.getScore())));
 
     if (aligner::opts->debug_graph) {
-        stringstream tmp;
-        tmp <<"mseq_" << c.getName() << ".dot";
-        ofstream out(tmp.str().c_str());
-        m.print_graphviz(out,"reference");
+        ofstream out(fmt::format("mseq_{}.dot", c.getName()));
+        m.print_graphviz(out, "reference");
 
-        list<unsigned int> bad_parts = orig.find_differing_parts(c);
-        for (auto it = bad_parts.begin(); it != bad_parts.end(); ++it) {
-            stringstream tmp;
-            auto begin = it++;
-            tmp << "mesh_" << c.getName() << "_" << *begin
-                << "_" << *it << ".dot";
-            mesh_to_svg(A, *begin, *it, tmp.str().c_str());
+        for (auto part : orig.find_differing_parts(c)) {
+            mesh_to_svg(A, part.first, part.second,
+                        fmt::format("mesh_{}_{}_{}.dot",
+                                    c.getName(), part.first, part.second).c_str());
         }
     }
 }

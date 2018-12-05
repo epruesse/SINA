@@ -90,6 +90,7 @@ class query_arb{
     static const char* fn_bpscore;
     static const char* fn_used_rels;
     static const char* fn_fullname;
+    static const char* fn_align_log;
 
 
     /**
