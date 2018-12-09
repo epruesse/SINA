@@ -483,7 +483,9 @@ sina::do_align(cseq& c, cseq& orig, MASTER &m,
     cnsts_type cns(tr);
 
     // create the alignment "mesh" (not quite a matrix)
-    mesh<MASTER, cseq, data_type, tbb::tbb_allocator<data_type> > A(m, c);
+    using mesh_t = mesh<MASTER, cseq, data_type, tbb::tbb_allocator<data_type>>;
+    logger->debug("Allocating {}MB for alignment matrix", mesh_t::guessMem(m, c)/1024/1024);
+    mesh_t A(m, c);
 
     int oh_head, oh_tail;
 #ifdef DEBUG
