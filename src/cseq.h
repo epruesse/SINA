@@ -232,16 +232,6 @@ class cseq_base::const_reverse_iterator
       : std::vector<aligned_base>::const_reverse_iterator(it) {}
     const_reverse_iterator() = default;
 
-  /*
-    typedef const_iterator const_pn_iterator;
-    const_iterator prev_begin() const {
-        const_iterator n(*this); return --n; }
-    const_iterator prev_end() const { return (*this); }
-    const_iterator next_begin() const {
-        const_iterator n(*this); return ++n; }
-    const_iterator next_end() const {
-        const_iterator n(*this); return n+2; }
-  */
  protected:
 
  private:
