@@ -419,23 +419,6 @@ match_retry:
     family.reserve(max_match);
     boost::mutex::scoped_lock lock(data->arb_pt_access);
     
-/*
-    if (max_score > 1 && !noid) {
-        // if we really only want the top max_match, 
-        // limit sorting to that amount. if we have a max_score,
-        // we might as well have the pt server sort it all.
-        aisc_put(data->link,
-                       PT_FAMILYFINDER, data->ffinder,
-                 FAMILYFINDER_SORT_MAX, max_match,
-                 NULL);
-    } else {
-        aisc_put(data->link,
-                       PT_FAMILYFINDER, data->ffinder,
-                 FAMILYFINDER_SORT_MAX, 0,
-                 NULL);
-    }
-*/
-
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_FIND_FAMILY, &bs,
