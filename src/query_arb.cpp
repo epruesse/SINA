@@ -647,6 +647,18 @@ query_arb::getCseq(const string& name) {
              data.getSequence(name.c_str(), data.default_alignment).c_str()
         );
     data.sequence_cache[name]=tmp;
+#if defined(DEBUG)
+    int n_cached = data.sequence_cache.size();
+    if (n_cached % 1000 == 0) {
+        logger->error("Cache size: {}", n_cached);
+        long total = 0;
+        for (auto& c : data.sequence_cache) {
+            total += c.second.getAlignedBases().size();
+        }
+        logger->error("  {} bases of {} bytes = {} MB",
+                      total, sizeof(aligned_base), total*sizeof(aligned_base) /1024/1024);
+    }
+#endif
     return data.sequence_cache[name];
 }
 
