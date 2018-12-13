@@ -186,11 +186,11 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
         }
     }
 
-    logger->info("Launched PT server ({} on {}).", dbname, portname);
+    logger->warn("Launched PT server ({} on {}).", dbname, portname);
 }
 
 managed_pt_server::~managed_pt_server() {
-    logger->info("Terminating PT server ({} on {})", dbname, portname);
+    logger->warn("Terminating PT server ({} on {})", dbname, portname);
     process->rdbuf()->kill();
 }
 
