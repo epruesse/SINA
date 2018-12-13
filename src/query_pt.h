@@ -103,7 +103,7 @@ public:
     void set_probe_len(int len);
     void set_mismatches(int len);
     void set_sort_type(bool absolute);
-    void set_range(int startpos, int stoppos);
+    void set_range(int startpos=-1, int stoppos=-1);
     void unset_range();
 
     static void get_options_description(boost::program_options::options_description& all,

@@ -370,26 +370,18 @@ query_pt::set_sort_type(bool absolute) {
 void
 query_pt::set_range(int startpos, int stoppos) {
     boost::mutex::scoped_lock lock(data->arb_pt_access);
-#if 0
+
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_RANGE_STARTPOS, startpos,
                        FAMILYFINDER_RANGE_ENDPOS, stoppos,
                        NULL);
-#else
-    int err = 0;
-#endif
     if (err != 0) {
         logger->warn("Unable to constain matching to {}-{}", startpos, stoppos);
     } else {
         data->range_begin = startpos;
         data->range_end = stoppos;
     }
-}
-
-void
-query_pt::unset_range() {
-    set_range(-1,-1);
 }
 
 double
