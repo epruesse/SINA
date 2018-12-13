@@ -47,8 +47,6 @@ using std::vector;
 #include "cseq_comparator.h"
 #include "log.h"
 
-#ifndef TEST
-
 #include "query_arb.h"
 
 #include <dlfcn.h>
@@ -622,61 +620,6 @@ query_pt_exception::what() const noexcept {
 
 } // namespace sina
 
-#else // TEST
-
-#include <string>
-#include <fstream>
-#include <algorithm>
-#include <iterator>
-
-void
-read_fasta(istream& ifs, vector<cseq>& seqs) {
-  while(!ifs.eof()) {
-    char buf[1024];
-    ifs.getline(buf,1024);
-    if (*buf == '>') {
-      string s(buf+1);
-      while (ifs.fail() && !ifs.eof()) {
-        ifs.clear();
-        ifs.getline(buf,1024);
-        s.append(buf);
-      }
-      seqs.push_back(cseq(s.c_str()));
-
-    } else {
-        if (seqs.empty()) continue; // malformed input, data before ">"
-      cseq& s=seqs.back();
-      s.append(buf);
-      while (ifs.fail() && !ifs.eof()) {
-        ifs.clear();
-        ifs.getline(buf,1024);
-        s.append(buf);
-      }
-    }
-  }
-}
-
-
-int main(int argc, char **argv) {
-    if (argc!=4)  exit(1);
-    query_pt *pt = new query_pt(argv[2], argv[1]);
-
-    std::ifstream ifs(argv[3]);
-    std::vector<cseq> query, family;
-
-    read_fasta(ifs, query);
-
-    std::string seq = query[0].getBases();
-    pt->match(family, seq.c_str(), 5, 40, .7);
-
-    std::copy(family.begin(), family.end(),
-              std::ostream_iterator<cseq>(std::cout, " "));
-
-    delete pt;
-    return 0;
-}
-
-#endif // TEST
 
 /*
   Local Variables:
