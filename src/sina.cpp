@@ -524,6 +524,7 @@ int real_main(int argc, char** argv) {
     tf::make_edge(sink, limiter->decrement);
     tf::make_edge(*last_node, sink);
 
+    logger->warn("Aligner ready. Processing sequences");
     timestamp before;
     source->activate();
     g.wait_for_all();
