@@ -296,19 +296,6 @@ query_pt::~query_pt() {
     delete data;
 }
 
-#if 0
-void
-query_pt::restart() {
-    logger->info("Trying to restart pt server connection...");
-    exit();
-    logger->info("Terminated PT server. Sleeping for 5 seconds.");
-    sleep(5);
-    logger->info("Restarting PT server");
-    init();
-    logger->info("Done.");
-    // FIXME: settings need to be restored!
-}
-#endif
 
 void
 query_pt::set_find_type_fast(bool fast) {
