@@ -57,6 +57,7 @@ using std::logic_error;
 
 #define TBB_PREVIEW_FLOW_GRAPH_FEATURES 1
 #include <tbb/task_scheduler_init.h>
+#include <tbb/parallel_for.h>
 #include <tbb/flow_graph.h>
 namespace tf = tbb::flow;
 
@@ -454,9 +455,11 @@ int real_main(int argc, char** argv) {
         tf::make_edge(*join, *family_find);
         nodes.emplace_back(family_find);
 
-        for (int i=0; i<opts.num_pt_servers; i++) {
-            buffer->try_put(famfinder::finder(i));
-        }
+        buffer->try_put(famfinder::finder(0));
+        tbb::parallel_for(1U, opts.num_pt_servers, [&](unsigned int i) {
+                logger->warn("Launching PT server no {}", i);
+                buffer->try_put(famfinder::finder(i));
+            });
 
         node = new filter_node(g, tf::unlimited, aligner());
         tf::make_edge(tf::output_port<0>(*family_find), *node);
