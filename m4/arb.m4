@@ -25,40 +25,46 @@ AC_DEFUN([AX_LIB_ARBDB],
     ARB_CPPFLAGS=""
     ARB_LDFLAGS=""
     ARB_LIBS=""
-
+    success="no"
     if test x"$WANT_ARB" = x"yes"; then
         if test x"$GLIB_LIBS" = x""; then
             PKG_CHECK_MODULES([GLIB], [glib-2.0 > 2.2])
         fi
-
-        AC_MSG_CHECKING([for location of ARB headers])
-	ax_arb_path=
-        for ax_arb_path_tmp in $ax_arb_path/INCLUDE $ARBHOME/INCLUDE /usr/include/arb; do
-            if test -f "$ax_arb_path_tmp/arbdb.h" \
-            && test -r "$ax_arb_path_tmp/arbdb.h"; then
-                ax_arb_path="$ax_arb_path_tmp"
-                break
+	if test x"$ax_arb_path" == x""; then
+            AC_MSG_CHECKING([for location of ARB headers])
+            for ax_arb_path_tmp in $ax_arb_path $ARBHOME /usr/lib/arb; do
+                if test -f "$ax_arb_path_tmp/INCLUDE/arbdb.h" \
+                && test -r "$ax_arb_path_tmp/INCLUDE/arbdb.h"; then
+                    ax_arb_path="$ax_arb_path_tmp"
+                    break
+                fi
+            done
+            if test -n "$ax_arb_path"; then
+                AC_MSG_RESULT([$ax_arb_path])
+                success="yes"
+            else
+                AC_MSG_RESULT([not found])
+                success="no"
             fi
-        done
-        if test -n "$ax_arb_path"; then
-            AC_MSG_RESULT([$ax_arb_path])
-            success="yes"
-        else
-            AC_MSG_RESULT([not found])
-            success="no"
-        fi
-        saved_CPPFLAGS="$CPPFLAGS"
-        CPPFLAGS="$CPPFLAGS -I$ax_arb_path $GLIB_CFLAGS"
-        AC_CHECK_HEADER([arbdb.h])
-        CPPFLAGS="$saved_CPPFLAGS"
-        ax_arb_cppflags="-I$ax_arb_path $GLIB_CFLAGS"
+	fi
+	if test x"ax_arb_path" != x""; then
+            saved_CPPFLAGS="$CPPFLAGS"
+            CPPFLAGS="$CPPFLAGS -I$ax_arb_path/INCLUDE $GLIB_CFLAGS"
+            AC_CHECK_HEADER([arbdb.h], [
+                ax_arb_cppflags="-I$ax_arb_path/INCLUDE $GLIB_CFLAGS"
+		success="yes"
+            ],[
+	        success="no"
+	    ])
+            CPPFLAGS="$saved_CPPFLAGS"
+	fi
     fi
 
     if test x"$success" = x"yes"; then
         AC_MSG_CHECKING([for libARBDB location])
 
 	ax_arb_lib_path=
-	for ax_arb_lib_path_tmp in $ax_arb_path/../lib /usr/lib/arb/lib; do
+	for ax_arb_lib_path_tmp in $ax_arb_path/lib /usr/lib/arb/lib; do
 	    if test -f "$ax_arb_lib_path_tmp/libARBDB.so" \
 	    && test -r "$ax_arb_lib_path_tmp/libARBDB.so"; then
 	        ax_arb_lib_path="$ax_arb_lib_path_tmp"
@@ -112,7 +118,7 @@ AC_DEFUN([AX_LIB_ARBDB],
         ARB_CPPFLAGS="$ax_arb_cppflags"
         ARB_LDFLAGS="$ax_arb_ldflags"
         ARB_LIBS="$ax_arb_libs"
-        ARBHOME="$ax_arb_lib_path/../"
+        ARBHOME="$ax_arb_path"
         AC_SUBST(ARB_CPPFLAGS)
         AC_SUBST(ARB_LDFLAGS)
         AC_SUBST(ARB_LIBS)
@@ -131,7 +137,6 @@ AC_DEFUN([AX_ARB_CHECK_FUNC],
     AH_TEMPLATE([HAVE_$1])
 
     AC_MSG_CHECKING([for $1 in libARBDB])
-
 
     saved_CPPFLAGS="$CPPFLAGS"
     saved_LIBS="$LIBS"
@@ -167,18 +172,18 @@ AC_DEFUN([AX_LIB_ARB_PROBE],
     AC_REQUIRE([AX_LIB_ARBDB])
     AH_TEMPLATE([HAVE_ARB_PROBE], [], [Defined to 1 if ARB PROBE_COM is present])
 
-    AC_MSG_CHECKING([for ARB PROBE_COM static lib])
+    AC_MSG_CHECKING([for ARB PROBE_COM])
     if test -f "$ARBHOME/PROBE_COM/client.a" \
     && test -r "$ARBHOME"; then
-        AC_MSG_RESULT([yes])
+        AC_MSG_RESULT([found])
         success="yes"
     else
-        AC_MSG_RESULT([no])
+        AC_MSG_RESULT([not found])
         success="no"
     fi
 
     if test x"$success" = x"yes"; then
-        AC_MSG_CHECKING([for ARB PROBE_COM])
+        AC_MSG_CHECKING([for aisc_open in ARB PROBE_COM])
         AC_LANG_PUSH(C++)
 
         AC_LANG_CONFTEST([AC_LANG_PROGRAM([[
