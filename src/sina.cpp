@@ -515,7 +515,8 @@ int real_main(int argc, char** argv) {
     last_node = node;
 
     int count = 0;
-    tf::function_node<tray, tf::continue_msg, tf::lightweight>
+    // needs very new tbb: tf::function_node<tray, tf::continue_msg, tf::lightweight>
+    tf::function_node<tray, tf::continue_msg>
         sink(g, 1, [&](tray t) -> tf::continue_msg {
                 count++;
                 t.destroy();
