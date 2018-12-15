@@ -139,6 +139,7 @@ sina_libs = \
     src/libsina.la \
     $(ARB_PROBE_LIBS) \
     $(ARB_HELIX_LIBS) \
+    $(ARB_LIBS) \
     $(CODE_COVERAGE_LIBS)
 
 src_sina_probematch_LDADD = $(sina_libs)
