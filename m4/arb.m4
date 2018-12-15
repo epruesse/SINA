@@ -64,12 +64,19 @@ AC_DEFUN([AX_LIB_ARBDB],
         AC_MSG_CHECKING([for libARBDB location])
 
 	ax_arb_lib_path=
-	for ax_arb_lib_path_tmp in $ax_arb_path/lib /usr/lib/arb/lib; do
-	    if test -f "$ax_arb_lib_path_tmp/libARBDB.so" \
-	    && test -r "$ax_arb_lib_path_tmp/libARBDB.so"; then
-	        ax_arb_lib_path="$ax_arb_lib_path_tmp"
-		break
-	    fi
+	for libext in so dylib; do
+            for ax_arb_lib_path_tmp in $ax_arb_path/lib /usr/lib/arb/lib; do
+	        if test -f "$ax_arb_lib_path_tmp/libARBDB.$libext" \
+                && test -r "$ax_arb_lib_path_tmp/libARBDB.$libext"; then
+	            ax_arb_lib_path="$ax_arb_lib_path_tmp"
+		    break
+	        fi
+                if test -f "$ax_arb_lib_path_tmp/libARBDB.$libext" \
+                && test -r "$ax_arb_lib_path_tmp/libARBDB.$libext"; then
+	            ax_arb_lib_path="$ax_arb_lib_path_tmp"
+                    break
+                fi
+	    done
 	done
 	if test -n "$ax_arb_lib_path"; then
             AC_MSG_RESULT([$ax_arb_lib_path])
