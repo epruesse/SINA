@@ -337,6 +337,7 @@ query_arb::getARBDB(fs::path& file_name) {
         query_arb::priv_data::the_arb_shell = new GB_shell();
 
         ARB_install_handlers(arb_log_handlers);
+        ARB_redirect_handlers_to(stderr, stderr);
     }
     if (open_arb_dbs.empty()) {
         atexit(query_arb::closeOpenARBDBs);
