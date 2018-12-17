@@ -36,10 +36,6 @@ namespace bdata = boost::unit_test::data;
 #include <random>
 #include <set>
 
-std::ostream& operator<<(std::ostream& out, const idset& set) {
-    out << set.name();
-}
-
 
 BOOST_AUTO_TEST_SUITE(bitmap_test);
 
@@ -71,7 +67,7 @@ struct test_set {
 int map_sizes[] = {0, 255,256,257, 10000};
 int map_fill[]  = {0, 10, 50, 100};
 int map_seed[]  = {132456, 54321, 242424};
-idset* map_type[] =  {new bitmap(0), new vlimap_abs(0), new vlimap(0) };
+idset* map_type[] =  {new bitmap(0), new imap_abs(0), new vlimap_abs(0), new vlimap(0) };
 
 
 BOOST_DATA_TEST_CASE_F(test_set,
@@ -124,9 +120,11 @@ BOOST_DATA_TEST_CASE_F(test_set,
   
     // init bitmap
     idset* b = type->make_new(map_size);
+    BOOST_REQUIRE_EQUAL(b->size(), 0);
     for (auto i : data) {
         b->push_back(i);
     }
+    BOOST_CHECK_EQUAL(data.size(), b->size());
   
     // check increment()
     idset::inc_t count(map_size, 0);

@@ -38,34 +38,32 @@ for the parts of ARB used as well as that of the covered work.
 class idset {
 public:
     using value_type = uint32_t;
-    using inc_t = std::vector<uint16_t>;
+    using inc_t = std::vector<int16_t>;
     using data_t = std::vector<uint8_t>;
 
     /* virtual destructor */
     virtual ~idset() = default;
 
-
     size_t size() const {
-        return data.size();
+        return _size;
     }
-    
 
     /* add id to container; MUST be monotonically rising! */
     virtual void push_back(value_type n) = 0;
     
     /* increment vector at offsets included in set */
-    virtual void increment(inc_t& data) const = 0;
+    virtual int increment(inc_t& data) const = 0;
 
     ///// for unit testing: ////
 
     /* create a new instance */
     virtual idset* make_new(value_type size) const = 0;
 
-    /* get name of subclass */
-    virtual const char* name() const { return "idset"; }
+    void shrink_to_fit() { data.shrink_to_fit(); }
 
 protected:
     mutable data_t data;
+    size_t _size{0};
 };
 
 
@@ -75,7 +73,7 @@ public:
     using block_type = typename data_t::value_type;
     const size_t bits_per_block = sizeof(block_type) * 8;
 
-    bitmap(value_type maxid) {
+    bitmap(value_type maxid) : idset() {
         int blocks_needed = (maxid + bits_per_block - 1 )/ bits_per_block;
         data.resize(blocks_needed, 0);
     }
@@ -111,16 +109,13 @@ public:
         return new bitmap(size);
     }
     
-    const char* name() const override {
-        return "bitmap";
-    }
-    
     void push_back(value_type id) override {
+        if (!get(id)) ++_size;
         set(id);
     }
 
 
-    void increment(inc_t& t) const override {
+    int increment(inc_t& t) const override {
         for (value_type i=0; i < data.size(); i++) {
             block_type block = data[i];
             while (block != 0) {
@@ -129,15 +124,70 @@ public:
                 block ^= 1<<j;
             }
         }
+        return 0;
     }
 };
+
+
+
+/* idset implementation using plain integers
+ */
+class imap_abs : public idset {
+public:
+    imap_abs(int /*unused*/) : idset() {};
+
+    /* once-forward iterator over contents */
+    class const_iterator {
+        data_t::const_iterator _it;
+    public:
+        const_iterator(const data_t::const_iterator& it) : _it(it) {}
+        value_type operator*() {
+            return *(value_type*)(&*_it);
+        }
+        const_iterator& operator++() {
+            _it += sizeof(value_type);
+            return *this;
+        }
+        bool operator!=(const const_iterator& rhs) const {
+            return _it != rhs._it;
+        }
+    };
+
+    const_iterator begin() const {
+        return const_iterator(data.begin());
+    }
+
+    const_iterator end() const {
+        return const_iterator(data.end());
+    }
+
+    idset* make_new(value_type size) const override {
+        return new imap_abs(size);
+    }
+
+    void push_back(value_type n) override {
+        size_t offset = data.size();
+        data.resize(data.size() + sizeof(value_type));
+        *(value_type*)(data.data() + offset) = n;
+        ++_size;
+    }
+
+    int increment(inc_t& t) const override {
+        for (idset::value_type it : *this) {
+            ++t[it];
+        }
+        return 0;
+    }
+};
+
+
 
 /* idset implementation using variable length integers
  * (encoded using most significant bit to indicate need for another byte)
  */
 class vlimap_abs : public idset {
 public:
-    vlimap_abs(int /*unused*/) {}
+    vlimap_abs(int /*unused*/) : idset() {}
 
     /* once-forward iterator over contents */
     class const_iterator {
@@ -148,7 +198,7 @@ public:
             value_type val;
             // first byte
             uint8_t byte = *_it;
-#define SINA_UNROLL
+//#define SINA_UNROLL
 #ifdef SINA_UNROLL
             if ((byte & 0x80) == 0) {
                 return byte;
@@ -198,11 +248,11 @@ public:
             return val;
 #endif // SINA_UNROLL
         }
-        const_iterator& operator++() {
+        inline const_iterator& operator++()  __attribute__((always_inline))  {
             _it++; // step to next encoded value
             return *this;
         }
-        bool operator!=(const const_iterator& rhs) const {
+        inline bool operator!=(const const_iterator& rhs) const  __attribute__((always_inline))  {
             return _it != rhs._it;
         }
     };
@@ -215,16 +265,8 @@ public:
         return const_iterator(data.end());
     }
     
-    size_t size() {
-        return data.size();
-    }
-
     idset* make_new(value_type size) const override {
         return new vlimap_abs(size);
-    }
-    
-    const char* name() const override {
-        return "vlimap_abs";
     }
     
     void push_back(value_type n) override {
@@ -233,41 +275,68 @@ public:
             n >>= 7;
         }
         data.push_back(n);
+        ++_size;
     }
     
-    void increment(inc_t& t) const override {
+    int increment(inc_t& t) const override {
         for (idset::value_type it : *this) {
-            t[it]++;
+            ++t[it];
         }
+        return 0;
     }
 };
 
 /* idset implementation using variable length integer on distances */
-class vlimap : public vlimap_abs {
+class vlimap final : public vlimap_abs {
 public:
-    vlimap(value_type size) : vlimap_abs(size), last(0) {}
+    vlimap(value_type size, inc_t::value_type inc_=1) : vlimap_abs(size), last(0), inc(inc_) {}
     
     idset* make_new(value_type size) const override {
         return new vlimap(size);
-    }
-    
-    const char* name() const override {
-        return "vlimap";
     }
     
     void push_back(value_type n) override {
         vlimap_abs::push_back(n-last);
         last = n;
     }
-    
-    void increment(inc_t& t) const override {
+
+#if 0
+    int increment(inc_t& t) const override {
         value_type last = 0;
-        for (idset::value_type it : *this) {
+        for (auto it : *this) {
             last += it;
             ++t[last];
         }
+        return 0;
     }
+#else
+    inline int increment(inc_t& t) const override {
+        auto it = data.begin();
+        auto end = data.end();
+        value_type last = 0;
+        while (it != end) {
+            uint8_t byte = *it;
+            if (likely(byte < 128)) {
+                last += byte;
+            } else {
+                value_type val = byte & 0x7f;
+                unsigned int shift = 7;
+                do {
+                    byte = *(++it);
+                    val |= value_type(byte & 0x7f) << shift;
+                    shift += 7;
+                } while (byte >= 128);
+                last += val;
+            }
+            t[last] += inc;
+            ++it;
+        }
+        return 1-(inc+1)/2;
+    }
+#endif
+
 private:
+    inc_t::value_type inc{1};
     value_type last;
 };
 

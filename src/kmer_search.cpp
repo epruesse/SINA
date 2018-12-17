@@ -94,7 +94,7 @@ class kmer_search::index {
     int n_sequences{0};
 
     std::vector<std::string> sequence_names;
-    std::vector<idset*> kmer_idx;
+    std::vector<vlimap*> kmer_idx;
 
     query_arb* arbdb;
     timer timeit;
@@ -180,6 +180,25 @@ kmer_search::build_index() {
     }
     t.stop("count");
 
+    for (int i=0; i < data.n_kmers; i++) {
+        if (data.kmer_idx[i]->size() > data.n_sequences / 2) {
+            vlimap* inverted = new vlimap(data.n_sequences, -1);
+            int cur = 0, last = 0;
+            for (auto off : *data.kmer_idx[i]) {
+                cur += off;
+                while (++last < cur) {
+                    inverted->push_back(last);
+                }
+            }
+            while (++last <= data.n_sequences) {
+                inverted->push_back(last);
+            }
+            delete data.kmer_idx[i];
+            data.kmer_idx[i] = inverted;
+        }
+    }
+    t.stop("shrink");
+
     logger->info("Indexed {} sequences", data.n_sequences);
     logger->info("Timings: {}", t);
 }
@@ -220,40 +239,41 @@ kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {
     }
     data.timeit.start();
     const vector<aligned_base>& bases = query.const_getAlignedBases();
-    vector<uint16_t> scores(data.n_sequences, 0);
+    idset::inc_t scores(data.n_sequences, 0);
     data.timeit.stop("load");
 
-    std::unordered_set<unsigned int> seen;
+    std::unordered_set<unsigned int> seen(query.size()*2-1);
 
-    for (unsigned int kmer: unique_kmers(bases, seen, data.k)) {
-        data.kmer_idx[kmer]->increment(scores);
+    int offset = 0;
+    // for (unsigned int kmer: all_kmers(bases, data.k)) {
+    // for (unsigned int kmer: unique_kmers(bases, seen, data.k)) {
+    // for (unsigned int kmer: unique_prefix_kmers(bases, seen, data.k, 1, BASE_A)) {
+    for (unsigned int kmer: prefix_kmers(bases, data.k, 1, BASE_A)) {
+        if (data.kmer_idx[kmer]->size() < data.n_sequences) {
+            offset += data.kmer_idx[kmer]->increment(scores);
+        }
     }
     data.timeit.stop("sum");
 
-    std::vector<std::pair<int, string> > scored_names;
-    scored_names.reserve(data.n_sequences);
-    std::transform(scores.begin(), scores.end(),
-                   data.sequence_names.begin(),
-                   std::back_inserter(scored_names),
-                   [](int score, string name) {
-                       return std::make_pair(score, name);
-                   }
-        );
+    using pair = std::pair<idset::inc_t::value_type, int>;
+    std::vector<pair> ranks;
+    ranks.reserve(data.n_sequences);
+    int n = 0;
+    for (auto score: scores) {
+        ranks.emplace_back(score + offset, n++);
+    }
     data.timeit.stop("assemble");
 
-    std::partial_sort(scored_names.begin(), scored_names.begin()+max, scored_names.end(),
-                      std::greater<std::pair<int,string> >());
+    std::partial_sort(ranks.begin(), ranks.begin()+max, ranks.end(),
+                      std::greater<pair>());
     data.timeit.stop("sort");
 
     results.clear();
     results.reserve(max);
-    std::transform(scored_names.begin(), scored_names.begin()+max,
-                   std::back_inserter(results),
-                   [&] (std::pair<int, string> hit) {
-                       cseq c = data.arbdb->getCseq(hit.second);
-                       c.setScore(hit.first);
-                       return c;
-                   });
+    for (int i=0; i<max; i++) {
+        results.emplace_back(data.arbdb->getCseq(data.sequence_names[ranks[i].second]));
+        results.back().setScore(ranks[i].first);
+    }
     data.timeit.stop("output");
 }
 
