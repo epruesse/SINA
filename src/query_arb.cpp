@@ -231,7 +231,9 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
     if (((gbdata = getGBDATA(name)) != nullptr) &&
         ((gbdata = GBT_find_sequence(gbdata, ali)) != nullptr) &&
         ((res = GB_read_char_pntr(gbdata)) != nullptr)) {
-        return res;
+        string out(res);
+        GB_flush_cache(gbdata);
+        return out;
     }
     return "";
 }
@@ -507,8 +509,6 @@ query_arb::loadCache(std::vector<std::string>& keys) {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data.gbmain);
 
-    GB_set_cache_size(data.gbmain, 0);
-
     data.loadCache();
     unsigned int scache_size = data.sequence_cache.size();
 
@@ -517,23 +517,25 @@ query_arb::loadCache(std::vector<std::string>& keys) {
 
     data.sequence_cache.reserve(data.count);
 
+#undef HAVE_TBB
 #ifndef HAVE_TBB // serial implementation
     timer t;
     for ( gbspec = GBT_first_species(data.gbmain);
           gbspec;
           gbspec = GBT_next_species(gbspec)) {
+        t.start();
         const char* name_str = GBT_read_name(gbspec);
         string name(name_str);
         t.stop("name");
         cseq sequence;
         if (not data.sequence_cache.count(name)) {
-            t.start();
             GBDATA *gb_data = GBT_find_sequence(gbspec,ali);
             if (not gb_data) continue;
             const char* ptr =  GB_read_char_pntr(gb_data);
             t.stop("arb load");
             sequence = cseq(name.c_str(), 0.f, ptr);
             t.stop("cseq convert");
+            GB_flush_cache(gb_data);
         } else {
             sequence = data.sequence_cache[name];
         }
@@ -545,10 +547,11 @@ query_arb::loadCache(std::vector<std::string>& keys) {
             }
         }
 
+
         data.sequence_cache[sequence.getName()] = sequence;
         ++p;
     }
-    logger.info("Timings for Cache Load: {}", t);
+    logger->info("Timings for Cache Load: {}", t);
 
 #else // HAVE_TBB -- parallel implementation
 
@@ -598,7 +601,7 @@ query_arb::loadCache(std::vector<std::string>& keys) {
                 tkeys.start();
                 for(auto & key : keys) {
                     if (sequence.get_attrs().count(key) == 0u) {
-                        ::loadKey(sequence, key, gbspec);
+                        ::loadKey(sequence, key, gbspec); //FIXME!!!
                     }
                 }
                 data.sequence_cache[sequence.getName()] = sequence;
