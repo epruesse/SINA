@@ -56,7 +56,7 @@ cseq_comparator::cseq_comparator() = default;
 
 template<typename FUNC> 
 void
-traverse(const cseq& A, const cseq& B, FUNC F) {
+traverse(const cseq_base& A, const cseq_base& B, FUNC F) {
     auto a = A.bases.begin();
     auto a_end = A.bases.end();
     auto b = B.bases.begin();

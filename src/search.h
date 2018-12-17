@@ -32,11 +32,10 @@ for the parts of ARB used as well as that of the covered work.
 #include <boost/core/noncopyable.hpp>
 #include <string>
 #include <vector>
-
+#include "cseq.h"
 
 namespace sina {
 
-class cseq;
 class query_arb;
 
 class search : private boost::noncopyable {

@@ -45,7 +45,7 @@ using namespace sina;
 
 static auto logger = Log::create_logger("cseq");
 
-cseq::cseq(const char *_name, float _score, const char *_data) 
+cseq_base::cseq_base(const char *_name, float _score, const char *_data)
     : name(_name), score(_score)
 {
     if (_data != nullptr) {
@@ -55,13 +55,13 @@ cseq::cseq(const char *_name, float _score, const char *_data)
 
   
 void
-cseq::clearSequence() { 
+cseq_base::clearSequence() {
     bases.clear(); 
     alignment_width = 0; 
 }
 
-cseq&
-cseq::append(const char *str) {
+cseq_base&
+cseq_base::append(const char *str) {
     //FIXME: keep internal '.'s
     while(*str != 0) {
         if (*str != ' ' && *str != '\t' && *str != '\n' &&  *str != '\r') {
@@ -76,8 +76,8 @@ cseq::append(const char *str) {
     return *this;
 }
 
-cseq&
-cseq::append(const aligned_base& ab) {
+cseq_base&
+cseq_base::append(const aligned_base& ab) {
     if (ab.getPosition() >= alignment_width) {
         // it's allowed to have more than one base on the
         // same position. we fix them in one go later on.
@@ -89,14 +89,14 @@ cseq::append(const aligned_base& ab) {
                       ab.getBase(), ab.getPosition(), alignment_width);
 
         bases.emplace_back(alignment_width, ab.getBase());
-    } 
+    }
 
     return *this;
 }
 
 
 void
-cseq::setWidth(vidx_type newWidth) {
+cseq_base::setWidth(vidx_type newWidth) {
     if (bases.empty() || newWidth >= bases.back().getPosition() + 1) {
         // modify at will if changing only number of trailing gaps
         alignment_width = newWidth;
@@ -133,7 +133,7 @@ cseq::setWidth(vidx_type newWidth) {
 
 
 string
-cseq::getAligned(bool nodots, bool dna) const {
+cseq_base::getAligned(bool nodots, bool dna) const {
     string aligned;
     aligned.reserve(alignment_width);
 
@@ -174,7 +174,7 @@ cseq::getAligned(bool nodots, bool dna) const {
 }
 
 string
-cseq::getBases() const {
+cseq_base::getBases() const {
     string basestr;
     basestr.reserve(bases.size());
 
@@ -192,7 +192,7 @@ struct compressed_data {
 };
 
 void
-cseq::compressAligned(std::vector<unsigned char> &out) {
+cseq_base::compressAligned(std::vector<unsigned char> &out) {
     vector<unsigned char> buf;
     using uint = unsigned int;
 
@@ -230,7 +230,7 @@ cseq::compressAligned(std::vector<unsigned char> &out) {
 }
 
 void
-cseq::assignFromCompressed(const void* data, size_t len) {
+cseq_base::assignFromCompressed(const void* data, size_t len) {
     vector<unsigned char> buf;
     using uint = unsigned int;
     const auto *cd = reinterpret_cast<const compressed_data*>(data);
@@ -265,7 +265,7 @@ cseq::assignFromCompressed(const void* data, size_t len) {
 
 
 char
-cseq::operator[](cseq::vidx_type i) {
+cseq_base::operator[](cseq_base::vidx_type i) {
     vector<aligned_base>::const_iterator it = getIterator(i);
     if (it != bases.end() && i == it->getPosition()) {
         return it->getBase();
@@ -275,26 +275,26 @@ cseq::operator[](cseq::vidx_type i) {
 
 
 std::ostream&
-sina::operator<<(std::ostream& out, const cseq& c) {
+sina::operator<<(std::ostream& out, const cseq_base& c) {
     out << c.getName();
     return out;
 }
 
 void
-cseq::reverse() {
+cseq_base::reverse() {
     std::reverse(bases.begin(), bases.end());
     std::for_each(bases.begin(), bases.end(),
                   aligned_base_reverse_position(alignment_width-1));
 }
 
 void
-cseq::complement() {
+cseq_base::complement() {
     std::for_each(bases.begin(), bases.end(),
                   std::mem_fun_ref(&aligned_base::complement));
 }
 
 void
-cseq::upperCaseAll() {
+cseq_base::upperCaseAll() {
     std::for_each(bases.begin(), bases.end(),
                   std::mem_fun_ref(&aligned_base::setUpperCase));
 }
@@ -356,16 +356,16 @@ string color_code(const string& in) {
 }
 
 void
-cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
-                      cseq::idx_type from_pos,
-                      cseq::idx_type to_pos,
+cseq_base::write_alignment(std::ostream& ofs, std::vector<cseq_base*>& seqs,
+                      cseq_base::idx_type from_pos,
+                      cseq_base::idx_type to_pos,
                       bool colors
                       ) {
     if (seqs.empty()) {
         ofs << "cseq::write_alignment(): no sequences?" << endl;
         return;
     }
-    if (from_pos > to_pos || to_pos >= seqs[0].getWidth()) {
+    if (from_pos > to_pos || to_pos >= seqs[0]->getWidth()) {
         ofs << "cseq::write_alignment(): range out of bounds!" << endl;
         return;
     }
@@ -378,7 +378,7 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
     for (auto i = from_pos; i <= to_pos; ++i) {
         bool gap = true;
         for (auto j = 0; j < jmax; ++j) {
-            outchar[j] = seqs[j][i];
+            outchar[j] = (*seqs[j])[i];
             if (outchar[j] != '-') {
                 gap = false;
             }
@@ -451,7 +451,7 @@ cseq::write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
 }
 
 void
-cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
+cseq_base::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
     idx_type total_inserts = 0, longest_insert = 0, orig_inserts = 0;
 
     auto last_it = bases.begin();
@@ -596,7 +596,7 @@ cseq::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
 }
 
 std::vector<std::pair<unsigned int, unsigned int>>
-cseq::find_differing_parts(const cseq& right) const {
+cseq_base::find_differing_parts(const cseq_base& right) const {
     using bases_it = std::vector<aligned_base>::const_iterator;
     auto l_it = bases.begin(), l_end = bases.end();
     auto r_it = right.bases.begin(), r_end = right.bases.end();
@@ -651,7 +651,7 @@ cseq::find_differing_parts(const cseq& right) const {
 
 
 float
-cseq::calcPairScore(const std::vector<int>& pairs) {
+cseq_base::calcPairScore(const std::vector<int>& pairs) {
     // create array to hold counts for base combinations
     std::vector<int> count;
     count.resize(65536);
