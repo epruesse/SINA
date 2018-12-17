@@ -231,6 +231,8 @@ struct query_pt::priv_data {
     int  num_mismatch;
     bool relative_sort;
 
+    query_arb *arbdb;
+
     static std::map<string, std::weak_ptr<managed_pt_server>> servers;
     std::shared_ptr<managed_pt_server> server;
 
@@ -290,10 +292,13 @@ query_pt::query_pt(const char* portname, const char* dbname,
     if (!data->connect_server(portname)) {
         data->server = std::make_shared<managed_pt_server>(dbname, portname);
         if (!data->connect_server(portname)) {
+            delete data;
             throw query_pt_exception("Failed to start PT server. Do you have enough memory?");
         }
         priv_data::servers[portname] = data->server;
     }
+
+    data->arbdb = query_arb::getARBDB(dbname);
 
     set_find_type_fast(fast);
     set_probe_len(k);
