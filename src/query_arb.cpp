@@ -173,8 +173,6 @@ struct query_arb::priv_data {
     int count{0};
 
     GBDATA* getGBDATA(const string& name);
-    void loadCache();
-    void storeCache();
     string getSequence(const char* name, const char* ali);
     void get_weights_nolock(vector<float>& res,
                             const char *name, const char *ali) ;
@@ -197,16 +195,6 @@ query_arb::priv_data::getGBDATA(const string& name) {
     gbdata_cache[name] =  gbd;
 
     return gbd;
-}
-
-void
-query_arb::priv_data::loadCache() {
-    // implementation removed; serialize was too slow to be useful
-}
-
-void
-query_arb::priv_data::storeCache() {
-    // implementation removed; serialize was too slow to be useful
 }
 
 string
@@ -509,7 +497,6 @@ query_arb::loadCache(std::vector<std::string>& keys) {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data.gbmain);
 
-    data.loadCache();
     unsigned int scache_size = data.sequence_cache.size();
 
     logger->info("Loading {} sequences...", data.count);
@@ -614,9 +601,6 @@ query_arb::loadCache(std::vector<std::string>& keys) {
 #endif // have TBB
 
     logger->info("Loaded {} sequences", data.sequence_cache.size());
-    if (data.sequence_cache.size() > scache_size) {
-        data.storeCache();
-    }
 
     data.have_cache = true;
 }
