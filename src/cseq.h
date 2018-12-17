@@ -41,12 +41,6 @@ for the parts of ARB used as well as that of the covered work.
 
 #include <boost/variant.hpp>
 #include <boost/lexical_cast.hpp>
-/*
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/level.hpp>
-#include <boost/serialization/tracking.hpp>
-#include <boost/serialization/access.hpp>
-*/
 #include <boost/tuple/tuple.hpp>
 
 namespace sina {
@@ -275,19 +269,6 @@ class cseq::const_reverse_iterator
 } // namespace sina
 
 #include "cseq_impl.h"
-
-#if 0
-// elminate serialization overhead at the cost of
-// never being able to increase the version.
-BOOST_CLASS_IMPLEMENTATION(sina::cseq,
-                           boost::serialization::object_serializable);
-
-// eliminate object tracking (even if serialized through a pointer)
-// at the risk of a programming error creating duplicate objects.
-BOOST_CLASS_TRACKING(sina::cseq,
-                     boost::serialization::track_never);
-#endif
-
 
 #endif
 

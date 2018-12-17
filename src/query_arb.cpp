@@ -98,9 +98,6 @@ inline GBDATA* GBT_find_sequence(GBDATA* gbd, const char* ali) {
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/map.hpp>
 #include <boost/progress.hpp>
 #include <boost/filesystem.hpp>
 
