@@ -86,6 +86,8 @@ public:
                      nullptr, false, 0, 0, 0, 0, false);
     };
 
+    virtual void find(const cseq& query, std::vector<cseq>& results, int max) = 0;
+
     
 };
 

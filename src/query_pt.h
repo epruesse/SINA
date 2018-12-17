@@ -56,6 +56,8 @@ public:
              bool norel=false);
     ~query_pt() override;
 
+    void find(const cseq& query, std::vector<cseq>& results, int max) override;
+
     /**
      * match runs a word search using the PT server
      *

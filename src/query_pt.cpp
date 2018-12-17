@@ -599,6 +599,68 @@ match_retry:
     return f_relscore;
 }
 
+void
+query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
+    char *error = "";
+
+    results.clear();
+    results.reserve(max);
+
+    boost::mutex::scoped_lock lock(data->arb_pt_access);
+
+    bytestring bs;
+    bs.data = strdup(query.getBases().c_str());
+    bs.size = query.size()+1;
+    if (aisc_put(data->link,
+                 PT_FAMILYFINDER, data->ffinder,
+                 FAMILYFINDER_FIND_FAMILY, &bs,
+                 NULL) != 0) {
+        logger->error("Unable to execute find_family command on pt-server");
+    }
+    free(bs.data);
+
+    T_PT_FAMILYLIST f_list;
+    aisc_get(data->link,
+             PT_FAMILYFINDER, data->ffinder,
+             FAMILYFINDER_FAMILY_LIST, f_list.as_result_param(),
+             FAMILYFINDER_ERROR, &error,
+             NULL);
+    if (error && error[0] != 0) {
+        logger->error("Unable to get results for search: {}", error);
+        return;
+    }
+
+    if (!f_list.exists()) {
+        return;
+    }
+
+    char* f_name;
+    double f_rel_matches = 0.f;
+    int f_matches = 0;
+
+    std::vector<std::pair<int, string> > scored_names;
+    while (f_list.exists() && max--) {
+        aisc_get(data->link, PT_FAMILYLIST, f_list,
+                 FAMILYLIST_NAME, &f_name,
+                 FAMILYLIST_REL_MATCHES, &f_rel_matches,
+                 FAMILYLIST_MATCHES, &f_matches,
+                 FAMILYLIST_NEXT, f_list.as_result_param(),
+                 NULL);
+        scored_names.emplace_back(f_matches, f_name);
+        free(f_name);
+    }
+
+    std::transform(scored_names.begin(), scored_names.end(),
+                   std::back_inserter(results),
+                   [&] (std::pair<int, string> hit) {
+                       cseq c = data->arbdb->getCseq(hit.second);
+                       c.setScore(hit.first);
+                       return c;
+                   });
+
+}
+
+
 query_pt_exception::query_pt_exception(std::string  msg) noexcept
     : message(std::move(msg))
 {

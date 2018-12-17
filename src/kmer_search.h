@@ -85,7 +85,7 @@ public:
     
     void build_index();
     void init();
-    void find(const cseq& query, std::vector<cseq>& results, int max);
+    void find(const cseq& query, std::vector<cseq>& results, int max) override;
 
 private:
     kmer_search(query_arb* arbdb, int k=8);
