@@ -67,7 +67,7 @@ std::map<string, kmer_search*> kmer_search::indices;
 static boost::mutex indices_access;
 
 kmer_search*
-kmer_search::get_kmer_search(fs::path& filename, int k) {
+kmer_search::get_kmer_search(const fs::path& filename, int k) {
     boost::mutex::scoped_lock lock(indices_access);
     std::stringstream str;
     str << filename << "%%k=" << k;

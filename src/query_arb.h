@@ -62,7 +62,7 @@ private:
 
 
 class query_arb{
-    query_arb(boost::filesystem::path& arbfile);
+    query_arb(const boost::filesystem::path& arbfile);
     ~query_arb();
 
  public:
@@ -71,7 +71,7 @@ class query_arb{
      * @param file_name ...
      * @returns one instance per database file. If the method is called multiple times on the same file the same instance is returned.
      */
-    static query_arb* getARBDB(boost::filesystem::path& file_name);
+    static query_arb* getARBDB(const boost::filesystem::path& file_name);
 
     static const char* fn_turn;
     static const char* fn_acc;

@@ -236,7 +236,7 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
     return "";
 }
 
-query_arb::query_arb(fs::path& arbfile)
+query_arb::query_arb(const fs::path& arbfile)
     : data(* new(priv_data)) {
     data.filename = arbfile;
     if (arbfile.empty()) {
@@ -331,7 +331,7 @@ static arb_handlers arb_log_handlers = {
 
 
 query_arb*
-query_arb::getARBDB(fs::path& file_name) {
+query_arb::getARBDB(const fs::path& file_name) {
     boost::mutex::scoped_lock lock(arb_db_access);
     if (query_arb::priv_data::the_arb_shell == nullptr) {
         query_arb::priv_data::the_arb_shell = new GB_shell();
