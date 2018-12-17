@@ -183,6 +183,15 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
             break;
         }
     }
+    if (line.empty()) {
+        process->rdbuf()->kill();
+        throw query_pt_exception("PT server failed to respond. Do you have enough memory?");
+    }
+    if (process->rdbuf()->exited()) {
+        throw query_pt_exception(
+            fmt::format("PT server exited immediately. Exit status was {}",
+                        process->rdbuf()->status()));
+    }
 
     logger->warn("Launched PT server ({} on {}).", dbname, portname);
 }
