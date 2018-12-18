@@ -28,7 +28,11 @@ for the parts of ARB used as well as that of the covered work.
 
 #include <cstdint>
 #include <cstddef>
+#include <cassert>
 #include <vector>
+
+#include <tbb/scalable_allocator.h>
+#include <tbb/cache_aligned_allocator.h>
 
 #include "helpers.h"
 
@@ -38,8 +42,9 @@ for the parts of ARB used as well as that of the covered work.
 class idset {
 public:
     using value_type = uint32_t;
-    using inc_t = std::vector<int16_t>;
-    using data_t = std::vector<uint8_t>;
+    using inc_t = std::vector<int16_t, tbb::cache_aligned_allocator<uint8_t>>;
+    //using data_t = std::vector<uint8_t, tbb::scalable_allocator<uint8_t>>;
+    using data_t = std::vector<uint8_t, tbb::cache_aligned_allocator<uint8_t>>;
 
     /* virtual destructor */
     virtual ~idset() = default;
@@ -187,12 +192,16 @@ public:
  */
 class vlimap_abs : public idset {
 public:
-    vlimap_abs(int /*unused*/) : idset() {}
+    vlimap_abs(int maxsize=0) : idset() {}
 
     /* once-forward iterator over contents */
     class const_iterator {
         data_t::const_iterator _it;
     public:
+        data_t::const_iterator iter() {
+            return _it;
+        }
+
         const_iterator(const data_t::const_iterator& it) : _it(it) {}
         inline value_type operator*()  __attribute__((always_inline)) { // DO NOT CALL TWICE
             value_type val;
@@ -289,27 +298,22 @@ public:
 /* idset implementation using variable length integer on distances */
 class vlimap final : public vlimap_abs {
 public:
-    vlimap(value_type size, inc_t::value_type inc_=1) : vlimap_abs(size), last(0), inc(inc_) {}
+    vlimap(value_type maxsize, inc_t::value_type inc=1)
+        : vlimap_abs(maxsize),
+          _inc(inc),
+          _last(0),
+          _maxsize(maxsize)
+    {}
     
-    idset* make_new(value_type size) const override {
-        return new vlimap(size);
+    idset* make_new(value_type maxsize) const override {
+        return new vlimap(maxsize);
     }
     
     void push_back(value_type n) override {
-        vlimap_abs::push_back(n-last);
-        last = n;
+        vlimap_abs::push_back(n-_last);
+        _last = n;
     }
 
-#if 0
-    int increment(inc_t& t) const override {
-        value_type last = 0;
-        for (auto it : *this) {
-            last += it;
-            ++t[last];
-        }
-        return 0;
-    }
-#else
     inline int increment(inc_t& t) const override {
         auto it = data.begin();
         auto end = data.end();
@@ -328,16 +332,62 @@ public:
                 } while (byte >= 128);
                 last += val;
             }
-            t[last] += inc;
+            t[last] += _inc;
             ++it;
         }
-        return 1-(inc+1)/2;
+        return 1-(_inc+1)/2;
     }
-#endif
+
+    /* append contents of another vlimap
+     * - largest value in LHS must be smaller than smallest in RHS
+     * - invertion status must be equal
+     */
+    void append(const vlimap& other) {
+        if (other.data.size() == 0) {
+            return;
+        }
+        if (data.size() == 0) {
+            data = other.data;
+            _last = other._last;
+            return;
+        }
+
+        auto it = other.begin();
+        auto val = *it;
+        push_back(val);
+
+        data_t::const_iterator data_it = (++it).iter();
+        data_t::const_iterator end = other.data.end();
+        data.insert(data.end(), data_it, end);
+        _last = other._last;
+    }
+
+    /* invert map
+     * replaces "in map" with "not in map"
+     * increment() on inverted object will actually decrement and return 1 instead of 0
+     */
+    void invert() {
+        vlimap res(0, -1);
+        value_type next = 0, last = 0;
+        for (auto inc : *this) {
+            next += inc;
+            while (last < next) {
+                res.push_back(last++);
+            }
+            last++;
+        }
+        while (last < _maxsize) {
+            res.push_back(last++);
+        }
+        std::swap(data, res.data);
+        std::swap(_inc, res._inc);
+        std::swap(_last, res._last);
+        std::swap(_maxsize, res._maxsize);
+    }
 
 private:
-    inc_t::value_type inc{1};
-    value_type last;
+    inc_t::value_type _inc{1};
+    value_type _last, _maxsize;
 };
 
 /*

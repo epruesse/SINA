@@ -629,7 +629,7 @@ query_arb::getSequenceNames() {
 }
 
 cseq&
-query_arb::getCseq(const string& name) {
+query_arb::getCseq(const string& name) { //, bool nocache) {
     // if there is a preloaded cache, just hand out sequence
     boost::mutex::scoped_lock lock_cache(data.sequence_cache_access);
     if (data.have_cache) {
@@ -660,6 +660,12 @@ query_arb::getCseq(const string& name) {
     }
 #endif
     return data.sequence_cache[name];
+}
+
+cseq
+query_arb::getCseqUncached(const string& name) { //, bool nocache) {
+    return {name.c_str(), 0.f,
+            data.getSequence(name.c_str(), data.default_alignment).c_str()};
 }
 
 int

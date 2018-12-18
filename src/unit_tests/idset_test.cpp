@@ -36,12 +36,15 @@ namespace bdata = boost::unit_test::data;
 #include <random>
 #include <set>
 
+BOOST_TEST_SPECIALIZED_COLLECTION_COMPARE(std::vector<idset::inc_t>);
 
 BOOST_AUTO_TEST_SUITE(bitmap_test);
 
+
 struct test_set {
     test_set() = default;
-    void init (int size, int fill, int seed) {
+    void init (unsigned int size, int fill, int seed) {
+        // fill data with random sequence of monotonically rising numbers
         n = size * fill / 100;
         std::mt19937 engine(seed);
         std::uniform_real_distribution<> dist;
@@ -59,14 +62,27 @@ struct test_set {
         data.resize(n);
         std::copy(d.begin(), d.end(), data.begin());
         std::sort(data.begin(), data.end());
+
+        // fill expected_count
+        expected_counts.resize(size, 0);
+        for (auto i : data) {
+            expected_counts[i]++;
+        }
     }
     std::vector<unsigned int> data;
+    idset::inc_t expected_counts;
     int n;
 };
 
+#if 1
 int map_sizes[] = {0, 255,256,257, 10000};
 int map_fill[]  = {0, 10, 50, 100};
 int map_seed[]  = {132456, 54321, 242424};
+#else
+int map_sizes[] = {10};
+int map_fill[]  = {0, 50, 100};
+int map_seed[]  = {132456};
+#endif
 idset* map_type[] =  {new bitmap(0), new imap_abs(0), new vlimap_abs(0), new vlimap(0) };
 
 
@@ -125,7 +141,7 @@ BOOST_DATA_TEST_CASE_F(test_set,
         b->push_back(i);
     }
     BOOST_CHECK_EQUAL(data.size(), b->size());
-  
+
     // check increment()
     idset::inc_t count(map_size, 0);
     b->increment(count);
@@ -140,6 +156,88 @@ BOOST_DATA_TEST_CASE_F(test_set,
         }
     }
 }
+
+
+BOOST_DATA_TEST_CASE_F(test_set,
+		       vlipmap_abs_test,
+		       bdata::make(map_sizes) *
+                       bdata::make(map_fill) *
+                       bdata::make(map_seed),
+		       map_size, map_fill, map_seed) {
+    // init random set
+    init(map_size, map_fill, map_seed);
+
+    // init vlimap
+    vlimap_abs a, b;
+
+    int mid = data.size() / 2;
+    for (int i = 0; i < mid; i++) {
+        a.push_back(data[i]);
+    }
+    for (int i = mid; i < data.size(); i++) {
+        b.push_back(data[i]);
+    }
+
+    idset::inc_t count(map_size, 0);
+    a.increment(count);
+    b.increment(count);
+    BOOST_TEST(count == expected_counts, boost::test_tools::per_element()) ;
+}
+
+
+BOOST_DATA_TEST_CASE_F(test_set,
+		       vlipmap_test,
+		       bdata::make(map_sizes) *
+                       bdata::make(map_fill) *
+                       bdata::make(map_seed),
+		       map_size, map_fill, map_seed) {
+    // init random set
+    init(map_size, map_fill, map_seed);
+
+    // init vlimap
+    vlimap a(map_size), b(map_size);
+
+    int mid = data.size() / 2;
+    for (int i = 0; i < mid; i++) {
+        a.push_back(data[i]);
+    }
+    for (int i = mid; i < data.size(); i++) {
+        b.push_back(data[i]);
+    }
+
+    {
+        idset::inc_t count(map_size, 0);
+        a.increment(count);
+        b.increment(count);
+        BOOST_TEST(count == expected_counts, boost::test_tools::per_element()) ;
+    }
+
+    BOOST_TEST_CONTEXT("split = " << mid <<
+                       "(" << (data.size()?data[mid-1]:-1) <<
+                       "/" << (data.size()?data[mid]:-1) << ")") {
+        idset::inc_t count(map_size, 0);
+        a.append(b);
+        a.increment(count);
+        BOOST_TEST(count == expected_counts, boost::test_tools::per_element()) ;
+    }
+
+    {
+        idset::inc_t count(map_size, 1);
+        a.invert();
+        int res = a.increment(count);
+        BOOST_CHECK_EQUAL(res, 1);
+        BOOST_TEST(count == expected_counts, boost::test_tools::per_element()) ;
+    }
+    {
+        idset::inc_t count(map_size, 1);
+        vlimap *tmp = new vlimap(a);
+        int res = tmp->increment(count);
+        BOOST_CHECK_EQUAL(res, 1);
+        BOOST_TEST(count == expected_counts, boost::test_tools::per_element()) ;
+        delete tmp;
+    }
+}
+
 
 
 BOOST_AUTO_TEST_SUITE_END(); // cseq_test

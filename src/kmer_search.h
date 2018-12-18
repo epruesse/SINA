@@ -87,11 +87,12 @@ public:
     void init();
     void find(const cseq& query, std::vector<cseq>& results, int max) override;
 
+    class index;
 private:
     kmer_search(query_arb* arbdb, int k=8);
     ~kmer_search() override;
 
-    class index;
+
     index &data;
     static std::map<std::string, kmer_search*> indices;
     static void destroy_indices();

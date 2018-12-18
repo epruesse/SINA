@@ -128,6 +128,7 @@ class query_arb{
     std::vector<std::string> getSequenceNames();
 
     cseq& getCseq(const std::string& name);
+    cseq getCseqUncached(const std::string& name);
     void putCseq(const cseq& seq);
     void putSequence(const cseq& seq);//calls write
     void loadKey(cseq& c, const std::string& key);

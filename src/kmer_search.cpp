@@ -53,6 +53,9 @@ namespace fs = boost::filesystem;
 
 #include <boost/thread/mutex.hpp>
 
+#include <tbb/tbb.h>
+#include <tbb/cache_aligned_allocator.h>
+
 #include <cstdio>
 #include <sys/stat.h>
 
@@ -88,7 +91,9 @@ kmer_search::destroy_indices() {
 }
 
 class kmer_search::index {
+public:
     friend class kmer_search;
+    friend class BuildIndex;
     int k;
     int n_kmers;
     int n_sequences{0};
@@ -99,7 +104,7 @@ class kmer_search::index {
     query_arb* arbdb;
     timer timeit;
 
-public:
+
     index(int k_, query_arb* arbdb_)
         : k(k_),
           n_kmers(1<<(k_*2)),
@@ -137,64 +142,70 @@ kmer_search::~kmer_search() {
 void
 kmer_search::init() {
     build_index();
-    /*
-    logger->info("Trying to load index from disk");
-    if (data.try_load_index()) {
-        logger->info("Loaded index");
-        return;
-    } else {
-        build_index();
-        data.save_index();
-    }
-    */
 }
+
+class BuildIndex {
+    kmer_search::index *data;
+    boost::progress_display *p;
+public:
+    std::vector<vlimap> kmer_idx;
+
+    void operator()(const tbb::blocked_range<size_t>& r) {
+        size_t end = r.end();
+        std::unordered_set<unsigned int> seen;
+        for (size_t i = r.begin(); i < end; ++i) {
+            const cseq& c = data->arbdb->getCseqUncached(data->sequence_names[i]);
+            const auto& bases = c.const_getAlignedBases();
+            for (unsigned int kmer: unique_prefix_kmers(bases, seen, data->k, 1, BASE_A)) {
+                //for (const auto& kmer: unique_kmers(bases, seen, data->k)) {
+                kmer_idx[kmer].push_back(i);
+            }
+            ++(*p);
+        }
+    }
+
+    void join(const BuildIndex& other) {
+        for (int i = 0; i < data->n_kmers; ++i) {
+            kmer_idx[i].append(other.kmer_idx[i]);
+        }
+    }
+
+    BuildIndex(BuildIndex& x, tbb::split)
+        : data(x.data), p(x.p), kmer_idx(x.data->n_kmers, vlimap(x.data->n_sequences))
+    {
+    }
+
+    BuildIndex(kmer_search::index *data_, boost::progress_display *p_)
+        : data(data_), p(p_), kmer_idx(data->n_kmers, vlimap(data->n_sequences))
+    {
+    }
+};
 
 void
 kmer_search::build_index() {
-    data.arbdb->loadCache(); // parallel load - 10% faster overall
+    timer t;
+    t.start();
+
+    logger->info("Loading names...");
     data.sequence_names = data.arbdb->getSequenceNames();
     data.n_sequences = data.sequence_names.size();
 
     logger->info("Building index...");
-    boost::progress_display p(data.n_sequences, std::cerr);
-    timer t;
-    t.start();
-    data.kmer_idx.clear();
-    data.kmer_idx.reserve(data.n_kmers);
-    for (int i=0; i < data.n_kmers; i++) {
-        data.kmer_idx.push_back(new vlimap(data.n_sequences));
-    }
-    t.stop("alloc");
-
-    std::unordered_set<unsigned int> seen;
-    for (int i=0; i < data.n_sequences; i++) {
-        const cseq& c = data.arbdb->getCseq(data.sequence_names[i]);
-        const auto& bases = c.const_getAlignedBases();
-        t.stop("load");
-        for (const auto& kmer: unique_kmers(bases, seen, data.k)) {
-            data.kmer_idx[kmer]->push_back(i);
+    {
+        boost::progress_display p(data.n_sequences, std::cerr);
+        BuildIndex bi(&data, &p);
+        tbb::parallel_reduce(tbb::blocked_range<size_t>(0, data.n_sequences), bi);
+        data.kmer_idx.clear();
+        data.kmer_idx.reserve(data.n_kmers);
+        for (int i=0; i < data.n_kmers; i++) {
+            data.kmer_idx.push_back(new vlimap(bi.kmer_idx[i]));
         }
-        t.stop("hash");
-        t.end_loop(2);
-        ++p;
     }
-    t.stop("count");
+    t.stop("build");
 
     for (int i=0; i < data.n_kmers; i++) {
         if (data.kmer_idx[i]->size() > data.n_sequences / 2) {
-            vlimap* inverted = new vlimap(data.n_sequences, -1);
-            int cur = 0, last = 0;
-            for (auto off : *data.kmer_idx[i]) {
-                cur += off;
-                while (++last < cur) {
-                    inverted->push_back(last);
-                }
-            }
-            while (++last <= data.n_sequences) {
-                inverted->push_back(last);
-            }
-            delete data.kmer_idx[i];
-            data.kmer_idx[i] = inverted;
+            data.kmer_idx[i]->invert();
         }
     }
     t.stop("shrink");
