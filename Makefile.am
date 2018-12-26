@@ -57,9 +57,6 @@ CLEANFILES =
 # internal libs and binaries to .../bin and .../lib subdirs
 
 bin_PROGRAMS = src/sina
-noinst_PROGRAMS = \
-	src/sina_probematch \
-	src/kmer_test
 lib_LTLIBRARIES = src/libsina.la
 
 if ENABLE_FAT_TAR 
@@ -141,8 +138,6 @@ sina_libs = \
     $(ARB_LIBS) \
     $(CODE_COVERAGE_LIBS)
 
-src_sina_probematch_LDADD = $(sina_libs)
-src_kmer_test_LDADD = $(sina_libs)
 src_sina_LDADD = $(sina_libs)
 
 arb_pt_server$(EXEEXT): $(ARBHOME)/bin/arb_pt_server$(EXEEXT)
