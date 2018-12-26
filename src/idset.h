@@ -42,8 +42,7 @@ for the parts of ARB used as well as that of the covered work.
 class idset {
 public:
     using value_type = uint32_t;
-    using inc_t = std::vector<int16_t, tbb::cache_aligned_allocator<uint8_t>>;
-    //using data_t = std::vector<uint8_t, tbb::scalable_allocator<uint8_t>>;
+    using inc_t = std::vector<int16_t, tbb::cache_aligned_allocator<int16_t>>;
     using data_t = std::vector<uint8_t, tbb::cache_aligned_allocator<uint8_t>>;
 
     /* virtual destructor */
