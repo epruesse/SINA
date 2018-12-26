@@ -148,7 +148,7 @@ class BuildIndex {
     kmer_search::index *data;
     boost::progress_display *p;
 public:
-    std::vector<vlimap> kmer_idx;
+    std::vector<vlimap*> kmer_idx;
 
     void operator()(const tbb::blocked_range<size_t>& r) {
         size_t end = r.end();
@@ -158,25 +158,41 @@ public:
             const auto& bases = c.const_getAlignedBases();
             for (unsigned int kmer: unique_prefix_kmers(bases, seen, data->k, 1, BASE_A)) {
                 //for (const auto& kmer: unique_kmers(bases, seen, data->k)) {
-                kmer_idx[kmer].push_back(i);
+                if (kmer_idx[kmer] == nullptr) {
+                    kmer_idx[kmer] = new vlimap(data->n_sequences);
+                }
+                kmer_idx[kmer]->push_back(i);
             }
             ++(*p);
         }
     }
 
-    void join(const BuildIndex& other) {
+    void join(BuildIndex& other) {
         for (int i = 0; i < data->n_kmers; ++i) {
-            kmer_idx[i].append(other.kmer_idx[i]);
+            if (other.kmer_idx[i] != nullptr) {
+                if (kmer_idx[i] != nullptr) {
+                    kmer_idx[i]->append(*other.kmer_idx[i]);
+                } else {
+                    kmer_idx[i] = other.kmer_idx[i];
+                    other.kmer_idx[i] = nullptr;
+                }
+            }
+        }
+    }
+
+    ~BuildIndex() {
+        for (int i = 0; i < data->n_kmers; ++i) {
+            delete kmer_idx[i];
         }
     }
 
     BuildIndex(BuildIndex& x, tbb::split)
-        : data(x.data), p(x.p), kmer_idx(x.data->n_kmers, vlimap(x.data->n_sequences))
+        : data(x.data), p(x.p), kmer_idx(x.data->n_kmers, nullptr)
     {
     }
 
     BuildIndex(kmer_search::index *data_, boost::progress_display *p_)
-        : data(data_), p(p_), kmer_idx(data->n_kmers, vlimap(data->n_sequences))
+        : data(data_), p(p_), kmer_idx(data->n_kmers, nullptr)
     {
     }
 };
@@ -198,7 +214,11 @@ kmer_search::build_index() {
         data.kmer_idx.clear();
         data.kmer_idx.reserve(data.n_kmers);
         for (int i=0; i < data.n_kmers; i++) {
-            data.kmer_idx.push_back(new vlimap(bi.kmer_idx[i]));
+            if (bi.kmer_idx[i] != nullptr) {
+                data.kmer_idx.push_back(new vlimap(*bi.kmer_idx[i]));
+            } else {
+                data.kmer_idx.push_back(new vlimap(data.n_sequences));
+            }
         }
     }
     t.stop("build");
