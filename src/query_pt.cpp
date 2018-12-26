@@ -277,8 +277,22 @@ query_pt::priv_data::disconnect_server() {
 }
 
 
-
 std::map<string, std::weak_ptr<managed_pt_server>> query_pt::priv_data::servers;
+
+
+query_pt*
+query_pt::get_pt_search(const fs::path& filename, int k,
+                        bool fast,
+                        bool norel,
+                        int mk,
+                        std::string portname) {
+    if (portname.empty()) {
+        portname = ":" + (fs::temp_directory_path() / fs::unique_path()).native();
+    }
+
+    return new query_pt(portname.c_str(), filename.native().c_str(),
+                        fast, k, mk, norel);
+}
 
 
 query_pt::query_pt(const char* portname, const char* dbname,

@@ -34,6 +34,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <exception>
 
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 
 namespace sina {
 
@@ -48,6 +49,13 @@ public:
 
 class query_pt : public search {
 public:
+    static query_pt* get_pt_search(const boost::filesystem::path& filename,
+                                   int k=10,
+                                   bool fast=true,
+                                   bool norel=false,
+                                   int mk=0,
+                                   std::string portname="");
+
     query_pt(const char* portname,
              const char* dbname,
              bool fast=true,

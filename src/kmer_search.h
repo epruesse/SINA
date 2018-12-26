@@ -38,8 +38,6 @@ namespace sina {
 
 class kmer_search : public search {
 public:
-    class result_iterator;
-
     static kmer_search* get_kmer_search(const boost::filesystem::path& filename, int k=10);
 
     /**

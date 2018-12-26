@@ -329,11 +329,12 @@ famfinder::_famfinder::_famfinder(int n)
     }
     switch(opts->engine) {
     case ENGINE_ARB_PT:
-        index = new query_pt(pt_port.c_str(), opts->database.c_str(),
-                             not opts->fs_no_fast,
-                             opts->fs_kmer_len,
-                             opts->fs_kmer_mm,
-                             opts->fs_kmer_norel);
+        index = query_pt::get_pt_search(opts->database,
+                                        opts->fs_kmer_len,
+                                        not opts->fs_no_fast,
+                                        opts->fs_kmer_norel,
+                                        opts->fs_kmer_mm,
+                                        pt_port);
         break;
     case ENGINE_SINA_KMER:
         index = kmer_search::get_kmer_search(opts->database, opts->fs_kmer_len);
