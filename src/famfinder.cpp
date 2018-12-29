@@ -247,41 +247,9 @@ void famfinder::validate_vm(po::variables_map& vm,
     if (vm["fs-req"].as<int>() < 1) {
         throw logic_error("Family Finder: fs-req must be >= 1");
     }
-}
 
-#if 0
-void fixme() {
-    int termini_begin = -1, termini_end = -1;
-    string termini = arb->getFilter("termini");
-    if (!termini.empty()) {
-        termini_begin = termini.find_first_of('x')+1 ;
-        termini_end = termini.find_last_of('x')+1;
-        logger->info("Found TERMINI filter: {} - {}",
-                     termini_begin, termini_end);
-    }
 
-    // FIXME: find a good way to do this with program_options
-    if (opts->gene_start < 1) {
-        if (termini_begin == -1) {
-            opts->gene_start = 0;
-        } else {
-            opts->gene_start = termini_begin;
-        }
-    }
-    if (opts->gene_end < 1 || opts->gene_end > arb->getAlignmentWidth()) {
-        if (termini_end == -1) {
-            opts->gene_end = arb->getAlignmentWidth();
-        } else {
-            opts->gene_end = termini_end;
-        }
-    }
-    log->info("Range of gene within alignment: {} - {}",
-              opts->gene_start, opts->gene_end);
-    // decrement range ... we start at 0 around here
-    --opts->gene_start;
-    --opts->gene_end;
 }
-#endif
 
 class famfinder::_famfinder {
     search *index;
@@ -539,6 +507,41 @@ famfinder::_famfinder::operator()(tray t) {
 }
 
 } // namespace sina
+
+
+#if 0
+void fixme() {
+    int termini_begin = -1, termini_end = -1;
+    string termini = arb->getFilter("termini");
+    if (!termini.empty()) {
+        termini_begin = termini.find_first_of('x')+1 ;
+        termini_end = termini.find_last_of('x')+1;
+        logger->info("Found TERMINI filter: {} - {}",
+                     termini_begin, termini_end);
+    }
+
+    // FIXME: find a good way to do this with program_options
+    if (opts->gene_start < 1) {
+        if (termini_begin == -1) {
+            opts->gene_start = 0;
+        } else {
+            opts->gene_start = termini_begin;
+        }
+    }
+    if (opts->gene_end < 1 || opts->gene_end > arb->getAlignmentWidth()) {
+        if (termini_end == -1) {
+            opts->gene_end = arb->getAlignmentWidth();
+        } else {
+            opts->gene_end = termini_end;
+        }
+    }
+    log->info("Range of gene within alignment: {} - {}",
+              opts->gene_start, opts->gene_end);
+    // decrement range ... we start at 0 around here
+    --opts->gene_start;
+    --opts->gene_end;
+}
+#endif
 
 
 /*
