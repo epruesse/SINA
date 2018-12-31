@@ -49,9 +49,6 @@ void validate(boost::any& v, const std::vector<std::string>& values,
 
 class famfinder {
 private:
-    struct options;
-    static struct options *opts;
-
     class impl;
     std::shared_ptr<impl> pimpl;
 public:
