@@ -274,6 +274,10 @@ famfinder& famfinder::operator=(const famfinder& o) = default;
 famfinder::~famfinder() = default;
 tray famfinder::operator()(const tray& t) { return (*pimpl)(t); }
 
+int famfinder::turn_check(const cseq& query, bool all) {
+    return pimpl->turn_check(query, all);
+}
+
 famfinder::impl::impl(int n)
     : arb(query_arb::getARBDB(opts.database))
 {

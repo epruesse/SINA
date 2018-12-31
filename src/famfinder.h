@@ -59,6 +59,8 @@ public:
     ~famfinder();
     tray operator()(const tray& t);
 
+    int turn_check(const cseq& query, bool all);
+
     static void get_options_description(boost::program_options::options_description& main,
                                         boost::program_options::options_description& adv);
     static void validate_vm(boost::program_options::variables_map& vm,
