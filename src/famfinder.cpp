@@ -251,7 +251,7 @@ void famfinder::validate_vm(po::variables_map& vm,
 
 }
 
-class famfinder::_famfinder {
+class famfinder::finder::impl {
     search *index;
     query_arb *arb;
     vector<alignment_stats> vastats;
@@ -261,32 +261,21 @@ class famfinder::_famfinder {
     void select_astats(tray &t);
     
 public:
-    explicit _famfinder(int n);
-    _famfinder(const _famfinder&);
-    ~_famfinder();
+    explicit impl(int n);
+    impl(const impl&);
+    ~impl();
     tray operator()(tray /*t*/);
-    std::string getName() const {return "famfinder";}
 };
 
-
-famfinder::finder::finder(int n)
-    : data(new _famfinder(n))
-{
-}
-
+// pimpl wrappers
+famfinder::finder::finder(int n) : pimpl(new impl(n)) {}
 famfinder::finder::finder(const finder& o) = default;
-
-famfinder::finder&
-famfinder::finder::operator=(const finder& o) = default;
-
+famfinder::finder& famfinder::finder::operator=(const finder& o) = default;
 famfinder::finder::~finder() = default;
+tray famfinder::finder::operator()(const tray& t) { return (*pimpl)(t); }
 
-tray
-famfinder::finder::operator()(const tray& t) {
-    return (*data)(t);
-}
-
-famfinder::_famfinder::_famfinder(int n)
+// impl
+famfinder::finder::impl::impl(int n)
     : arb(query_arb::getARBDB(opts->database))
 {
     string pt_port = opts->pt_port;
@@ -318,13 +307,13 @@ famfinder::_famfinder::_famfinder(int n)
 }
 
 
-famfinder::_famfinder::~_famfinder() {
+famfinder::finder::impl::~impl() {
     delete index;
 }
 
 
 void
-famfinder::_famfinder::do_turn_check(cseq &c) {
+famfinder::finder::impl::do_turn_check(cseq &c) {
     // Turning sequence.
     // Strictly, this could be considered a "modification" of the input
     // sequence. However, we're really only correcting its representation.
@@ -357,7 +346,7 @@ famfinder::_famfinder::do_turn_check(cseq &c) {
 
 
 int
-famfinder::_famfinder::turn_check(const cseq& query, bool all) {
+famfinder::finder::impl::turn_check(const cseq& query, bool all) {
     std::vector<cseq> matches;
     double score[4];
 
@@ -390,7 +379,7 @@ famfinder::_famfinder::turn_check(const cseq& query, bool all) {
 
 
 void
-famfinder::_famfinder::select_astats(tray& t) {
+famfinder::finder::impl::select_astats(tray& t) {
     alignment_stats *astats = nullptr;
 
     // load default as per --filter
@@ -458,7 +447,7 @@ struct has_max_n_gaps {
 };
 
 tray
-famfinder::_famfinder::operator()(tray t) {
+famfinder::finder::impl::operator()(tray t) {
     t.alignment_reference = new vector<cseq>();
     vector<cseq> &vc = *t.alignment_reference;
     cseq &c = *t.input_sequence;

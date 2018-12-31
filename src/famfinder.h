@@ -53,10 +53,9 @@ private:
     static struct options *opts;
     std::vector<float> weights;
 public:
-    class _famfinder;
-
     class finder {
-        std::shared_ptr<_famfinder> data;
+        class impl;
+        std::shared_ptr<impl> pimpl;
     public:
         finder() = default;
         explicit finder(int n);
