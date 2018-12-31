@@ -422,10 +422,10 @@ int real_main(int argc, char** argv) {
         last_node = node;
     } else {
         // Make node(s) finding reference set
-        using tray_and_finder = tuple<tray, famfinder::finder>;
+        using tray_and_finder = tuple<tray, famfinder>;
         using finder_node = tf::multifunction_node<tray_and_finder, tray_and_finder>;
         using finder_node_out = finder_node::output_ports_type;
-        using finder_buffer_node = tf::buffer_node<famfinder::finder>;
+        using finder_buffer_node = tf::buffer_node<famfinder>;
         using tray_and_finder_join_node = tf::join_node<tray_and_finder>;
 
         auto *buffer = new finder_buffer_node(g);
@@ -435,7 +435,7 @@ int real_main(int argc, char** argv) {
             g, opts.num_pt_servers,
             [&](const tray_and_finder &in, finder_node_out &out) -> void {
                 const tray& t = get<0>(in);
-                famfinder::finder finder(get<1>(in));
+                famfinder finder(get<1>(in));
                 tray t_out = finder(t);
                 get<0>(out).try_put(t_out);
                 get<1>(out).try_put(finder);
@@ -455,10 +455,10 @@ int real_main(int argc, char** argv) {
         tf::make_edge(*join, *family_find);
         nodes.emplace_back(family_find);
 
-        buffer->try_put(famfinder::finder(0));
+        buffer->try_put(famfinder(0));
         tbb::parallel_for(1U, opts.num_pt_servers, [&](unsigned int i) {
                 logger->warn("Launching PT server no {}", i);
-                buffer->try_put(famfinder::finder(i));
+                buffer->try_put(famfinder(i));
             });
 
         node = new filter_node(g, tf::unlimited, aligner());

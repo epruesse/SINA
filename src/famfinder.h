@@ -51,18 +51,16 @@ class famfinder {
 private:
     struct options;
     static struct options *opts;
+
+    class impl;
+    std::shared_ptr<impl> pimpl;
 public:
-    class finder {
-        class impl;
-        std::shared_ptr<impl> pimpl;
-    public:
-        finder() = default;
-        explicit finder(int n);
-        finder(const finder& o);
-        finder& operator=(const finder& o);
-        ~finder();
-        tray operator()(const tray& t);
-    };
+    famfinder() = default;
+    explicit famfinder(int n);
+    famfinder(const famfinder& o);
+    famfinder& operator=(const famfinder& o);
+    ~famfinder();
+    tray operator()(const tray& t);
 
     static void get_options_description(boost::program_options::options_description& main,
                                         boost::program_options::options_description& adv);

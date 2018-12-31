@@ -251,7 +251,7 @@ void famfinder::validate_vm(po::variables_map& vm,
 
 }
 
-class famfinder::finder::impl {
+class famfinder::impl {
     search *index;
     query_arb *arb;
     vector<alignment_stats> vastats;
@@ -268,14 +268,14 @@ public:
 };
 
 // pimpl wrappers
-famfinder::finder::finder(int n) : pimpl(new impl(n)) {}
-famfinder::finder::finder(const finder& o) = default;
-famfinder::finder& famfinder::finder::operator=(const finder& o) = default;
-famfinder::finder::~finder() = default;
-tray famfinder::finder::operator()(const tray& t) { return (*pimpl)(t); }
+famfinder::famfinder(int n) : pimpl(new impl(n)) {}
+famfinder::famfinder(const famfinder& o) = default;
+famfinder& famfinder::operator=(const famfinder& o) = default;
+famfinder::~famfinder() = default;
+tray famfinder::operator()(const tray& t) { return (*pimpl)(t); }
 
 // impl
-famfinder::finder::impl::impl(int n)
+famfinder::impl::impl(int n)
     : arb(query_arb::getARBDB(opts->database))
 {
     string pt_port = opts->pt_port;
@@ -307,13 +307,13 @@ famfinder::finder::impl::impl(int n)
 }
 
 
-famfinder::finder::impl::~impl() {
+famfinder::impl::~impl() {
     delete index;
 }
 
 
 void
-famfinder::finder::impl::do_turn_check(cseq &c) {
+famfinder::impl::do_turn_check(cseq &c) {
     // Turning sequence.
     // Strictly, this could be considered a "modification" of the input
     // sequence. However, we're really only correcting its representation.
@@ -346,7 +346,7 @@ famfinder::finder::impl::do_turn_check(cseq &c) {
 
 
 int
-famfinder::finder::impl::turn_check(const cseq& query, bool all) {
+famfinder::impl::turn_check(const cseq& query, bool all) {
     std::vector<cseq> matches;
     double score[4];
 
@@ -379,7 +379,7 @@ famfinder::finder::impl::turn_check(const cseq& query, bool all) {
 
 
 void
-famfinder::finder::impl::select_astats(tray& t) {
+famfinder::impl::select_astats(tray& t) {
     alignment_stats *astats = nullptr;
 
     // load default as per --filter
@@ -447,7 +447,7 @@ struct has_max_n_gaps {
 };
 
 tray
-famfinder::finder::impl::operator()(tray t) {
+famfinder::impl::operator()(tray t) {
     t.alignment_reference = new vector<cseq>();
     vector<cseq> &vc = *t.alignment_reference;
     cseq &c = *t.input_sequence;
