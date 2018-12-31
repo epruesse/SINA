@@ -33,6 +33,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <utility>
 #include <vector>
 #include <list>
+#include <memory>
 
 #include <boost/filesystem.hpp>
 
@@ -200,7 +201,7 @@ private:
     void addError(const std::string& message);
 
     struct priv_data;
-    priv_data& data;
+    std::shared_ptr<priv_data> data;
     struct storeKey_visitor;
     struct putKeyVal_visitor;
     static std::map<boost::filesystem::path, query_arb*> open_arb_dbs;
