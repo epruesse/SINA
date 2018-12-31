@@ -51,7 +51,6 @@ class famfinder {
 private:
     struct options;
     static struct options *opts;
-    std::vector<float> weights;
 public:
     class finder {
         class impl;
