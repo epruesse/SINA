@@ -28,6 +28,7 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "config.h"
 #include "query_pt.h"
+#include "timer.h"
 
 #include <cstring>
 
@@ -233,6 +234,8 @@ struct query_pt::priv_data {
 
     query_arb *arbdb;
 
+    timer timeit;
+
     static std::map<string, std::weak_ptr<managed_pt_server>> servers;
     std::shared_ptr<managed_pt_server> server;
 
@@ -321,6 +324,7 @@ query_pt::query_pt(const char* portname, const char* dbname,
 }
 
 query_pt::~query_pt() {
+    logger->info("Timings for PT Search: {}", data->timeit);
     delete data;
 }
 
@@ -598,12 +602,13 @@ match_retry:
 
 void
 query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
+    data->timeit.start();
     char *error = "";
-
     results.clear();
     results.reserve(max);
 
     boost::mutex::scoped_lock lock(data->arb_pt_access);
+    data->timeit.stop("acquire lock");
 
     bytestring bs;
     bs.data = strdup(query.getBases().c_str());
@@ -615,6 +620,7 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
         logger->error("Unable to execute find_family command on pt-server");
     }
     free(bs.data);
+    data->timeit.stop("send query");
 
     T_PT_FAMILYLIST f_list;
     aisc_get(data->link,
@@ -626,6 +632,7 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
         logger->error("Unable to get results for search: {}", error);
         return;
     }
+    data->timeit.stop("get first");
 
     if (!f_list.exists()) {
         return;
@@ -646,6 +653,7 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
         scored_names.emplace_back(f_matches, f_name);
         free(f_name);
     }
+    data->timeit.stop("get all");
 
     std::transform(scored_names.begin(), scored_names.end(),
                    std::back_inserter(results),
@@ -654,7 +662,7 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
                        c.setScore(hit.first);
                        return c;
                    });
-
+    data->timeit.stop("load seqs");
 }
 
 
