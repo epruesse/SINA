@@ -4,6 +4,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
+namespace bdata = boost::unit_test::data;
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -85,8 +86,8 @@ void configure(std::initializer_list<const char*> l) {
 BOOST_AUTO_TEST_SUITE(famfinder_tests)
 
 
-BOOST_FIXTURE_TEST_CASE(turn, Fixture, *boost::unit_test::tolerance(0.0001)) {
-    configure({"--db", arbdb->getFileName().c_str()});
+BOOST_DATA_TEST_CASE_F(Fixture, turn, bdata::make({"internal", "pt-server"}), engine) {
+    configure({"--db", arbdb->getFileName().c_str(), "--fs-engine", engine});
 
     famfinder finder(0);
     
