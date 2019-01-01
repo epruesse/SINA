@@ -30,6 +30,7 @@ for the parts of ARB used as well as that of the covered work.
 #define _KMER_SEARCH_H_
 
 #include <map>
+#include <memory>
 #include <boost/filesystem.hpp>
 
 #include "search.h"
@@ -81,18 +82,18 @@ public:
                      nullptr, false, 0, 0, 0, 0, false);
     };
     
-    void build_index();
-    void init();
     void find(const cseq& query, std::vector<cseq>& results, int max) override;
 
-    class index;
-private:
-    kmer_search(query_arb* arbdb, int k=8);
+    /**
+     * dtor - must remain public (super is public)
+     */
     ~kmer_search() override;
+    
+    class impl;
+private:
+    kmer_search(std::shared_ptr<impl> pimpl);
 
-
-    index &data;
-    static std::map<std::string, kmer_search*> indices;
+    std::shared_ptr<impl> pimpl;
     static void destroy_indices();
 };
 
