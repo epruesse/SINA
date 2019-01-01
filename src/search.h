@@ -76,15 +76,6 @@ public:
                          int range_cover,
                          bool leave_query_out) = 0;
 
-    virtual double match(std::vector<cseq> &family,
-                         const cseq& sequence,
-                         int min_match,
-                         int max_match,
-                         float min_score) {
-        return match(family, sequence, min_match, max_match, min_score, 2.0,
-                     nullptr, false, 0, 0, 0, 0, false);
-    };
-
     virtual void find(const cseq& query, std::vector<cseq>& results, int max) = 0;
 
     
