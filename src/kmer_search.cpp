@@ -79,11 +79,11 @@ public:
     query_arb* arbdb;
     timer timeit;
 
-
     impl(query_arb* arbdb_, int k_);
     ~impl() {
         logger->info("Timings for Kmer Search: {}", timeit);
     }
+    void find(const cseq& query, std::vector<cseq>& results, int max);
 };
 
 
@@ -226,47 +226,52 @@ kmer_search::match(std::vector<cseq>& results,
 
 void
 kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {
-    if (pimpl->n_sequences == 0) {
+    pimpl->find(query, results, max);
+}
+
+void
+kmer_search::impl::find(const cseq& query, std::vector<cseq>& results, int max) {
+    if (n_sequences == 0) {
         return;
     }
-    pimpl->timeit.start();
+    timeit.start();
     const vector<aligned_base>& bases = query.const_getAlignedBases();
-    idset::inc_t scores(pimpl->n_sequences, 0);
-    pimpl->timeit.stop("load");
+    idset::inc_t scores(n_sequences, 0);
+    timeit.stop("load");
 
     std::unordered_set<unsigned int> seen(query.size()*2-1);
 
     int offset = 0;
-    // for (unsigned int kmer: all_kmers(bases, pimpl->k)) {
-    // for (unsigned int kmer: unique_kmers(bases, seen, pimpl->k)) {
-    // for (unsigned int kmer: unique_prefix_kmers(bases, seen, pimpl->k, 1, BASE_A)) {
-    for (unsigned int kmer: prefix_kmers(bases, pimpl->k, 1, BASE_A)) {
-        if (pimpl->kmer_idx[kmer]->size() < pimpl->n_sequences) {
-            offset += pimpl->kmer_idx[kmer]->increment(scores);
+    // for (unsigned int kmer: all_kmers(bases, k)) {
+    // for (unsigned int kmer: unique_kmers(bases, seen, k)) {
+    // for (unsigned int kmer: unique_prefix_kmers(bases, seen, k, 1, BASE_A)) {
+    for (unsigned int kmer: prefix_kmers(bases, k, 1, BASE_A)) {
+        if (kmer_idx[kmer]->size() < n_sequences) {
+            offset += kmer_idx[kmer]->increment(scores);
         }
     }
-    pimpl->timeit.stop("sum");
+    timeit.stop("sum");
 
     using pair = std::pair<idset::inc_t::value_type, int>;
     std::vector<pair> ranks;
-    ranks.reserve(pimpl->n_sequences);
+    ranks.reserve(n_sequences);
     int n = 0;
     for (auto score: scores) {
         ranks.emplace_back(score + offset, n++);
     }
-    pimpl->timeit.stop("assemble");
+    timeit.stop("assemble");
 
     std::partial_sort(ranks.begin(), ranks.begin()+max, ranks.end(),
                       std::greater<pair>());
-    pimpl->timeit.stop("sort");
+    timeit.stop("sort");
 
     results.clear();
     results.reserve(max);
     for (int i=0; i<max; i++) {
-        results.emplace_back(pimpl->arbdb->getCseq(pimpl->sequence_names[ranks[i].second]));
+        results.emplace_back(arbdb->getCseq(sequence_names[ranks[i].second]));
         results.back().setScore(ranks[i].first);
     }
-    pimpl->timeit.stop("output");
+    timeit.stop("output");
 }
 
 
