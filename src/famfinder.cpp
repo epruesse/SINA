@@ -353,22 +353,27 @@ famfinder::impl::turn_check(const cseq& query, bool all) {
     std::vector<cseq> matches;
     double score[4];
 
-    score[0] = index->match(matches, query, 1, 1, 0.0f);
+    index->find(query, matches, 1);
+    score[0] = matches.empty() ? 0 : matches[0].getScore();
 
     cseq turn(query);
     turn.reverse();
     if (all) {
-        score[1] = index->match(matches, turn, 1, 1, 0.0f);
+        index->find(turn, matches, 1);
+        score[1] = matches.empty() ? 0 : matches[0].getScore();
 
         cseq comp(query);
         comp.complement();
-        score[2] = index->match(matches, comp, 1, 1, 0.0f);
+
+        index->find(comp, matches, 1);
+        score[2] = matches.empty() ? 0 : matches[0].getScore();
     } else {
         score[1] = score[2] = 0;
     }
 
     turn.complement();
-    score[3] = index->match(matches, turn, 1, 1, 0.0f);
+    index->find(turn, matches, 1);
+    score[3] = matches.empty() ? 0 : matches[0].getScore();
 
     double max = 0;
     int best = 0;
