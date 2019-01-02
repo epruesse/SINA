@@ -635,10 +635,6 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
     }
     data->timeit.stop("get first");
 
-    if (!f_list.exists()) {
-        return;
-    }
-
     char* f_name;
     double f_rel_matches = 0.f;
     int f_matches = 0;
