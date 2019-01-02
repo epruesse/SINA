@@ -96,6 +96,7 @@ BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture, *boost::unit_test::tolerance(0.00
     for (int i=0; i<N; i++) {
         cseq query = arbdb->getCseq(ids[i]);
         search_index->find(query, family, M);
+        BOOST_TEST(family.size() == M);
         float max_score = family[0].getScore();
         std::vector<cseq>::iterator self;
         self = std::find_if(family.begin(), family.end(),
@@ -114,6 +115,7 @@ BOOST_FIXTURE_TEST_CASE(pt_simple, Fixture, *boost::unit_test::tolerance(0.0001)
     for (int i=0; i<N; i++) {
         cseq query = arbdb->getCseq(ids[i]);
         search_index->find(query, family, M);
+        BOOST_TEST(family.size() == M);
         float max_score = family[0].getScore();
         auto self = std::find_if(family.begin(), family.end(),
                             [&](const cseq &c) {
