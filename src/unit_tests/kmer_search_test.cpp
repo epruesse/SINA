@@ -94,6 +94,9 @@ BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture, *boost::unit_test::tolerance(0.00
     kmer_search *search_index = kmer_search::get_kmer_search(arbdb->getFileName());
     std::vector<cseq> family;
     for (int i=0; i<N; i++) {
+        if (i % (N/50) == 0) {
+            std::cerr << ".";
+        }
         cseq query = arbdb->getCseq(ids[i]);
         search_index->find(query, family, M);
         BOOST_TEST(family.size() == M);
@@ -106,6 +109,8 @@ BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture, *boost::unit_test::tolerance(0.00
         BOOST_TEST((self != family.end()));
         BOOST_TEST(self->getScore() == max_score);
     }
+    std::cerr << std::endl;
+    delete search_index;
 }
 
 
@@ -113,6 +118,9 @@ BOOST_FIXTURE_TEST_CASE(pt_simple, Fixture, *boost::unit_test::tolerance(0.0001)
     search *search_index = query_pt::get_pt_search(arbdb->getFileName());
     std::vector<cseq> family;
     for (int i=0; i<N; i++) {
+        if (i % (N/50) == 0) {
+            std::cerr << ".";
+        }
         cseq query = arbdb->getCseq(ids[i]);
         search_index->find(query, family, M);
         BOOST_TEST(family.size() == M);
@@ -125,6 +133,7 @@ BOOST_FIXTURE_TEST_CASE(pt_simple, Fixture, *boost::unit_test::tolerance(0.0001)
         // PT server counts duplicate kmers twice, allow for some discrepancy
         BOOST_TEST(self->getScore() > max_score - 4);
     }
+    std::cerr << std::endl;
     delete search_index;
 }
 
