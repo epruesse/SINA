@@ -225,8 +225,8 @@ struct query_pt::priv_data {
 
     boost::mutex arb_pt_access;
 
-    int  range_begin{-1};
-    int  range_end{-1};
+    unsigned int  range_begin{0};
+    unsigned int  range_end{INT_MAX};
     bool find_type_fast{false};
     int  kmer_len;
     int  num_mismatch;
