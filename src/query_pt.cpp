@@ -615,6 +615,7 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
     bs.size = query.size()+1;
     if (aisc_put(data->link,
                  PT_FAMILYFINDER, data->ffinder,
+                 FAMILYFINDER_SORT_MAX, max,
                  FAMILYFINDER_FIND_FAMILY, &bs,
                  NULL) != 0) {
         logger->error("Unable to execute find_family command on pt-server");
