@@ -616,7 +616,7 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
     cutoff_tail = send - s;
     if (cutoff_tail && overhang_pos != OVERHANG_REMOVE) {
         int pos;
-        if (overhang_pos = OVERHANG_ATTACH) {
+        if (overhang_pos == OVERHANG_ATTACH) {
             pos = alig_width - mesh._master.getById(m).getPosition() + 1;
         } else { // OVERHANG_EDGE
             pos = 0;
