@@ -261,7 +261,7 @@ AX_BOOST_UNIT_TEST_FRAMEWORK
 #fi
 
 # Allways show warnings
-CXXFLAGS="$CXXFLAGS -w"
+CXXFLAGS="$CXXFLAGS -W"
 
 # Generate output
 
