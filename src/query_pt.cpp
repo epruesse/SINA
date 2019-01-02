@@ -603,7 +603,7 @@ match_retry:
 void
 query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
     data->timeit.start();
-    char *error = "";
+    char *error = nullptr;
     results.clear();
     results.reserve(max);
 
