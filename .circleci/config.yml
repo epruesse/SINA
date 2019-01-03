@@ -72,7 +72,7 @@ jobs:
           name: Building
           command: |
             make -C ~/build clean
-            make -j8 -C ~/build all 
+            make -j2 -C ~/build all 
       - run:
           name: Running Unit Tests (w/ debug)
           command: |
