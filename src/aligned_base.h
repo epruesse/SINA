@@ -266,14 +266,6 @@ private:
     friend struct aligned_base_reverse_position;
 };
 
-struct aligned_base_reverse_position {
-    unsigned int pos;
-    aligned_base_reverse_position(unsigned int p) : pos(p) {}
-    template<typename T>
-    void operator() (aligned<T>& ab) {
-        ab._idx=pos-ab._idx;
-    }
-};
 
 using aligned_base = aligned<base_iupac>;
 }// namespace sina

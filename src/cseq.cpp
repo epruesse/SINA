@@ -283,20 +283,23 @@ sina::operator<<(std::ostream& out, const cseq_base& c) {
 void
 cseq_base::reverse() {
     std::reverse(bases.begin(), bases.end());
-    std::for_each(bases.begin(), bases.end(),
-                  aligned_base_reverse_position(alignment_width-1));
+    for (auto& base : bases) {
+        base.setPosition(alignment_width - 1 - base.getPosition());
+    }
 }
 
 void
 cseq_base::complement() {
-    std::for_each(bases.begin(), bases.end(),
-                  std::mem_fun_ref(&aligned_base::complement));
+    for (auto& base : bases) {
+        base.complement();
+    }
 }
 
 void
 cseq_base::upperCaseAll() {
-    std::for_each(bases.begin(), bases.end(),
-                  std::mem_fun_ref(&aligned_base::setUpperCase));
+    for (auto& base : bases) {
+        base.setUpperCase();
+    }
 }
 
 
