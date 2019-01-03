@@ -452,22 +452,19 @@ cseq_base::write_alignment(std::ostream& ofs, std::vector<cseq_base*>& seqs,
 
 void
 cseq_base::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remove) {
-    idx_type total_inserts = 0, longest_insert = 0, orig_inserts = 0;
-
-    auto last_it = bases.begin();
-    auto bases_end = bases.end();
-    auto curr_it = last_it+1;
-    idx_type last_idx = last_it->getPosition();
-
+    idx_type total_inserts = 0;
+    idx_type longest_insert = 0;
+    idx_type orig_inserts = 0;
 
     if (remove) {
         log << "insertion=remove not implemented, using shift; ";
     }
 
-    for (; curr_it < bases_end; ++curr_it) {
-        idx_type curr_idx = curr_it->getPosition();
+    auto last_it = bases.begin();
+    auto bases_end = bases.end();
+    for (auto curr_it = bases.begin(); curr_it < bases_end; ++curr_it) {
         // check for insertions
-        if (last_idx == curr_idx) { 
+        if (last_it->getPosition() == curr_it->getPosition()) {
             // no move -> curr is insertion
             if (curr_it+1 != bases_end) {
                 // not at end of sequence -> da capo
@@ -482,7 +479,6 @@ cseq_base::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remov
             // no insertions. leave base untouched. 
             // remember last good position.
             last_it = curr_it;
-            last_idx = curr_idx;
             continue;
         }
 
@@ -586,7 +582,6 @@ cseq_base::fix_duplicate_positions(std::ostream& log, bool lowercase, bool remov
         longest_insert = std::max(longest_insert,num_inserts);
 
         last_it = curr_it;
-        last_idx = curr_it->getPosition();
     }
     if (total_inserts > 0) {
         log << "total inserted bases=" << total_inserts << ";"
