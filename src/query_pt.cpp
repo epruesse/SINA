@@ -334,7 +334,7 @@ query_pt::set_find_type_fast(bool fast) {
     boost::mutex::scoped_lock lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
-                       FAMILYFINDER_FIND_TYPE, fast?1:0,
+                       FAMILYFINDER_FIND_TYPE, fast?1L:0L,
                        NULL);
     if (err != 0) {
         logger->warn("Unable to set find_type = {}", fast ? "fast" : "normal");
@@ -348,7 +348,7 @@ query_pt::set_probe_len(int len) {
     boost::mutex::scoped_lock lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
-                       FAMILYFINDER_PROBE_LEN, len,
+                       FAMILYFINDER_PROBE_LEN, long(len),
                        NULL);
     if (err != 0) {
         logger->warn("Unable to set k = {}", len);
@@ -362,7 +362,7 @@ query_pt::set_mismatches(int len) {
     boost::mutex::scoped_lock lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
-                       FAMILYFINDER_MISMATCH_NUMBER, len,
+                       FAMILYFINDER_MISMATCH_NUMBER, long(len),
                        NULL);
 
     if (err != 0) {
@@ -377,7 +377,7 @@ query_pt::set_sort_type(bool absolute) {
     boost::mutex::scoped_lock lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
-                       FAMILYFINDER_SORT_TYPE, absolute?0:1,
+                       FAMILYFINDER_SORT_TYPE, absolute?0L:1L,
                        NULL);
     if (err != 0) {
         logger->warn("Unable to set sort type = {}", absolute ? "absolute" : "relative");
@@ -392,8 +392,8 @@ query_pt::set_range(int startpos, int stoppos) {
 
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
-                       FAMILYFINDER_RANGE_STARTPOS, startpos,
-                       FAMILYFINDER_RANGE_ENDPOS, stoppos,
+                       FAMILYFINDER_RANGE_STARTPOS, long(startpos),
+                       FAMILYFINDER_RANGE_ENDPOS, long(stoppos),
                        NULL);
     if (err != 0) {
         logger->warn("Unable to constain matching to {}-{}", startpos, stoppos);
@@ -615,7 +615,7 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
     bs.size = query.size()+1;
     if (aisc_put(data->link,
                  PT_FAMILYFINDER, data->ffinder,
-                 FAMILYFINDER_SORT_MAX, max,
+                 FAMILYFINDER_SORT_MAX, long(max),
                  FAMILYFINDER_FIND_FAMILY, &bs,
                  NULL) != 0) {
         logger->error("Unable to execute find_family command on pt-server");
@@ -640,14 +640,7 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
     int f_matches = 0;
 
     std::vector<std::pair<int, string> > scored_names;
-    // Bug in Clang?? This line does not work (loop runs only once)
-    //   while (f_list.exists() && max--) {
-    // this line works, OTOH:
-    //   while (max-- && f_list.exists()) {
-    // also, just adding "logger->error(max)" makes the first line work,
-    // so something weird seems to be going on with optimization here
     while (f_list.exists() && max--) {
-        //while (max-- && f_list.exists()) {
         aisc_get(data->link, PT_FAMILYLIST, f_list,
                  FAMILYLIST_NAME, &f_name,
                  FAMILYLIST_REL_MATCHES, &f_rel_matches,
