@@ -640,7 +640,14 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
     int f_matches = 0;
 
     std::vector<std::pair<int, string> > scored_names;
+    // Bug in Clang?? This line does not work (loop runs only once)
+    //   while (f_list.exists() && max--) {
+    // this line works, OTOH:
+    //   while (max-- && f_list.exists()) {
+    // also, just adding "logger->error(max)" makes the first line work,
+    // so something weird seems to be going on with optimization here
     while (f_list.exists() && max--) {
+        //while (max-- && f_list.exists()) {
         aisc_get(data->link, PT_FAMILYLIST, f_list,
                  FAMILYLIST_NAME, &f_name,
                  FAMILYLIST_REL_MATCHES, &f_rel_matches,
