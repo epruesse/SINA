@@ -199,7 +199,7 @@ cseq_base::compressAligned(std::vector<unsigned char> &out) {
     bases.emplace_back(alignment_width);
     const uint bas = bases.size();
 
-    const uint orig_size = sizeof(aligned_base) * bas;
+    const uint orig_size = 8 * bas;
     buf.resize(orig_size);
 
     for (uint i=0; i<bas; ++i) {
@@ -241,7 +241,7 @@ cseq_base::assignFromCompressed(const void* data, size_t len) {
 
     uncompress(&buf.front(), &orig_size, cd->data, compr_size);
 
-    const uint bas = orig_size / sizeof(aligned_base);
+    const uint bas = orig_size / 8;
 
     bases.clear();
     bases.reserve(bas);
