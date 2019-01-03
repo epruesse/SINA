@@ -35,8 +35,8 @@ capture_stdouterr "$SINA --select-step 250 --realign"
 assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.996"
-assert_output_value avg_cpm: "<0.0001"
-assert_output_value avg_cpm: ">-0.0001"
+assert_output_value avg_cpm: "<0.00011"
+assert_output_value avg_cpm: ">-0.00011"
 assert_output_value avg_idty: ">0.96"
 end_test
 
