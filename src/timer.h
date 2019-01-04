@@ -58,7 +58,7 @@ struct timestamp : private timeval {
     }
 
     void get() {
-        gettimeofday(this,nullptr);
+        gettimeofday(this, nullptr);
     }
 
     timestamp() {
@@ -114,26 +114,26 @@ struct timestamp : private timeval {
 
 
 class timer {
-    std::vector<timestamp> timestamps;
+    std::vector<timestamp> timings;
     std::vector<const char*> names;
     std::vector<timestamp>::iterator time_it;
     timestamp t_last;
     unsigned int calls{0};
 public:
-    timer() : timestamps(1,0), t_last(0) {}
+    timer() : timings(1, 0), t_last(0) {}
 
     void start() {
-        time_it = timestamps.begin();
+        time_it = timings.begin();
         t_last.get();
         ++calls;
     }
 
     void stop(const char* name=nullptr) {
         timestamp t_now;
-        if (++time_it == timestamps.end()) {
+        if (++time_it == timings.end()) {
             names.push_back(name);
-            timestamps.emplace_back(0);
-            time_it = timestamps.end() - 1;
+            timings.emplace_back(0);
+            time_it = timings.end() - 1;
         }
         *time_it +=  t_now - t_last;
         t_last.get();
@@ -145,18 +145,18 @@ public:
     }
 
     timer& operator+=(const timer& o) {
-        if (timestamps.size() != o.timestamps.size()) {
+        if (timings.size() != o.timings.size()) {
             throw std::runtime_error("Tried to add incompatible timers");
         }
-        for (size_t i = 0; i < timestamps.size(); i++) {
-            timestamps[i] += o.timestamps[i];
+        for (size_t i = 0; i < timings.size(); i++) {
+            timings[i] += o.timings[i];
         }
         calls += o.calls;
         return *this;
     }
 
     friend std::ostream& operator<<(std::ostream& out , const timer& t) {
-        out << std::accumulate(t.timestamps.begin(), t.timestamps.end(), timestamp(0))
+        out << std::accumulate(t.timings.begin(), t.timings.end(), timestamp(0))
             << " (" << t.calls << " calls, ";
         for (size_t i = 0; i < t.names.size(); ++i) {
             if (i > 0) {
@@ -167,7 +167,7 @@ public:
             } else {
                 out << i;
             }
-            out << ": " << t.timestamps[i];
+            out << ": " << t.timings[i];
         }
         out << ")";
         return out;
