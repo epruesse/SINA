@@ -63,7 +63,7 @@ namespace fs = boost::filesystem;
 
 using namespace sina;
 
-static const char* module_name = "kmer_search";
+static const char* module_name = "Search (internal)";
 static auto logger = Log::create_logger(module_name);
 
 
