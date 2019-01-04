@@ -177,23 +177,21 @@ kmer_search::impl::impl(query_arb* arbdb_, int k_)
       kmer_idx(1<<(k_*2), nullptr),
       arbdb(arbdb_)
 {
-    fs::path path = arbdb->getFileName();
-    path.replace_extension(".sidx");
-    if (fs::exists(path)) {
-        if (fs::last_write_time(path) >=
-            fs::last_write_time(arbdb->getFileName())) {
-            if (try_load(path)) {
+    fs::path dbpath = arbdb->getFileName();
+    fs::path idxpath = fs::path(dbpath).replace_extension("sidx");
+    if (fs::exists(idxpath) && fs::exists(dbpath)) {
+        if (fs::last_write_time(idxpath) >= fs::last_write_time(dbpath)) {
+            if (try_load(idxpath)) {
                 return;
             } else {
-                logger->error("Failed to load {} - rebuilding", path);
+                logger->error("Failed to load {} - rebuilding", idxpath);
             }
             logger->error("Reference {} newer than {} - rebuilding index.",
-                          arbdb->getFileName(), path);
+                          dbpath, idxpath);
         }
     }
     build();
-    logger->error("Storing Index");
-    store(path);
+    store(idxpath);
 }
 
 void
