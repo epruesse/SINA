@@ -238,7 +238,6 @@ struct idx_header {
     uint16_t vers{idx_header_vers};
     uint16_t k;
     uint32_t n_sequences;
-    uint64_t reserved[30];
 };
 
 void
