@@ -239,6 +239,44 @@ BOOST_DATA_TEST_CASE_F(test_set,
 }
 
 
+BOOST_DATA_TEST_CASE_F(test_set,
+		       vlipmap_store_test,
+		       bdata::make(map_sizes) *
+                       bdata::make(map_fill) *
+                       bdata::make(map_seed),
+		       map_size, map_fill, map_seed) {
+    // init random set
+    init(map_size, map_fill, map_seed);
+
+    // init vlimap
+    vlimap v(map_size), w(map_size), wi(map_size);
+    for (auto i : data) {
+        v.push_back(i);
+    }
+
+    {
+        std::stringstream tmp;
+        v.write(tmp);
+        w.read(tmp);
+        idset::inc_t count(map_size, 0);
+        w.increment(count);
+        BOOST_TEST(count == expected_counts, boost::test_tools::per_element()) ;
+        BOOST_CHECK_EQUAL(v.size(), w.size());
+    }
+
+    v.invert();
+
+    {
+        std::stringstream tmp;
+        v.write(tmp);
+        wi.read(tmp);
+        idset::inc_t count(map_size, 1);
+        wi.increment(count);
+        BOOST_TEST(count == expected_counts, boost::test_tools::per_element()) ;
+        BOOST_CHECK_EQUAL(v.size(), w.size());
+    }
+}
+
 
 BOOST_AUTO_TEST_SUITE_END(); // cseq_test
 

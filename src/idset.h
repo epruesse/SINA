@@ -30,6 +30,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <cstddef>
 #include <cassert>
 #include <vector>
+#include <iostream>
 
 #include <tbb/scalable_allocator.h>
 #include <tbb/cache_aligned_allocator.h>
@@ -66,6 +67,8 @@ public:
     virtual idset* make_new(value_type size) const = 0;
 
     void shrink_to_fit() { data.shrink_to_fit(); }
+
+    virtual std::ostream& write(std::ostream& o) const {return o;}
 
 protected:
     mutable data_t data;
@@ -386,6 +389,31 @@ public:
         std::swap(_maxsize, res._maxsize);
     }
 
+    struct file_header {
+        uint32_t inc, last, bytesize, size;
+    };
+
+    std::ostream& write(std::ostream& out) {
+        file_header head;
+        head.inc = _inc;
+        head.last = _last;
+        head.bytesize = data.size();
+        head.size = size();
+        out.write((char*)&head, sizeof(file_header));
+        out.write((char*)data.data(), sizeof(data_t::value_type) * data.size());
+        return out;
+    }
+
+    std::istream& read(std::istream& in) {
+        file_header head;
+        in.read((char*)&head, sizeof(file_header));
+        _inc = head.inc;
+        _last = head.last;
+        _size = head.size;
+        data.resize(head.bytesize);
+        in.read((char*)data.data(), sizeof(data_t::value_type) * data.size());
+        return in;
+    }
 private:
     inc_t::value_type _inc{1};
     value_type _last, _maxsize;
