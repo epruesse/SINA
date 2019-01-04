@@ -196,45 +196,36 @@ kmer_search::impl::impl(query_arb* arbdb_, int k_)
 
 void
 kmer_search::impl::build() {
-    timer t;
-    t.start();
+    timestamp start;
     logger->warn("Building kmer index (k={})", k);
 
     sequence_names = arbdb->getSequenceNames();
     n_sequences = sequence_names.size();
-    t.stop("start");
-    {
-        boost::progress_display p(n_sequences, std::cerr);
-        IndexBuilder bi(this, &p);
-        tbb::parallel_reduce(tbb::blocked_range<size_t>(0, n_sequences), bi);
-        kmer_idx.clear();
-        kmer_idx.reserve(n_kmers);
-        for (unsigned int i=0; i < n_kmers; i++) {
-            if (bi.kmer_idx[i] != nullptr) {
-                kmer_idx.push_back(new vlimap(*bi.kmer_idx[i]));
-            } else {
-                kmer_idx.push_back(nullptr);
-            }
-        }
-        p += n_sequences - p.count();
-    }
 
-    t.stop("build");
+    boost::progress_display p(n_sequences, std::cerr);
+    IndexBuilder bi(this, &p);
+    tbb::parallel_reduce(tbb::blocked_range<size_t>(0, n_sequences), bi);
+    p += n_sequences - p.count();
 
+    kmer_idx.clear();
+    kmer_idx.reserve(n_kmers);
     int total = 0;
+    p.restart(n_kmers);
     for (unsigned int i=0; i < n_kmers; i++) {
-        if (kmer_idx[i] == nullptr) {
-            continue;
-        }
-        total += kmer_idx[i]->size();
-        if (kmer_idx[i]->size() > n_sequences / 2) {
-            kmer_idx[i]->invert();
+        ++p;
+        if (bi.kmer_idx[i] != nullptr) {
+            if (bi.kmer_idx[i]->size() > n_sequences / 2) {
+                bi.kmer_idx[i]->invert();
+            }
+            total += bi.kmer_idx[i]->size();
+            kmer_idx.push_back(new vlimap(*bi.kmer_idx[i]));
+        } else {
+            kmer_idx.push_back(nullptr);
         }
     }
-    t.stop("compress");
 
-    logger->info("Index contains {} sequences ({} refs)", n_sequences, total);
-    logger->info("Timings: {}", t);
+    logger->info("Built index from {} sequences ({} refs) in {}",
+                 n_sequences, total, timestamp()-start);
 }
 
 const uint64_t idx_header_magic = 0x5844494b414e4953; // SINAKIDX

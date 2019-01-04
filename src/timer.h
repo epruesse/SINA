@@ -58,6 +58,9 @@ struct timestamp : private timeval {
     }
 
     void get() {
+        // Adjusting the system clock breaks things
+        // should use clock_gettime(CLOCK_MONOTONIC, ...)
+        // (but that needs macos 10.12)
         gettimeofday(this, nullptr);
     }
 
