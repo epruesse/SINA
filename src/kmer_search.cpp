@@ -198,12 +198,11 @@ void
 kmer_search::impl::build() {
     timer t;
     t.start();
+    logger->warn("Building kmer index (k={})", k);
 
-    logger->info("Loading names...");
     sequence_names = arbdb->getSequenceNames();
     n_sequences = sequence_names.size();
-
-    logger->info("Building index...");
+    t.stop("start");
     {
         boost::progress_display p(n_sequences, std::cerr);
         IndexBuilder bi(this, &p);
@@ -214,20 +213,27 @@ kmer_search::impl::build() {
             if (bi.kmer_idx[i] != nullptr) {
                 kmer_idx.push_back(new vlimap(*bi.kmer_idx[i]));
             } else {
-                kmer_idx.push_back(new vlimap(n_sequences));
+                kmer_idx.push_back(nullptr);
             }
         }
     }
+    std::cerr << std::endl; // progress display sometimes doesn't get exact counts
+
     t.stop("build");
 
+    int total = 0;
     for (unsigned int i=0; i < n_kmers; i++) {
+        if (kmer_idx[i] == nullptr) {
+            continue;
+        }
+        total += kmer_idx[i]->size();
         if (kmer_idx[i]->size() > n_sequences / 2) {
             kmer_idx[i]->invert();
         }
     }
-    t.stop("shrink");
+    t.stop("compress");
 
-    logger->info("Indexed {} sequences", n_sequences);
+    logger->info("Index contains {} sequences ({} refs)", n_sequences, total);
     logger->info("Timings: {}", t);
 }
 
@@ -250,20 +256,18 @@ kmer_search::impl::store(const fs::path& filename) {
     for (auto& name : sequence_names) {
         out << name << std::endl;
     }
-    /*
     vlimap emptymap(n_sequences);
-    for (unsigned int i = 0; i < n_sequences; i++) {
+    for (unsigned int i = 0; i < n_kmers; i++) {
         if (kmer_idx[i] != nullptr && kmer_idx[i]->size() > 0) {
             emptymap.push_back(i);
         }
     }
     emptymap.write(out);
-    */
 
-    for (auto setptr : kmer_idx) {
-        //    if (setptr != nullptr && setptr->size() > 0) {
-            setptr->write(out);
-            //}
+    size_t idxno = 0;
+    for (auto inc : emptymap) {
+        idxno += inc;
+        kmer_idx[idxno]->write(out);
     }
 }
 
@@ -281,16 +285,19 @@ kmer_search::impl::try_load(const fs::path& filename) {
         getline(in, name);
         sequence_names.push_back(name);
     }
-    /*
     vlimap emptymap(n_sequences);
     emptymap.read(in);
-    for (auto idxno : emptymap) {
-    */
-    for (unsigned int idxno = 0; idxno < n_kmers; ++idxno) {
+    size_t idxno = 0;
+    int total = 0;
+    for (auto inc : emptymap) {
+        idxno += inc;
         vlimap *idx = new vlimap(n_sequences);
         idx->read(in);
         kmer_idx[idxno] = idx;
+        total += idx->size();
     }
+    logger->info("Index contains {} sequences ({} refs)", n_sequences, total);
+
     return true;
 }
 
@@ -338,7 +345,7 @@ kmer_search::impl::find(const cseq& query, std::vector<cseq>& results, int max) 
     // for (unsigned int kmer: unique_kmers(bases, seen, k)) {
     // for (unsigned int kmer: unique_prefix_kmers(bases, seen, k, 1, BASE_A)) {
     for (unsigned int kmer: prefix_kmers(bases, k, 1, BASE_A)) {
-        if (kmer_idx[kmer] && kmer_idx[kmer]->size() < n_sequences) {
+        if (kmer_idx[kmer] != nullptr) {
             offset += kmer_idx[kmer]->increment(scores);
         }
     }
