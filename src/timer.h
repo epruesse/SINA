@@ -36,6 +36,8 @@
 #include <iostream>
 #include <sstream>
 #include <numeric>
+#include <unordered_map>
+#include <thread>
 
 #ifndef _TIMER_H_
 #define _TIMER_H_
@@ -105,7 +107,7 @@ struct timestamp : private timeval {
     friend std::ostream& operator<<(std::ostream& out, const timestamp& t) {
         return out << t.tv_sec
                    << "." << std::setfill('0') << std::setw(3) << t.tv_usec/1000
-                   << " s";
+                   << "s";
     }
 };
 
@@ -142,21 +144,55 @@ public:
         t_last.get();
     }
 
+    timer& operator+=(const timer& o) {
+        if (timestamps.size() != o.timestamps.size()) {
+            throw std::runtime_error("Tried to add incompatible timers");
+        }
+        for (size_t i = 0; i < timestamps.size(); i++) {
+            timestamps[i] += o.timestamps[i];
+        }
+        calls += o.calls;
+        return *this;
+    }
+
     friend std::ostream& operator<<(std::ostream& out , const timer& t) {
         out << std::accumulate(t.timestamps.begin(), t.timestamps.end(), timestamp(0))
             << " (" << t.calls << " calls, ";
-        std::transform(++t.timestamps.begin(), t.timestamps.end(),
-                       t.names.begin(),
-                       std::ostream_iterator<std::string>(out, ", "),
-                       [](const timestamp &t, const char* name) {
-                           std::stringstream tmp;
-                           if (name != nullptr) {
-                               tmp << name << " = ";
-                           }
-                           tmp << t;
-                           return tmp.str();
-                       });
+        for (size_t i = 0; i < t.names.size(); ++i) {
+            if (i > 0) {
+                out << ", ";
+            }
+            if (t.names[i] != nullptr) {
+                out << t.names[i];
+            } else {
+                out << i;
+            }
+            out << ": " << t.timestamps[i];
+        }
         out << ")";
+        return out;
+    }
+};
+
+class timer_mt {
+    std::unordered_map<std::thread::id, timer> timers;
+public:
+    timer& get_timer() {
+        return timers[std::this_thread::get_id()];
+    }
+
+    friend std::ostream& operator<<(std::ostream& out , const timer_mt& mt) {
+        auto it = mt.timers.begin();
+        auto end = mt.timers.end();
+        if (it == end) {
+            out << "never called";
+        } else {
+            timer sum((it++)->second);
+            for (; it!=end; ++it) {
+                sum += it->second;
+            }
+            out << sum;
+        }
         return out;
     }
 };
