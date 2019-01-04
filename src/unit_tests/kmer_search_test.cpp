@@ -63,8 +63,8 @@ ITER shuffle_n(ITER begin, ITER end, size_t n) {
 struct Fixture {
     query_arb *arbdb;
     std::vector<std::string> ids;
-    const int N{1000};
-    const int M{50};
+    const unsigned int N{1000};
+    const unsigned int M{50};
 
     Fixture() {
         std::srand(1234);
@@ -93,7 +93,7 @@ BOOST_FIXTURE_TEST_CASE(kmer_load, Fixture, *boost::unit_test::tolerance(0.0001)
 BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture, *boost::unit_test::tolerance(0.0001)) {
     kmer_search *search_index = kmer_search::get_kmer_search(arbdb->getFileName());
     std::vector<cseq> family;
-    for (int i=0; i<N; i++) {
+    for (unsigned int i = 0; i < N; i++) {
         if (i % (N/50) == 0) {
             std::cerr << ".";
         }
@@ -106,8 +106,10 @@ BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture, *boost::unit_test::tolerance(0.00
                             [&](const cseq &c) {
                                 return c.getName() == query.getName();}
             );
-        BOOST_TEST((self != family.end()));
-        BOOST_TEST(self->getScore() == max_score);
+        BOOST_REQUIRE((self != family.end()));
+        if (self != family.end()) {
+            BOOST_TEST(self->getScore() == max_score);
+        }
     }
     std::cerr << std::endl;
     delete search_index;
@@ -117,7 +119,7 @@ BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture, *boost::unit_test::tolerance(0.00
 BOOST_FIXTURE_TEST_CASE(pt_simple, Fixture, *boost::unit_test::tolerance(0.0001)) {
     search *search_index = query_pt::get_pt_search(arbdb->getFileName());
     std::vector<cseq> family;
-    for (int i=0; i<N; i++) {
+    for (unsigned int i = 0; i < N; i++) {
         if (i % (N/50) == 0) {
             std::cerr << ".";
         }
