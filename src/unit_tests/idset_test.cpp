@@ -49,7 +49,7 @@ struct test_set {
         std::mt19937 engine(seed);
         std::uniform_real_distribution<> dist;
         std::set<unsigned int> d;
-        for (int i=0; i<n ; i++) {
+        for (unsigned int i=0; i<n ; i++) {
             unsigned int val = dist(engine) * (size-1);
             while (not d.insert(val).second)
             {
@@ -71,7 +71,7 @@ struct test_set {
     }
     std::vector<unsigned int> data;
     idset::inc_t expected_counts;
-    int n;
+    unsigned int n;
 };
 
 #if 1
@@ -102,7 +102,7 @@ BOOST_DATA_TEST_CASE_F(test_set,
     }
   
     // check get()
-    int matching_set = 0;
+    unsigned int matching_set = 0;
     for (auto i: data) {
         if (b.get(i)) {
             matching_set++;
@@ -136,7 +136,7 @@ BOOST_DATA_TEST_CASE_F(test_set,
   
     // init bitmap
     idset* b = type->make_new(map_size);
-    BOOST_REQUIRE_EQUAL(b->size(), 0);
+    BOOST_REQUIRE_EQUAL(b->size(), 0u);
     for (auto i : data) {
         b->push_back(i);
     }
@@ -145,7 +145,7 @@ BOOST_DATA_TEST_CASE_F(test_set,
     // check increment()
     idset::inc_t count(map_size, 0);
     b->increment(count);
-    int matching_set = 0;
+    unsigned int matching_set = 0;
     for (auto i: data) {
         matching_set += count[i];
     }
@@ -170,11 +170,11 @@ BOOST_DATA_TEST_CASE_F(test_set,
     // init vlimap
     vlimap_abs a, b;
 
-    int mid = data.size() / 2;
-    for (int i = 0; i < mid; i++) {
+    unsigned int mid = data.size() / 2;
+    for (unsigned int i = 0; i < mid; i++) {
         a.push_back(data[i]);
     }
-    for (int i = mid; i < data.size(); i++) {
+    for (unsigned int i = mid; i < data.size(); i++) {
         b.push_back(data[i]);
     }
 
@@ -197,11 +197,11 @@ BOOST_DATA_TEST_CASE_F(test_set,
     // init vlimap
     vlimap a(map_size), b(map_size);
 
-    int mid = data.size() / 2;
-    for (int i = 0; i < mid; i++) {
+    unsigned int mid = data.size() / 2;
+    for (unsigned int i = 0; i < mid; i++) {
         a.push_back(data[i]);
     }
-    for (int i = mid; i < data.size(); i++) {
+    for (unsigned int i = mid; i < data.size(); i++) {
         b.push_back(data[i]);
     }
 
