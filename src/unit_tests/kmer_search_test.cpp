@@ -86,33 +86,39 @@ struct Fixture {
 
 BOOST_AUTO_TEST_SUITE(search_tests);
 
-BOOST_FIXTURE_TEST_CASE(kmer_load, Fixture, *boost::unit_test::tolerance(0.0001)) {
-    kmer_search::get_kmer_search(arbdb->getFileName());
-}
-
-BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture, *boost::unit_test::tolerance(0.0001)) {
-    kmer_search *search_index = kmer_search::get_kmer_search(arbdb->getFileName());
-    std::vector<cseq> family;
-    for (unsigned int i = 0; i < N; i++) {
-        if (i % (N/50) == 0) {
-            std::cerr << ".";
-        }
-        cseq query = arbdb->getCseq(ids[i]);
-        search_index->find(query, family, M);
-        BOOST_TEST(family.size() == M);
-        float max_score = family[0].getScore();
-        std::vector<cseq>::iterator self;
-        self = std::find_if(family.begin(), family.end(),
-                            [&](const cseq &c) {
-                                return c.getName() == query.getName();}
-            );
-        BOOST_REQUIRE((self != family.end()));
-        if (self != family.end()) {
-            BOOST_TEST(self->getScore() == max_score);
-        }
+BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture) {
+    fs::path dbname = arbdb->getFileName();
+    fs::path idxname = fs::path(dbname).replace_extension("sidx");
+    if (fs::exists(idxname)) {
+        fs::remove(idxname);
     }
-    std::cerr << std::endl;
-    delete search_index;
+    // test runs twice, once with index cache absent (removed above if present),
+    // and once with index cache generated during first run.
+    for (int run = 0; run < 2; ++run) {
+        kmer_search::release_kmer_search(dbname);
+        kmer_search *search_index = kmer_search::get_kmer_search(dbname);
+        std::vector<cseq> family;
+        for (unsigned int i = 0; i < N; i++) {
+            if (i % (N/50) == 0) {
+                std::cerr << ".";
+            }
+            cseq query = arbdb->getCseq(ids[i]);
+            search_index->find(query, family, M);
+            BOOST_TEST(family.size() == M);
+            float max_score = family[0].getScore();
+            std::vector<cseq>::iterator self;
+            self = std::find_if(family.begin(), family.end(),
+                                [&](const cseq &c) {
+                                    return c.getName() == query.getName();}
+                );
+            BOOST_REQUIRE((self != family.end()));
+            if (self != family.end()) {
+                BOOST_TEST(self->getScore() == max_score);
+            }
+        }
+        std::cerr << std::endl;
+        delete search_index;
+    }
 }
 
 
