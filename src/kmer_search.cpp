@@ -69,21 +69,24 @@ static auto logger = Log::create_logger(module_name);
 
 class kmer_search::impl {
 public:
-    int k;
-    int n_kmers;
-    int n_sequences{0};
+    unsigned int k;
+    unsigned int n_kmers;
+    unsigned int n_sequences{0};
 
     std::vector<std::string> sequence_names;
     std::vector<vlimap*> kmer_idx;
 
     query_arb* arbdb;
-    timer timeit;
+    timer_mt timeit;
 
     impl(query_arb* arbdb_, int k_);
     ~impl() {
         logger->info("Timings for Kmer Search: {}", timeit);
     }
     void find(const cseq& query, std::vector<cseq>& results, int max);
+    void build();
+    void store(const fs::path& filename);
+    bool try_load(const fs::path& filename);
 };
 
 
@@ -139,7 +142,7 @@ public:
     }
 
     void join(IndexBuilder& other) {
-        for (int i = 0; i < idx->n_kmers; ++i) {
+        for (unsigned int i = 0; i < idx->n_kmers; ++i) {
             if (other.kmer_idx[i] != nullptr) {
                 if (kmer_idx[i] != nullptr) {
                     kmer_idx[i]->append(*other.kmer_idx[i]);
@@ -152,7 +155,7 @@ public:
     }
 
     ~IndexBuilder() {
-        for (int i = 0; i < idx->n_kmers; ++i) {
+        for (unsigned int i = 0; i < idx->n_kmers; ++i) {
             delete kmer_idx[i];
         }
     }
@@ -174,6 +177,27 @@ kmer_search::impl::impl(query_arb* arbdb_, int k_)
       kmer_idx(1<<(k_*2), nullptr),
       arbdb(arbdb_)
 {
+    fs::path path = arbdb->getFileName();
+    path.replace_extension(".sidx");
+    if (fs::exists(path)) {
+        if (fs::last_write_time(path) >=
+            fs::last_write_time(arbdb->getFileName())) {
+            if (try_load(path)) {
+                return;
+            } else {
+                logger->error("Failed to load {} - rebuilding", path);
+            }
+            logger->error("Reference {} newer than {} - rebuilding index.",
+                          arbdb->getFileName(), path);
+        }
+    }
+    build();
+    logger->error("Storing Index");
+    store(path);
+}
+
+void
+kmer_search::impl::build() {
     timer t;
     t.start();
 
@@ -188,7 +212,7 @@ kmer_search::impl::impl(query_arb* arbdb_, int k_)
         tbb::parallel_reduce(tbb::blocked_range<size_t>(0, n_sequences), bi);
         kmer_idx.clear();
         kmer_idx.reserve(n_kmers);
-        for (int i=0; i < n_kmers; i++) {
+        for (unsigned int i=0; i < n_kmers; i++) {
             if (bi.kmer_idx[i] != nullptr) {
                 kmer_idx.push_back(new vlimap(*bi.kmer_idx[i]));
             } else {
@@ -198,7 +222,7 @@ kmer_search::impl::impl(query_arb* arbdb_, int k_)
     }
     t.stop("build");
 
-    for (int i=0; i < n_kmers; i++) {
+    for (unsigned int i=0; i < n_kmers; i++) {
         if (kmer_idx[i]->size() > n_sequences / 2) {
             kmer_idx[i]->invert();
         }
@@ -207,6 +231,70 @@ kmer_search::impl::impl(query_arb* arbdb_, int k_)
 
     logger->info("Indexed {} sequences", n_sequences);
     logger->info("Timings: {}", t);
+}
+
+const uint64_t idx_header_magic = 0x5844494b414e4953; // SINAKIDX
+const uint16_t idx_header_vers  = 0;
+struct idx_header {
+    uint64_t magic{idx_header_magic};
+    uint16_t vers{idx_header_vers};
+    uint16_t k;
+    uint32_t n_sequences;
+    uint64_t reserved[30];
+};
+
+void
+kmer_search::impl::store(const fs::path& filename) {
+    std::ofstream out(filename.native(), std::ofstream::binary);
+    idx_header header;
+    header.k = k;
+    header.n_sequences = n_sequences;
+    out.write((char*)&header, sizeof(idx_header));
+    for (auto& name : sequence_names) {
+        out << name << std::endl;
+    }
+    /*
+    vlimap emptymap(n_sequences);
+    for (unsigned int i = 0; i < n_sequences; i++) {
+        if (kmer_idx[i] != nullptr && kmer_idx[i]->size() > 0) {
+            emptymap.push_back(i);
+        }
+    }
+    emptymap.write(out);
+    */
+
+    for (auto setptr : kmer_idx) {
+        //    if (setptr != nullptr && setptr->size() > 0) {
+            setptr->write(out);
+            //}
+    }
+}
+
+bool
+kmer_search::impl::try_load(const fs::path& filename) {
+    std::ifstream in(filename.native(), std::ifstream::binary);
+    idx_header header;
+    in.read((char*)&header, sizeof(idx_header));
+    if (k != header.k) {
+        return false;
+    }
+    n_sequences = header.n_sequences;
+    for (unsigned int i = 0; i < n_sequences; i++) {
+        string name;
+        getline(in, name);
+        sequence_names.push_back(name);
+    }
+    /*
+    vlimap emptymap(n_sequences);
+    emptymap.read(in);
+    for (auto idxno : emptymap) {
+    */
+    for (unsigned int idxno = 0; idxno < n_kmers; ++idxno) {
+        vlimap *idx = new vlimap(n_sequences);
+        idx->read(in);
+        kmer_idx[idxno] = idx;
+    }
+    return true;
 }
 
 double
@@ -240,10 +328,11 @@ kmer_search::impl::find(const cseq& query, std::vector<cseq>& results, int max) 
     if (n_sequences == 0) {
         return;
     }
-    timeit.start();
+    timer& timing = timeit.get_timer();
+    timing.start();
     const vector<aligned_base>& bases = query.const_getAlignedBases();
     idset::inc_t scores(n_sequences, 0);
-    timeit.stop("load");
+    timing.stop("load query");
 
     std::unordered_set<unsigned int> seen(query.size()*2-1);
 
@@ -252,11 +341,11 @@ kmer_search::impl::find(const cseq& query, std::vector<cseq>& results, int max) 
     // for (unsigned int kmer: unique_kmers(bases, seen, k)) {
     // for (unsigned int kmer: unique_prefix_kmers(bases, seen, k, 1, BASE_A)) {
     for (unsigned int kmer: prefix_kmers(bases, k, 1, BASE_A)) {
-        if (kmer_idx[kmer]->size() < n_sequences) {
+        if (kmer_idx[kmer] && kmer_idx[kmer]->size() < n_sequences) {
             offset += kmer_idx[kmer]->increment(scores);
         }
     }
-    timeit.stop("sum");
+    timing.stop("count kmers");
 
     using pair = std::pair<idset::inc_t::value_type, int>;
     std::vector<pair> ranks;
@@ -265,11 +354,9 @@ kmer_search::impl::find(const cseq& query, std::vector<cseq>& results, int max) 
     for (auto score: scores) {
         ranks.emplace_back(score + offset, n++);
     }
-    timeit.stop("assemble");
-
     std::partial_sort(ranks.begin(), ranks.begin()+max, ranks.end(),
                       std::greater<pair>());
-    timeit.stop("sort");
+    timing.stop("sort result");
 
     results.clear();
     results.reserve(max);
@@ -277,24 +364,8 @@ kmer_search::impl::find(const cseq& query, std::vector<cseq>& results, int max) 
         results.emplace_back(arbdb->getCseq(sequence_names[ranks[i].second]));
         results.back().setScore(ranks[i].first);
     }
-    timeit.stop("output");
+    timing.stop("load result");
 }
-
-
-/*
-const uint64_t idx_header_magic = 0x53494e414b494458; // SINAKIDX
-const uint16_t idx_header_vers  = 0;
-struct idx_header {
-    uint64_t magic;
-    uint16_t vers;  // 0
-    uint16_t k;
-    uint32_t n_sequences;
-    uint64_t kmer_idx_size;
-    uint64_t total_size;
-};
-
-const uint64_t chunk_size = 1024*1024;
-*/
 
 /*
   Local Variables:
