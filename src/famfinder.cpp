@@ -244,6 +244,10 @@ void famfinder::validate_vm(po::variables_map& vm,
     if (not vm["ptdb"].empty() && not vm["db"].empty()) {
         throw logic_error("Family Finder: please use only new --db option");
     }
+    if (not fs::exists(opts.database)) {
+        throw logic_error(fmt::format("Reference database file {} does not exist",
+                                      opts.database));
+    }
     if (vm["fs-req"].as<int>() < 1) {
         throw logic_error("Family Finder: fs-req must be >= 1");
     }
