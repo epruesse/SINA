@@ -103,6 +103,12 @@ kmer_search::get_kmer_search(const fs::path& filename, int k) {
     return new kmer_search(indices[key]);
 }
 
+void
+kmer_search::release_kmer_search(const fs::path& filename, int k) {
+    kmer_search_key_t key(filename, k);
+    boost::mutex::scoped_lock lock(indices_access);
+    indices.erase(key);
+}
 
 kmer_search::kmer_search(std::shared_ptr<kmer_search::impl> pimpl_)
     : pimpl(pimpl_) {}
