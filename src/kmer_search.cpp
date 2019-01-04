@@ -216,8 +216,8 @@ kmer_search::impl::build() {
                 kmer_idx.push_back(nullptr);
             }
         }
+        p += n_sequences - p.count();
     }
-    std::cerr << std::endl; // progress display sometimes doesn't get exact counts
 
     t.stop("build");
 
