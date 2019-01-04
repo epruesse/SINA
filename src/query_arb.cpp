@@ -146,7 +146,7 @@ struct query_arb::priv_data {
             free(const_cast<char*>(default_alignment));
         }
         if (gbmain != nullptr) {
-            logger->info("Closing ARB database '{}'", filename);
+            logger->warn("Closing ARB database '{}' ...", filename);
             GB_close(gbmain);
         }
     }
