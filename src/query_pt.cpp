@@ -637,10 +637,10 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
 
     char* f_name;
     double f_rel_matches = 0.f;
-    int f_matches = 0;
+    long f_matches = 0;
 
     std::vector<std::pair<int, string> > scored_names;
-    while (f_list.exists() && max--) {
+    while (max-- && f_list.exists()) {
         aisc_get(data->link, PT_FAMILYLIST, f_list,
                  FAMILYLIST_NAME, &f_name,
                  FAMILYLIST_REL_MATCHES, &f_rel_matches,
