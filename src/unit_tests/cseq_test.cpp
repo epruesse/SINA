@@ -54,8 +54,8 @@ const float score = 15.f;
 
 
 #define test_empty(cs)                         \
-    EQUAL((cs).size(), 0);                     \
-    EQUAL((cs).getWidth(), 0);                 \
+    EQUAL((cs).size(), 0u);                    \
+    EQUAL((cs).getWidth(), 0u);                \
     EQUAL((cs).getBases(), string());          \
     EQUAL((cs).getAligned(true), string());    \
     EQUAL((cs).end() - c.begin(), 0);          \
@@ -64,19 +64,19 @@ const float score = 15.f;
     EQUAL((cs).getScore(), 0.f);
 
 
-#define test_data(cs, name, score, _aligned)                    \
-    {                                                           \
-        string aligned = (_aligned);                            \
-        string unaligned = aligned;                             \
-        boost::erase_all(unaligned, "-");                       \
-        EQUAL((cs).size(), unaligned.size());                   \
-        EQUAL((cs).getWidth(), aligned.size());                 \
-        EQUAL((cs).getBases(), unaligned);                      \
-        EQUAL((cs).getAligned(true), aligned);                  \
-        EQUAL((cs).end() - (cs).begin(), unaligned.size());     \
-        EQUAL((cs).rend() - (cs).rbegin(), unaligned.size());   \
-        EQUAL((cs).getName(), name);                            \
-        EQUAL((cs).getScore(), score);                          \
+#define test_data(cs, name, score, _aligned)                        \
+    {                                                               \
+        string aligned = (_aligned);                                \
+        string unaligned = aligned;                                 \
+        boost::erase_all(unaligned, "-");                           \
+        EQUAL((cs).size(), unaligned.size());                       \
+        EQUAL((cs).getWidth(), aligned.size());                     \
+        EQUAL((cs).getBases(), unaligned);                          \
+        EQUAL((cs).getAligned(true), aligned);                      \
+        EQUAL((cs).end() - (cs).begin(), (long)unaligned.size());   \
+        EQUAL((cs).rend() - (cs).rbegin(), (long)unaligned.size()); \
+        EQUAL((cs).getName(), name);                                \
+        EQUAL((cs).getScore(), score);                              \
     }
 
 CASE(test_constructor_empty) {

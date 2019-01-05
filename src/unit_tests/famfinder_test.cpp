@@ -38,8 +38,8 @@ ITER shuffle_n(ITER begin, ITER end, size_t n) {
 struct Fixture {
     query_arb *arbdb;
     std::vector<std::string> ids;
-    const int N{20};
-    const int M{50};
+    const unsigned int N{20};
+    const unsigned int M{50};
 
     Fixture() {
         std::srand(1234);
@@ -91,7 +91,7 @@ BOOST_DATA_TEST_CASE_F(Fixture, turn, bdata::make({"internal", "pt-server"}), en
 
     famfinder finder(0);
     
-    for (int i=0; i<N; i++) {
+    for (unsigned int i = 0; i < N; i++) {
         cseq query = arbdb->getCseq(ids[i]);
         BOOST_TEST(finder.turn_check(query, false) == 0);
         BOOST_TEST(finder.turn_check(query, true) == 0);

@@ -196,7 +196,7 @@ public:
  */
 class vlimap_abs : public idset {
 public:
-    vlimap_abs(int maxsize=0) : idset() {}
+    vlimap_abs(int /*maxsize*/=0) : idset() {}
 
     /* once-forward iterator over contents */
     class const_iterator {

@@ -115,14 +115,14 @@ cseq_base::setWidth(vidx_type newWidth) {
     // find the number of bases from the right where
     // <position-of-base> + <number-of-following-bases>
     // is at most <width-of-alignment>
-    int skip;
+    unsigned int skip;
     for(skip = 0; skip < size(); skip++) {
         if (bases[size() - skip - 1].getPosition() + skip < newWidth) {
             break;
         }
     }
 
-    for (int i = skip; i > 0; --i) {
+    for (unsigned int i = skip; i > 0; --i) {
         bases[size() - i].setPosition(newWidth - i);
     }
     alignment_width = newWidth;
@@ -380,7 +380,7 @@ cseq_base::write_alignment(std::ostream& ofs, std::vector<cseq_base*>& seqs,
 
     for (auto i = from_pos; i <= to_pos; ++i) {
         bool gap = true;
-        for (auto j = 0; j < jmax; ++j) {
+        for (auto j = 0u; j < jmax; ++j) {
             outchar[j] = (*seqs[j])[i];
             if (outchar[j] != '-') {
                 gap = false;
@@ -388,7 +388,7 @@ cseq_base::write_alignment(std::ostream& ofs, std::vector<cseq_base*>& seqs,
         }
 
         if (!gap || i == to_pos-1 ) {
-            for (auto j = 0; j < jmax; ++j) {
+            for (auto j = 0u; j < jmax; ++j) {
                 out[j].append(1, outchar[j]);
             }
         }

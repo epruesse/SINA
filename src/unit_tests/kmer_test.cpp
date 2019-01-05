@@ -316,7 +316,7 @@ BOOST_DATA_TEST_CASE(prefix_kmer_generator_test,
 
     prefix_kmer_generator kmer(k, prefix_len, prefix);
 
-    int count = 0;
+    unsigned int count = 0;
     for (int i = 0; i < test_sequence_len; ++i) {
         kmer.push(test_sequence[i]);
         unsigned int current_prefix = kmers[i] >> (k-prefix_len)*2;
@@ -358,7 +358,7 @@ BOOST_DATA_TEST_CASE(kmer_iterable_prefix_generator_test,
     const auto& prefix_count = kmer_prefix_counts[n][p];
 
     int i = 0;
-    int count = 0;
+    unsigned int count = 0;
     std::string test_string(test_sequence);
     for (const auto& kmer : prefix_kmers(test_string, k, prefix_len, prefix)) {
         bool should_be_valid = false;
@@ -397,7 +397,7 @@ BOOST_DATA_TEST_CASE(kmer_iterable_unique_prefix_generator_test,
     const auto& prefix_count = kmer_unique_prefix_counts[n][p];
 
     int i = 0;
-    int count = 0;
+    unsigned int count = 0;
     std::unordered_set<unsigned int> seen;
 
     std::string test_string(test_sequence);

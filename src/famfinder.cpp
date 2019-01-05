@@ -86,21 +86,21 @@ struct options {
     string posvar_autofilter_field;
     float  posvar_autofilter_thres;
 
-    int   fs_min;
-    int   fs_max;
-    float fs_msc;
-    float fs_msc_max;
-    bool  fs_leave_query_out;
-    int   fs_req;
-    int   fs_req_full;
-    int   fs_full_len;
-    int   fs_req_gaps;
-    bool  fs_no_fast;
-    int   fs_kmer_len;
-    int   fs_kmer_mm;
-    bool  fs_kmer_norel;
-    int   fs_min_len;
-    int   fs_cover_gene;
+    unsigned int   fs_min;
+    unsigned int   fs_max;
+    float          fs_msc;
+    float          fs_msc_max;
+    bool           fs_leave_query_out;
+    unsigned int   fs_req;
+    unsigned int   fs_req_full;
+    unsigned int   fs_full_len;
+    unsigned int   fs_req_gaps;
+    bool           fs_no_fast;
+    unsigned int   fs_kmer_len;
+    unsigned int   fs_kmer_mm;
+    bool           fs_kmer_norel;
+    unsigned int   fs_min_len;
+    unsigned int   fs_cover_gene;
 
     fs::path database;
     string   pt_port;
@@ -178,24 +178,24 @@ famfinder::get_options_description(po::options_description& main,
         ("fs-engine", po::value<ENGINE_TYPE>(&opts.engine),
          "search engine to use for reference selection "
          "[*pt-server*|internal]")
-        ("fs-kmer-len", po::value<int>(&opts.fs_kmer_len)->default_value(10,""),
+        ("fs-kmer-len", po::value<unsigned int>(&opts.fs_kmer_len)->default_value(10u,""),
          "length of k-mers (10)")
-        ("fs-req", po::value<int>(&opts.fs_req)->default_value(1,""),
+        ("fs-req", po::value<unsigned int>(&opts.fs_req)->default_value(1u,""),
          "required number of reference sequences (1)\n"
          "queries with less matches will be dropped")
-        ("fs-min", po::value<int>(&opts.fs_min)->default_value(40,""),
+        ("fs-min", po::value<unsigned int>(&opts.fs_min)->default_value(40u,""),
          "number of references used regardless of shared fraction (40)")
-        ("fs-max", po::value<int>(&opts.fs_max)->default_value(40,""),
+        ("fs-max", po::value<unsigned int>(&opts.fs_max)->default_value(40u,""),
          "number of references used at most (40)")
         ("fs-msc", po::value<float>(&opts.fs_msc)->default_value(.7, ""),
          "required fractional identity of references (0.7)")
-        ("fs-req-full", po::value<int>(&opts.fs_req_full)->default_value(1, ""),
+        ("fs-req-full", po::value<unsigned int>(&opts.fs_req_full)->default_value(1u, ""),
          "required number of full length references (1)")
-        ("fs-full-len", po::value<int>(&opts.fs_full_len)->default_value(1400, ""),
+        ("fs-full-len", po::value<unsigned int>(&opts.fs_full_len)->default_value(1400u, ""),
          "minimum length of full length reference (1400)")
-        ("fs-req-gaps", po::value<int>(&opts.fs_req_gaps)->default_value(10, ""),
+        ("fs-req-gaps", po::value<unsigned int>(&opts.fs_req_gaps)->default_value(10u, ""),
          "ignore references with less internal gaps (10)")
-        ("fs-min-len", po::value<int>(&opts.fs_min_len)->default_value(150, ""),
+        ("fs-min-len", po::value<unsigned int>(&opts.fs_min_len)->default_value(150u, ""),
          "minimal reference length (150)")
         ;
     main.add(mid);
@@ -209,7 +209,7 @@ famfinder::get_options_description(po::options_description& main,
          "PT server port (:/tmp/sina_pt_<pid>)")
         ("fs-kmer-no-fast", po::bool_switch(&opts.fs_no_fast),
          "don't use fast family search")
-        ("fs-kmer-mm", po::value<int>(&opts.fs_kmer_mm)->default_value(0,""),
+        ("fs-kmer-mm", po::value<unsigned int>(&opts.fs_kmer_mm)->default_value(0,""),
          "allowed mismatches per k-mer (0)")
         ("fs-kmer-norel", po::bool_switch(&opts.fs_kmer_norel),
          "don't score k-mer distance relative to target length")
@@ -221,7 +221,7 @@ famfinder::get_options_description(po::options_description& main,
          "alignment position of first base of gene (0)")
         ("gene-end", po::value<int>(&opts.gene_end)->default_value(0,""),
          "alignment position of last base of gene (0)")
-        ("fs-cover-gene", po::value<int>(&opts.fs_cover_gene)->default_value(0,""),
+        ("fs-cover-gene", po::value<unsigned int>(&opts.fs_cover_gene)->default_value(0,""),
          "required number of references covering each gene end (0)")
         ("filter", po::value<string>(&opts.posvar_filter)->default_value(""),
          "select posvar filter")
@@ -248,7 +248,7 @@ void famfinder::validate_vm(po::variables_map& vm,
         throw logic_error(fmt::format("Reference database file {} does not exist",
                                       opts.database));
     }
-    if (vm["fs-req"].as<int>() < 1) {
+    if (vm["fs-req"].as<unsigned int>() < 1) {
         throw logic_error("Family Finder: fs-req must be >= 1");
     }
 
@@ -450,8 +450,8 @@ famfinder::impl::select_astats(tray& t) {
 /* tests if cseq has less than n gaps before last base */
 struct has_max_n_gaps {
     using result_type = bool;
-    const int n_gaps;
-    explicit has_max_n_gaps(int _n_gaps) : n_gaps(_n_gaps) {}
+    const unsigned int n_gaps;
+    explicit has_max_n_gaps(unsigned int _n_gaps) : n_gaps(_n_gaps) {}
     bool operator()(const cseq& c) {
         return 0 == c.size() // safety, must have bases
             || c.rbegin()->getPosition() - c.size() +1 < n_gaps; 
@@ -471,7 +471,8 @@ famfinder::impl::operator()(tray t) {
     index->match(vc, c, opts.fs_min, opts.fs_max, opts.fs_msc, opts.fs_msc_max,
                  arb, noid, opts.fs_min_len, opts.fs_req_full,
                  opts.fs_full_len, opts.fs_cover_gene, opts.fs_leave_query_out);
-    
+
+    // prepare log string for alignment reference
     stringstream tmp;
     for (cseq &r: vc) {
         if (opts.posvar_autofilter_field.length() > 0) {
