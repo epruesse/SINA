@@ -10,7 +10,7 @@
 set -x
 
 CONDA_PACKAGES="autoconf automake libtool toolchain pkg-config boost arb-bio-devel"
-CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib libiconv bc sed"
+CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib libiconv bc sed sphinx"
 
 CONDA_BASEURL=https://repo.continuum.io/miniconda
 
@@ -21,11 +21,11 @@ export MINICONDA
 case "$(uname)" in
     Linux)
 	CONDA_OSNAME=Linux
-	CONDA_PACKAGES="$CONDA_PACKAGES gcc patchelf coreutils"
+	CONDA_PACKAGES="$CONDA_PACKAGES gxx_linux-64 patchelf coreutils"
 	;;
     Darwin)
 	CONDA_OSNAME=MacOSX
-	CONDA_PACKAGES="$CONDA_PACKAGES llvm"
+	CONDA_PACKAGES="$CONDA_PACKAGES clangxx_osx-64"
 	;;
 esac
 
