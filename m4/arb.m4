@@ -211,8 +211,8 @@ AC_DEFUN([AX_LIB_ARB_PROBE],
 
         ax_arb_probe_libs=""
         for common in '' "$ARBHOME/PROBE_COM/common.a"; do
-            ax_arb_probe_libs_tmp="$ARBHOME/PROBE_COM/client.a $common"
-            LIBS="$saved_LIBS $ax_arb_probe_libs_tmp $ARB_LIBS"
+            ax_arb_probe_libs_tmp="$ARBHOME/PROBE_COM/client.a $common $ARB_LIBS"
+            LIBS="$saved_LIBS $ax_arb_probe_libs_tmp"
             AC_LINK_IFELSE([], [
                 ax_arb_probe_libs="$ax_arb_probe_libs_tmp"
                 break
@@ -256,7 +256,7 @@ AC_DEFUN([AX_LIB_ARB_HELIX],
 
     CPPFLAGS="$CPPFLAGS $ARB_CPPFLAGS"
     LDFLAGS="$LDFLAGS $ARB_LDFLAGS"
-    LIBS="$LIBS  $ARBHOME/SL/HELIX/HELIX.a $ARB_LIBS"
+    LIBS="$LIBS $ARBHOME/SL/HELIX/HELIX.a $ARB_LIBS"
 
     AC_LANG_PUSH(C++)
     AC_LINK_IFELSE([
@@ -268,7 +268,7 @@ AC_DEFUN([AX_LIB_ARB_HELIX],
         ]])
     ],[
         AC_MSG_RESULT([yes])
-        ARB_HELIX_LIBS="$ARBHOME/SL/HELIX/HELIX.a"
+        ARB_HELIX_LIBS="$ARBHOME/SL/HELIX/HELIX.a $ARB_LIBS"
         AC_SUBST(ARB_HELIX_LIBS)
         AC_DEFINE(HAVE_ARB_HELIX)
     ],[
