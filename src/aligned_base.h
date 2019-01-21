@@ -162,7 +162,7 @@ public:
     }
 
     bool comp_exact(const base_iupac& rhs) const {
-      return _data == rhs._data;
+        return (0xf & _data) == (0xf & rhs._data);
     }
 
     struct matrix_type {
