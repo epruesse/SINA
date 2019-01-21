@@ -45,3 +45,4 @@ doi::doi:`10.1093/bioinformatics/bts252`
 
    install.rst
    commandline.rst
+   CHANGELOG.rst

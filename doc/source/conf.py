@@ -189,6 +189,7 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 todo_include_todos = True
 
 extlinks = {
-   'biotools': ('https://bio.tools/%s', ''),
-   'doi': ('https://doi.org/%s', ''),
+    'biotools': ('https://bio.tools/%s', ''),
+    'doi': ('https://doi.org/%s', ''),
+    'issue': ('https://github.com/epruesse/SINA/issues/%s', '#')
 }
