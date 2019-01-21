@@ -10,6 +10,7 @@ references:
   configure: &configure
     name: Running Configure
     command: |
+      env
       eval MINICONDA=$MINICONDA
       cd ~/build
       ~/project/configure \
@@ -19,8 +20,9 @@ references:
       --with-boost-libdir=$MINICONDA/lib \
       --with-arbhome=$MINICONDA/lib/arb \
       $EXTRA_CONFIG_ARGS \
-      LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,$MINICONDA/lib" \
       || (cat config.log; false)
+
+      #      LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,$MINICONDA/lib" \
 
   macos: &macos
     macos:

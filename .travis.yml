@@ -18,7 +18,8 @@ env:
 
 install:
   - ./ci_scripts/install_conda.sh
-  - export PATH=$MINICONDA/bin:$PATH
+  - source $BASH_ENV
+  - conda list
   - find $MINICONDA -name '*.la' -print0 | xargs -0 rm
   - export LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,$MINICONDA/lib"
   - case "$(uname)" in
