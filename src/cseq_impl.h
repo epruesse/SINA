@@ -31,8 +31,8 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
-inline cseq& 
-cseq::append(const std::string& str) {
+inline cseq_base&
+cseq_base::append(const std::string& str) {
   return append(str.c_str());
 }
 
@@ -56,88 +56,88 @@ public:
     }
 
     // return default value for vector (no sense to convert)
-    const T operator()(const std::vector<cseq>& /*v*/) const {
+    const T operator()(const std::vector<cseq_base>& /*v*/) const {
         return T();
     }
 };
 
-inline cseq::iterator 
-prev_begin(const cseq& c, const cseq::iterator& it) {
+inline cseq_base::iterator
+prev_begin(const cseq_base& c, const cseq_base::iterator& it) {
   if (c.begin() != it) {
     return it-1;
   }
   return it;
 }
-inline cseq::iterator 
-prev_end(const cseq& /*c*/, const cseq::iterator& it) {
+inline cseq_base::iterator
+prev_end(const cseq_base& /*c*/, const cseq_base::iterator& it) {
   return it;
 }
 inline bool
-has_prev(const cseq& c, const cseq::iterator& it) {
+has_prev(const cseq_base& c, const cseq_base::iterator& it) {
   return c.begin() != it;
 }
 
-inline cseq::iterator
-next_begin(const cseq& /*c*/, const cseq::iterator& it) {
+inline cseq_base::iterator
+next_begin(const cseq_base& /*c*/, const cseq_base::iterator& it) {
   return it+1;
 }
-inline cseq::iterator
-next_end(const cseq& c, const cseq::iterator& it) {
+inline cseq_base::iterator
+next_end(const cseq_base& c, const cseq_base::iterator& it) {
   if (it+1 == c.end()) {
     return it + 1;
   }
   return it + 2;
 }
 inline bool
-has_next(const cseq& c, const cseq::iterator& it) {
+has_next(const cseq_base& c, const cseq_base::iterator& it) {
   return (it+1) != c.end();
 }
 
 
-inline cseq::idx_type
-get_node_id(cseq& c, const cseq::iterator& it){
+inline cseq_base::idx_type
+get_node_id(cseq_base& c, const cseq_base::iterator& it){
     return it - c.begin();
 }
 
-inline cseq::iterator
-cseq::begin() {
+inline cseq_base::iterator
+cseq_base::begin() {
     return {bases.begin()};
 }
 
-inline cseq::const_iterator
-cseq::begin() const {
+inline cseq_base::const_iterator
+cseq_base::begin() const {
     return {bases.begin()};
 }
 
-inline cseq::const_reverse_iterator
-cseq::rbegin() const {
+inline cseq_base::const_reverse_iterator
+cseq_base::rbegin() const {
     return {bases.rbegin()};
 }
 
 
-inline cseq::iterator
-cseq::end() {
+inline cseq_base::iterator
+cseq_base::end() {
     return {bases.end()};
 }
 
-inline cseq::const_iterator
-cseq::end() const {
+inline cseq_base::const_iterator
+cseq_base::end() const {
     return {bases.end()};
 }
-inline cseq::const_reverse_iterator
-cseq::rend() const {
+inline cseq_base::const_reverse_iterator
+cseq_base::rend() const {
     return {bases.rend()};
 }
 
-inline cseq::iterator
-cseq::getIterator(cseq::vidx_type i) {
+inline cseq_base::iterator
+cseq_base::getIterator(cseq_base::vidx_type i) {
   // this is weird. FIXME
     return {std::lower_bound(bases.begin(),
                                 bases.end(),aligned_base(i,'.'))};
 }
 
-inline cseq::const_iterator
-cseq::getIterator(cseq::vidx_type i) const {
+inline cseq_base::const_iterator
+cseq_base::getIterator(cseq_base::vidx_type i) const {
     return {lower_bound(bases.begin(),
                                       bases.end(),aligned_base(i,'.'))};
 }
@@ -145,7 +145,7 @@ cseq::getIterator(cseq::vidx_type i) const {
 
 template<typename T>
 void
-for_each_prev(cseq::iterator cit, T t) {
+for_each_prev(cseq_base::iterator cit, T t) {
     t(*(cit-1));
 }
 

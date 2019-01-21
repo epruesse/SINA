@@ -28,6 +28,7 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "config.h"
 #include "query_pt.h"
+#include "timer.h"
 
 #include <cstring>
 
@@ -46,8 +47,6 @@ using std::vector;
 #include "cseq.h"
 #include "cseq_comparator.h"
 #include "log.h"
-
-#ifndef TEST
 
 #include "query_arb.h"
 
@@ -185,12 +184,21 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
             break;
         }
     }
+    if (line.empty()) {
+        process->rdbuf()->kill();
+        throw query_pt_exception("PT server failed to respond. Do you have enough memory?");
+    }
+    if (process->rdbuf()->exited()) {
+        throw query_pt_exception(
+            fmt::format("PT server exited immediately. Exit status was {}",
+                        process->rdbuf()->status()));
+    }
 
-    logger->info("Launched PT server ({} on {}).", dbname, portname);
+    logger->warn("Launched PT server ({} on {}).", dbname, portname);
 }
 
 managed_pt_server::~managed_pt_server() {
-    logger->info("Terminating PT server ({} on {})", dbname, portname);
+    logger->warn("Terminating PT server ({} on {})", dbname, portname);
     process->rdbuf()->kill();
 }
 
@@ -217,12 +225,16 @@ struct query_pt::priv_data {
 
     boost::mutex arb_pt_access;
 
-    int  range_begin{-1};
-    int  range_end{-1};
+    unsigned int  range_begin{0};
+    unsigned int  range_end{INT_MAX};
     bool find_type_fast{false};
     int  kmer_len;
     int  num_mismatch;
     bool relative_sort;
+
+    query_arb *arbdb;
+
+    timer timeit;
 
     static std::map<string, std::weak_ptr<managed_pt_server>> servers;
     std::shared_ptr<managed_pt_server> server;
@@ -268,8 +280,22 @@ query_pt::priv_data::disconnect_server() {
 }
 
 
-
 std::map<string, std::weak_ptr<managed_pt_server>> query_pt::priv_data::servers;
+
+
+query_pt*
+query_pt::get_pt_search(const fs::path& filename, int k,
+                        bool fast,
+                        bool norel,
+                        int mk,
+                        std::string portname) {
+    if (portname.empty()) {
+        portname = ":" + (fs::temp_directory_path() / fs::unique_path()).native();
+    }
+
+    return new query_pt(portname.c_str(), filename.native().c_str(),
+                        fast, k, mk, norel);
+}
 
 
 query_pt::query_pt(const char* portname, const char* dbname,
@@ -283,10 +309,13 @@ query_pt::query_pt(const char* portname, const char* dbname,
     if (!data->connect_server(portname)) {
         data->server = std::make_shared<managed_pt_server>(dbname, portname);
         if (!data->connect_server(portname)) {
+            delete data;
             throw query_pt_exception("Failed to start PT server. Do you have enough memory?");
         }
         priv_data::servers[portname] = data->server;
     }
+
+    data->arbdb = query_arb::getARBDB(dbname);
 
     set_find_type_fast(fast);
     set_probe_len(k);
@@ -295,29 +324,17 @@ query_pt::query_pt(const char* portname, const char* dbname,
 }
 
 query_pt::~query_pt() {
+    logger->info("Timings for PT Search: {}", data->timeit);
     delete data;
 }
 
-#if 0
-void
-query_pt::restart() {
-    logger->info("Trying to restart pt server connection...");
-    exit();
-    logger->info("Terminated PT server. Sleeping for 5 seconds.");
-    sleep(5);
-    logger->info("Restarting PT server");
-    init();
-    logger->info("Done.");
-    // FIXME: settings need to be restored!
-}
-#endif
 
 void
 query_pt::set_find_type_fast(bool fast) {
     boost::mutex::scoped_lock lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
-                       FAMILYFINDER_FIND_TYPE, fast?1:0,
+                       FAMILYFINDER_FIND_TYPE, fast?1L:0L,
                        NULL);
     if (err != 0) {
         logger->warn("Unable to set find_type = {}", fast ? "fast" : "normal");
@@ -331,7 +348,7 @@ query_pt::set_probe_len(int len) {
     boost::mutex::scoped_lock lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
-                       FAMILYFINDER_PROBE_LEN, len,
+                       FAMILYFINDER_PROBE_LEN, long(len),
                        NULL);
     if (err != 0) {
         logger->warn("Unable to set k = {}", len);
@@ -345,7 +362,7 @@ query_pt::set_mismatches(int len) {
     boost::mutex::scoped_lock lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
-                       FAMILYFINDER_MISMATCH_NUMBER, len,
+                       FAMILYFINDER_MISMATCH_NUMBER, long(len),
                        NULL);
 
     if (err != 0) {
@@ -360,7 +377,7 @@ query_pt::set_sort_type(bool absolute) {
     boost::mutex::scoped_lock lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
-                       FAMILYFINDER_SORT_TYPE, absolute?0:1,
+                       FAMILYFINDER_SORT_TYPE, absolute?0L:1L,
                        NULL);
     if (err != 0) {
         logger->warn("Unable to set sort type = {}", absolute ? "absolute" : "relative");
@@ -372,26 +389,18 @@ query_pt::set_sort_type(bool absolute) {
 void
 query_pt::set_range(int startpos, int stoppos) {
     boost::mutex::scoped_lock lock(data->arb_pt_access);
-#if 0
+
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
-                       FAMILYFINDER_RANGE_STARTPOS, startpos,
-                       FAMILYFINDER_RANGE_ENDPOS, stoppos,
+                       FAMILYFINDER_RANGE_STARTPOS, long(startpos),
+                       FAMILYFINDER_RANGE_ENDPOS, long(stoppos),
                        NULL);
-#else
-    int err = 0;
-#endif
     if (err != 0) {
         logger->warn("Unable to constain matching to {}-{}", startpos, stoppos);
     } else {
         data->range_begin = startpos;
         data->range_end = stoppos;
     }
-}
-
-void
-query_pt::unset_range() {
-    set_range(-1,-1);
 }
 
 double
@@ -428,23 +437,6 @@ match_retry:
     family.reserve(max_match);
     boost::mutex::scoped_lock lock(data->arb_pt_access);
     
-/*
-    if (max_score > 1 && !noid) {
-        // if we really only want the top max_match, 
-        // limit sorting to that amount. if we have a max_score,
-        // we might as well have the pt server sort it all.
-        aisc_put(data->link,
-                       PT_FAMILYFINDER, data->ffinder,
-                 FAMILYFINDER_SORT_MAX, max_match,
-                 NULL);
-    } else {
-        aisc_put(data->link,
-                       PT_FAMILYFINDER, data->ffinder,
-                 FAMILYFINDER_SORT_MAX, 0,
-                 NULL);
-    }
-*/
-
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_FIND_FAMILY, &bs,
@@ -608,6 +600,69 @@ match_retry:
     return f_relscore;
 }
 
+void
+query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
+    data->timeit.start();
+    char *error = nullptr;
+    results.clear();
+    results.reserve(max);
+
+    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    data->timeit.stop("acquire lock");
+
+    bytestring bs;
+    bs.data = strdup(query.getBases().c_str());
+    bs.size = query.size()+1;
+    if (aisc_put(data->link,
+                 PT_FAMILYFINDER, data->ffinder,
+                 FAMILYFINDER_SORT_MAX, long(max),
+                 FAMILYFINDER_FIND_FAMILY, &bs,
+                 NULL) != 0) {
+        logger->error("Unable to execute find_family command on pt-server");
+    }
+    free(bs.data);
+    data->timeit.stop("send query");
+
+    T_PT_FAMILYLIST f_list;
+    aisc_get(data->link,
+             PT_FAMILYFINDER, data->ffinder,
+             FAMILYFINDER_FAMILY_LIST, f_list.as_result_param(),
+             FAMILYFINDER_ERROR, &error,
+             NULL);
+    if (error && error[0] != 0) {
+        logger->error("Unable to get results for search: {}", error);
+        return;
+    }
+    data->timeit.stop("get first");
+
+    char* f_name;
+    double f_rel_matches = 0.f;
+    long f_matches = 0;
+
+    std::vector<std::pair<int, string> > scored_names;
+    while (max-- && f_list.exists()) {
+        aisc_get(data->link, PT_FAMILYLIST, f_list,
+                 FAMILYLIST_NAME, &f_name,
+                 FAMILYLIST_REL_MATCHES, &f_rel_matches,
+                 FAMILYLIST_MATCHES, &f_matches,
+                 FAMILYLIST_NEXT, f_list.as_result_param(),
+                 NULL);
+        scored_names.emplace_back(f_matches, f_name);
+        free(f_name);
+    }
+    data->timeit.stop("get all");
+
+    std::transform(scored_names.begin(), scored_names.end(),
+                   std::back_inserter(results),
+                   [&] (std::pair<int, string> hit) {
+                       cseq c = data->arbdb->getCseq(hit.second);
+                       c.setScore(hit.first);
+                       return c;
+                   });
+    data->timeit.stop("load seqs");
+}
+
+
 query_pt_exception::query_pt_exception(std::string  msg) noexcept
     : message(std::move(msg))
 {
@@ -622,61 +677,6 @@ query_pt_exception::what() const noexcept {
 
 } // namespace sina
 
-#else // TEST
-
-#include <string>
-#include <fstream>
-#include <algorithm>
-#include <iterator>
-
-void
-read_fasta(istream& ifs, vector<cseq>& seqs) {
-  while(!ifs.eof()) {
-    char buf[1024];
-    ifs.getline(buf,1024);
-    if (*buf == '>') {
-      string s(buf+1);
-      while (ifs.fail() && !ifs.eof()) {
-        ifs.clear();
-        ifs.getline(buf,1024);
-        s.append(buf);
-      }
-      seqs.push_back(cseq(s.c_str()));
-
-    } else {
-        if (seqs.empty()) continue; // malformed input, data before ">"
-      cseq& s=seqs.back();
-      s.append(buf);
-      while (ifs.fail() && !ifs.eof()) {
-        ifs.clear();
-        ifs.getline(buf,1024);
-        s.append(buf);
-      }
-    }
-  }
-}
-
-
-int main(int argc, char **argv) {
-    if (argc!=4)  exit(1);
-    query_pt *pt = new query_pt(argv[2], argv[1]);
-
-    std::ifstream ifs(argv[3]);
-    std::vector<cseq> query, family;
-
-    read_fasta(ifs, query);
-
-    std::string seq = query[0].getBases();
-    pt->match(family, seq.c_str(), 5, 40, .7);
-
-    std::copy(family.begin(), family.end(),
-              std::ostream_iterator<cseq>(std::cout, " "));
-
-    delete pt;
-    return 0;
-}
-
-#endif // TEST
 
 /*
   Local Variables:

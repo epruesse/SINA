@@ -67,8 +67,8 @@ alignment_stats::alignment_stats(
 
     column_freqs.resize(width);
     weights.resize(width);
-    int first_weighted = width, last_weighted=0;
-    for (int i=0; i<width; i++) {
+    unsigned int first_weighted = width, last_weighted=0;
+    for (unsigned int i = 0; i < width; i++) {
         freqs &f = column_freqs[i];
         f.num_a = na[i];
         f.num_c = nc[i];

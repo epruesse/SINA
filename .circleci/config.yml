@@ -72,14 +72,14 @@ jobs:
           name: Building
           command: |
             make -C ~/build clean
-            make -j8 -C ~/build all 
+            make -j2 -C ~/build all 
       - run:
           name: Running Unit Tests (w/ debug)
           command: |
             cd ~/build
             find -name \*.gcda | xargs rm -f
             rm -f coverage.info
-            make -j4 check-filtered P=unit_tests
+            make check-filtered P=unit_tests
             make code-coverage-capture
             bash <(curl -s https://codecov.io/bash) -X gcov -F unittest \
               -R ~/project -n Unit-Linux-CircleCI

@@ -36,6 +36,8 @@
 #include <iostream>
 #include <sstream>
 #include <numeric>
+#include <unordered_map>
+#include <thread>
 
 #ifndef _TIMER_H_
 #define _TIMER_H_
@@ -56,7 +58,10 @@ struct timestamp : private timeval {
     }
 
     void get() {
-        gettimeofday(this,nullptr);
+        // Adjusting the system clock breaks things
+        // should use clock_gettime(CLOCK_MONOTONIC, ...)
+        // (but that needs macos 10.12)
+        gettimeofday(this, nullptr);
     }
 
     timestamp() {
@@ -105,33 +110,33 @@ struct timestamp : private timeval {
     friend std::ostream& operator<<(std::ostream& out, const timestamp& t) {
         return out << t.tv_sec
                    << "." << std::setfill('0') << std::setw(3) << t.tv_usec/1000
-                   << " s";
+                   << "s";
     }
 };
 
 
 
 class timer {
-    std::vector<timestamp> timestamps;
+    std::vector<timestamp> timings;
     std::vector<const char*> names;
     std::vector<timestamp>::iterator time_it;
     timestamp t_last;
     unsigned int calls{0};
 public:
-    timer() : timestamps(1,0), t_last(0) {}
+    timer() : timings(1, 0), t_last(0) {}
 
     void start() {
-        time_it = timestamps.begin();
+        time_it = timings.begin();
         t_last.get();
         ++calls;
     }
 
     void stop(const char* name=nullptr) {
         timestamp t_now;
-        if (++time_it == timestamps.end()) {
+        if (++time_it == timings.end()) {
             names.push_back(name);
-            timestamps.emplace_back(0);
-            time_it = timestamps.end() - 1;
+            timings.emplace_back(0);
+            time_it = timings.end() - 1;
         }
         *time_it +=  t_now - t_last;
         t_last.get();
@@ -142,21 +147,55 @@ public:
         t_last.get();
     }
 
+    timer& operator+=(const timer& o) {
+        if (timings.size() != o.timings.size()) {
+            throw std::runtime_error("Tried to add incompatible timers");
+        }
+        for (size_t i = 0; i < timings.size(); i++) {
+            timings[i] += o.timings[i];
+        }
+        calls += o.calls;
+        return *this;
+    }
+
     friend std::ostream& operator<<(std::ostream& out , const timer& t) {
-        out << std::accumulate(t.timestamps.begin(), t.timestamps.end(), timestamp(0))
+        out << std::accumulate(t.timings.begin(), t.timings.end(), timestamp(0))
             << " (" << t.calls << " calls, ";
-        std::transform(++t.timestamps.begin(), t.timestamps.end(),
-                       t.names.begin(),
-                       std::ostream_iterator<std::string>(out, ", "),
-                       [](const timestamp &t, const char* name) {
-                           std::stringstream tmp;
-                           if (name != nullptr) {
-                               tmp << name << " = ";
-                           }
-                           tmp << t;
-                           return tmp.str();
-                       });
+        for (size_t i = 0; i < t.names.size(); ++i) {
+            if (i > 0) {
+                out << ", ";
+            }
+            if (t.names[i] != nullptr) {
+                out << t.names[i];
+            } else {
+                out << i;
+            }
+            out << ": " << t.timings[i];
+        }
         out << ")";
+        return out;
+    }
+};
+
+class timer_mt {
+    std::unordered_map<std::thread::id, timer> timers;
+public:
+    timer& get_timer() {
+        return timers[std::this_thread::get_id()];
+    }
+
+    friend std::ostream& operator<<(std::ostream& out , const timer_mt& mt) {
+        auto it = mt.timers.begin();
+        auto end = mt.timers.end();
+        if (it == end) {
+            out << "never called";
+        } else {
+            timer sum((it++)->second);
+            for (; it!=end; ++it) {
+                sum += it->second;
+            }
+            out << sum;
+        }
         return out;
     }
 };

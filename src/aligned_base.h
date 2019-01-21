@@ -266,16 +266,57 @@ private:
     friend struct aligned_base_reverse_position;
 };
 
-struct aligned_base_reverse_position {
-    unsigned int pos;
-    aligned_base_reverse_position(unsigned int p) : pos(p) {}
-    template<typename T>
-    void operator() (aligned<T>& ab) {
-        ab._idx=pos-ab._idx;
+
+/**
+ * This implementation of "aligned" is more compact (4 vs 8 bytes),
+ * but slower (needs shifts to access position) and definitely
+ * hacky. It casts around happily assuming that the byte order is
+ * little endian that and sizeof(T)==1
+ */
+template<typename T>
+class aligned_compact : public T
+{
+public:
+    using idx_type = uint32_t;
+    using base_type = T;
+
+    aligned_compact(idx_type pos=0, base_type base='-')
+        : T(base)
+    {
+        setPosition(pos);
     }
+
+    base_type getBase() const { return *this;}
+    void setBase(const T& b) { T::operator=(b); }
+
+    idx_type getPosition() const {
+        return  (*(uint32_t*)this & 0xFFFFFF00) >> 8;
+    }
+
+    void setPosition(idx_type pos) {
+        unsigned int cur = (*(uint32_t*)this);
+        cur = (cur & 0xFF) | pos << 8;
+        *(uint32_t*)this = cur;
+    }
+
+    bool operator<(const aligned_compact<T> &rhs) const {
+        return getPosition() < rhs.getPosition();
+    }
+
+    float getWeight() const { return 1; }
+
+private:
+    unsigned char data[3]{0,0,0};
+    friend struct aligned_base_reverse_position;
 };
 
+#define COMPACT_ALIGNED_BASE
+#ifndef COMPACT_ALIGNED_BASE
 using aligned_base = aligned<base_iupac>;
+#else
+using aligned_base = aligned_compact<base_iupac>;
+#endif
+
 }// namespace sina
 
 namespace std {

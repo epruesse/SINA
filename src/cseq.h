@@ -41,22 +41,13 @@ for the parts of ARB used as well as that of the covered work.
 
 #include <boost/variant.hpp>
 #include <boost/lexical_cast.hpp>
-/*
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/level.hpp>
-#include <boost/serialization/tracking.hpp>
-#include <boost/serialization/access.hpp>
-*/
 #include <boost/tuple/tuple.hpp>
 
 namespace sina {
 
-class cseq;
-template<typename T> class lexical_cast_visitor;
-
 /* compressed sequence. instead of gapping the sequence, all characters
    have positions */
-class cseq {
+class cseq_base {
 public:
     using idx_type = unsigned int;
     using vidx_type = aligned_base::idx_type;
@@ -66,22 +57,21 @@ public:
     class const_reverse_iterator;
     using pn_iterator = iterator;
     using const_pn_iterator = const_iterator;
-    using variant = boost::variant<std::string, char, int, float>;
 
     // Constructors / assignment operator
 
-    cseq(const char* _name, float _score = 0.f, const char* _data = nullptr);
-    cseq() = default;
-    cseq& operator=(const cseq& rhs) = default;
-    cseq(const cseq& orig) = default;
+    cseq_base(const char* _name, float _score = 0.f, const char* _data = nullptr);
+    cseq_base() = default;
+    cseq_base& operator=(const cseq_base& rhs) = default;
+    cseq_base(const cseq_base& orig) = default;
 
     /* remove sequence */
     void clearSequence();
 
     /* append bases to alignment */
-    cseq& append(const char* str);
-    cseq& append(const std::string& str);
-    cseq& append(const aligned_base& ab);
+    cseq_base& append(const char* str);
+    cseq_base& append(const std::string& str);
+    cseq_base& append(const aligned_base& ab);
 
     /* get size in bases */
     vidx_type size() const { return bases.size(); }
@@ -105,7 +95,7 @@ public:
      * created during alignment */
     void fix_duplicate_positions(std::ostream& /*log*/, bool lowercase, bool remove);
 
-    /* does nothing, cseq is always sorted by positions */
+    /* does nothing, cseq_base is always sorted by positions */
     void sort() {}
 
     /* reverse the sequence */
@@ -149,64 +139,51 @@ public:
     const_iterator end() const;
     const_reverse_iterator rend() const;
 
-    iterator getIterator(cseq::vidx_type i);
-    const_iterator getIterator(cseq::vidx_type i) const;
+    iterator getIterator(cseq_base::vidx_type i);
+    const_iterator getIterator(cseq_base::vidx_type i) const;
 
     char operator [](vidx_type i);
     const aligned_base& getById(idx_type i) const { return bases[i]; } 
 
 
-    // io operations dealing with vector<*cseq>
-    static void write_alignment(std::ostream& ofs, std::vector<cseq>& seqs,
-                                cseq::idx_type from_pos, cseq::idx_type to_pos,
+    // io operations dealing with vector<*cseq_base>
+    static void write_alignment(std::ostream& ofs, std::vector<cseq_base*>& seqs,
+                                cseq_base::idx_type from_pos, cseq_base::idx_type to_pos,
                                 bool colors = false);
 
-    template<typename T>
-    void set_attr(const std::string& key, T val) {
-        attributes[key]=val;
+
+
+    friend std::ostream& operator<<(std::ostream& out, const cseq_base& c);
+
+    bool operator==(const cseq_base& rhs) const {
+        return name == rhs.name && bases == rhs.bases; // &&
+        //attributes == rhs.attributes;
+           // && score-rhs.score<0.0001;
     }
-
-    template<typename T>
-    T get_attr(const std::string& attr) {
-        return boost::apply_visitor(lexical_cast_visitor<T>(), attributes[attr]); 
+    bool operator!=(const cseq_base& rhs) const {
+        return name != rhs.name || bases != rhs.bases; // ||
+        //attributes != rhs.attributes;
+            // || score != rhs.score;
     }
-
-    const std::map<std::string,variant>& get_attrs() const { return attributes; }
-
-
-    friend std::ostream& operator<<(std::ostream& out, const cseq& c);
-
-    bool operator==(const cseq& rhs) const {
-        return name == rhs.name && bases == rhs.bases &&
-            attributes == rhs.attributes;// && score-rhs.score<0.0001;
-    }
-    bool operator!=(const cseq& rhs) const {
-        return name != rhs.name || bases != rhs.bases ||
-            attributes != rhs.attributes; // || score != rhs.score;
-    }
-    bool operator<(const cseq& rhs) const { return score < rhs.score; }
-    bool operator>(const cseq& rhs) const { return score > rhs.score; }
-    std::vector<std::pair<unsigned int, unsigned int>> find_differing_parts(const cseq& right) const;
+    bool operator<(const cseq_base& rhs) const { return score < rhs.score; }
+    bool operator>(const cseq_base& rhs) const { return score > rhs.score; }
+    std::vector<std::pair<unsigned int, unsigned int>> find_differing_parts(const cseq_base& right) const;
 
 private:
     std::string name;
     std::vector<aligned_base> bases;
     unsigned int alignment_width{0};
-    std::map<std::string,variant> attributes;
     float score{0.f};
-    
+
     template <typename FUNC>
-    friend void traverse(const cseq& A, const cseq& B, FUNC F);
+    friend void traverse(const cseq_base& A, const cseq_base& B, FUNC F);
 };
 
-template<>
-inline cseq::variant cseq::get_attr<cseq::variant>(const std::string& attr) { return attributes[attr]; }
 
-std::ostream& operator<<(std::ostream& out, const cseq& c);
+std::ostream& operator<<(std::ostream& out, const cseq_base& c);
 
 
-
-class cseq::iterator
+class cseq_base::iterator
     : public std::vector<aligned_base>::iterator
 {
 public:
@@ -225,7 +202,7 @@ private:
 
 };
 
-class cseq::const_iterator
+class cseq_base::const_iterator
     : public std::vector<aligned_base>::const_iterator
 {
  public:
@@ -247,7 +224,7 @@ class cseq::const_iterator
 
 };
 
-class cseq::const_reverse_iterator
+class cseq_base::const_reverse_iterator
     : public std::vector<aligned_base>::const_reverse_iterator
 {
  public:
@@ -255,39 +232,49 @@ class cseq::const_reverse_iterator
       : std::vector<aligned_base>::const_reverse_iterator(it) {}
     const_reverse_iterator() = default;
 
-  /*
-    typedef const_iterator const_pn_iterator;
-    const_iterator prev_begin() const {
-        const_iterator n(*this); return --n; }
-    const_iterator prev_end() const { return (*this); }
-    const_iterator next_begin() const {
-        const_iterator n(*this); return ++n; }
-    const_iterator next_end() const {
-        const_iterator n(*this); return n+2; }
-  */
  protected:
 
  private:
 
 };
 
+template<typename T> class lexical_cast_visitor;
+
+class annotated_cseq : public cseq_base {
+public:
+    using variant = boost::variant<std::string, char, int, float>;
+
+    annotated_cseq(const char* _name, float _score = 0.f, const char* _data = nullptr)
+        : cseq_base(_name, _score, _data) {}
+    annotated_cseq() : cseq_base() {}
+
+    template<typename T>
+    void set_attr(const std::string& key, T val) {
+        attributes[key]=val;
+    }
+
+    template<typename T>
+    T get_attr(const std::string& attr) {
+        return boost::apply_visitor(lexical_cast_visitor<T>(), attributes[attr]);
+    }
+
+    const std::map<std::string,variant>& get_attrs() const { return attributes; }
+private:
+    std::map<std::string,variant> attributes;
+};
+
+/* specialization returning variant directly */
+template<> inline annotated_cseq::variant
+annotated_cseq::get_attr<annotated_cseq::variant>(const std::string& attr) {
+    return attributes[attr];
+}
+
+
+typedef annotated_cseq cseq;
 
 } // namespace sina
 
 #include "cseq_impl.h"
-
-#if 0
-// elminate serialization overhead at the cost of
-// never being able to increase the version.
-BOOST_CLASS_IMPLEMENTATION(sina::cseq,
-                           boost::serialization::object_serializable);
-
-// eliminate object tracking (even if serialized through a pointer)
-// at the risk of a programming error creating duplicate objects.
-BOOST_CLASS_TRACKING(sina::cseq,
-                     boost::serialization::track_never);
-#endif
-
 
 #endif
 

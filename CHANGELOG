@@ -1,3 +1,21 @@
+Version 1.4.0-dev:
+ - fix overhang-edge ignored on left side of alignment
+ - fix identify always calculated
+ - fix compiler warnings suppressed accidentally
+ - remove old binaries (sina_probematch, kmer_test)	
+ - remove boost serialization requirement
+ - reduce memory needed for aligned sequences kept in memory
+ - improve performance of internal kmer search
+ - improve memory efficiency of internal kmer search
+ - reduce memory usage during kmer index build
+ - reduce memory usage loading sequences from ARB (almost leak)
+ - parallelize kmer index build
+ - unify search interfaces (pt/internal)
+ - improve locating ARB libraries during build
+ - split annotation from cseq
+ - discard many old code blocks
+ 
+
 Version 1.4.0:
  - process sequences in parallel (#17, #31)
  - add support for gzipped read/write (#29)

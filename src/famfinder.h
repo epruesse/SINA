@@ -49,22 +49,17 @@ void validate(boost::any& v, const std::vector<std::string>& values,
 
 class famfinder {
 private:
-    struct options;
-    static struct options *opts;
-    std::vector<float> weights;
+    class impl;
+    std::shared_ptr<impl> pimpl;
 public:
-    class _famfinder;
+    famfinder() = default;
+    explicit famfinder(int n);
+    famfinder(const famfinder& o);
+    famfinder& operator=(const famfinder& o);
+    ~famfinder();
+    tray operator()(const tray& t);
 
-    class finder {
-        std::shared_ptr<_famfinder> data;
-    public:
-        finder() = default;
-        explicit finder(int n);
-        finder(const finder& o);
-        finder& operator=(const finder& o);
-        ~finder();
-        tray operator()(const tray& t);
-    };
+    int turn_check(const cseq& query, bool all);
 
     static void get_options_description(boost::program_options::options_description& main,
                                         boost::program_options::options_description& adv);

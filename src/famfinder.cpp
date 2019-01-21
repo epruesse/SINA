@@ -75,7 +75,7 @@ enum ENGINE_TYPE {
 };
 
 
-struct famfinder::options {
+struct options {
     TURN_TYPE turn_which;
     ENGINE_TYPE engine;
 
@@ -86,26 +86,27 @@ struct famfinder::options {
     string posvar_autofilter_field;
     float  posvar_autofilter_thres;
 
-    int   fs_min;
-    int   fs_max;
-    float fs_msc;
-    float fs_msc_max;
-    bool  fs_leave_query_out;
-    int   fs_req;
-    int   fs_req_full;
-    int   fs_full_len;
-    int   fs_req_gaps;
-    bool  fs_no_fast;
-    int   fs_kmer_len;
-    int   fs_kmer_mm;
-    bool  fs_kmer_norel;
-    int   fs_min_len;
-    int   fs_cover_gene;
+    unsigned int   fs_min;
+    unsigned int   fs_max;
+    float          fs_msc;
+    float          fs_msc_max;
+    bool           fs_leave_query_out;
+    unsigned int   fs_req;
+    unsigned int   fs_req_full;
+    unsigned int   fs_full_len;
+    unsigned int   fs_req_gaps;
+    bool           fs_no_fast;
+    unsigned int   fs_kmer_len;
+    unsigned int   fs_kmer_mm;
+    bool           fs_kmer_norel;
+    unsigned int   fs_min_len;
+    unsigned int   fs_cover_gene;
 
     fs::path database;
     string   pt_port;
 };
-struct famfinder::options *famfinder::opts;
+
+static options opts;
 
 
 void validate(boost::any& v,
@@ -162,11 +163,10 @@ std::ostream& operator<<(std::ostream& out, const TURN_TYPE& t) {
 void
 famfinder::get_options_description(po::options_description& main,
                                    po::options_description& adv) {
-    opts = new struct famfinder::options();
 
     main.add_options()
-        ("db,r", po::value<fs::path>(&opts->database), "reference database")
-        ("turn,t", po::value<TURN_TYPE>(&opts->turn_which)
+        ("db,r", po::value<fs::path>(&opts.database), "reference database")
+        ("turn,t", po::value<TURN_TYPE>(&opts.turn_which)
          ->default_value(TURN_NONE, "")
          ->implicit_value(TURN_REVCOMP, ""),
          "check other strand as well\n"
@@ -175,59 +175,59 @@ famfinder::get_options_description(po::options_description& main,
 
     po::options_description mid("Reference Selection");
     mid.add_options()
-        ("fs-engine", po::value<ENGINE_TYPE>(&opts->engine),
+        ("fs-engine", po::value<ENGINE_TYPE>(&opts.engine),
          "search engine to use for reference selection "
          "[*pt-server*|internal]")
-        ("fs-kmer-len", po::value<int>(&opts->fs_kmer_len)->default_value(10,""),
+        ("fs-kmer-len", po::value<unsigned int>(&opts.fs_kmer_len)->default_value(10u,""),
          "length of k-mers (10)")
-        ("fs-req", po::value<int>(&opts->fs_req)->default_value(1,""),
+        ("fs-req", po::value<unsigned int>(&opts.fs_req)->default_value(1u,""),
          "required number of reference sequences (1)\n"
          "queries with less matches will be dropped")
-        ("fs-min", po::value<int>(&opts->fs_min)->default_value(40,""),
+        ("fs-min", po::value<unsigned int>(&opts.fs_min)->default_value(40u,""),
          "number of references used regardless of shared fraction (40)")
-        ("fs-max", po::value<int>(&opts->fs_max)->default_value(40,""),
+        ("fs-max", po::value<unsigned int>(&opts.fs_max)->default_value(40u,""),
          "number of references used at most (40)")
-        ("fs-msc", po::value<float>(&opts->fs_msc)->default_value(.7, ""),
+        ("fs-msc", po::value<float>(&opts.fs_msc)->default_value(.7, ""),
          "required fractional identity of references (0.7)")
-        ("fs-req-full", po::value<int>(&opts->fs_req_full)->default_value(1, ""),
+        ("fs-req-full", po::value<unsigned int>(&opts.fs_req_full)->default_value(1u, ""),
          "required number of full length references (1)")
-        ("fs-full-len", po::value<int>(&opts->fs_full_len)->default_value(1400, ""),
+        ("fs-full-len", po::value<unsigned int>(&opts.fs_full_len)->default_value(1400u, ""),
          "minimum length of full length reference (1400)")
-        ("fs-req-gaps", po::value<int>(&opts->fs_req_gaps)->default_value(10, ""),
+        ("fs-req-gaps", po::value<unsigned int>(&opts.fs_req_gaps)->default_value(10u, ""),
          "ignore references with less internal gaps (10)")
-        ("fs-min-len", po::value<int>(&opts->fs_min_len)->default_value(150, ""),
+        ("fs-min-len", po::value<unsigned int>(&opts.fs_min_len)->default_value(150u, ""),
          "minimal reference length (150)")
         ;
     main.add(mid);
 
     po::options_description od("Advanced Reference Selection");
     od.add_options()
-        ("ptdb", po::value<fs::path>(&opts->database),
+        ("ptdb", po::value<fs::path>(&opts.database),
          "PT server database (old name)")
-        ("ptport", po::value<string>(&opts->pt_port)
+        ("ptport", po::value<string>(&opts.pt_port)
          ->default_value(fmt::format(":/tmp/sina_pt_{}", getpid()), ""),
          "PT server port (:/tmp/sina_pt_<pid>)")
-        ("fs-kmer-no-fast", po::bool_switch(&opts->fs_no_fast),
+        ("fs-kmer-no-fast", po::bool_switch(&opts.fs_no_fast),
          "don't use fast family search")
-        ("fs-kmer-mm", po::value<int>(&opts->fs_kmer_mm)->default_value(0,""),
+        ("fs-kmer-mm", po::value<unsigned int>(&opts.fs_kmer_mm)->default_value(0,""),
          "allowed mismatches per k-mer (0)")
-        ("fs-kmer-norel", po::bool_switch(&opts->fs_kmer_norel),
+        ("fs-kmer-norel", po::bool_switch(&opts.fs_kmer_norel),
          "don't score k-mer distance relative to target length")
-        ("fs-msc-max", po::value<float>(&opts->fs_msc_max)->default_value(2, ""),
+        ("fs-msc-max", po::value<float>(&opts.fs_msc_max)->default_value(2, ""),
          "max identity of used references (for evaluation)")
-        ("fs-leave-query-out", po::bool_switch(&opts->fs_leave_query_out),
+        ("fs-leave-query-out", po::bool_switch(&opts.fs_leave_query_out),
          "ignore candidate if found in reference (for evaluation)")
-        ("gene-start", po::value<int>(&opts->gene_start)->default_value(0,""),
+        ("gene-start", po::value<int>(&opts.gene_start)->default_value(0,""),
          "alignment position of first base of gene (0)")
-        ("gene-end", po::value<int>(&opts->gene_end)->default_value(0,""),
+        ("gene-end", po::value<int>(&opts.gene_end)->default_value(0,""),
          "alignment position of last base of gene (0)")
-        ("fs-cover-gene", po::value<int>(&opts->fs_cover_gene)->default_value(0,""),
+        ("fs-cover-gene", po::value<unsigned int>(&opts.fs_cover_gene)->default_value(0,""),
          "required number of references covering each gene end (0)")
-        ("filter", po::value<string>(&opts->posvar_filter)->default_value(""),
+        ("filter", po::value<string>(&opts.posvar_filter)->default_value(""),
          "select posvar filter")
-        ("auto-filter-field", po::value<string>(&opts->posvar_autofilter_field)
+        ("auto-filter-field", po::value<string>(&opts.posvar_autofilter_field)
          ->default_value(""), "select field for auto filter selection")
-        ("auto-filter-threshold",  po::value<float>(&opts->posvar_autofilter_thres)
+        ("auto-filter-threshold",  po::value<float>(&opts.posvar_autofilter_thres)
          ->default_value(0.8, ""), "quorum for auto filter selection (0.8)")
         ;
     adv.add(od);
@@ -244,126 +244,91 @@ void famfinder::validate_vm(po::variables_map& vm,
     if (not vm["ptdb"].empty() && not vm["db"].empty()) {
         throw logic_error("Family Finder: please use only new --db option");
     }
-    if (vm["fs-req"].as<int>() < 1) {
+    if (not fs::exists(opts.database)) {
+        throw logic_error(fmt::format("Reference database file {} does not exist",
+                                      opts.database));
+    }
+    if (vm["fs-req"].as<unsigned int>() < 1) {
         throw logic_error("Family Finder: fs-req must be >= 1");
     }
+
+
 }
 
-#if 0
-void fixme() {
-    int termini_begin = -1, termini_end = -1;
-    string termini = arb->getFilter("termini");
-    if (!termini.empty()) {
-        termini_begin = termini.find_first_of('x')+1 ;
-        termini_end = termini.find_last_of('x')+1;
-        logger->info("Found TERMINI filter: {} - {}",
-                     termini_begin, termini_end);
-    }
-
-    // FIXME: find a good way to do this with program_options
-    if (opts->gene_start < 1) {
-        if (termini_begin == -1) {
-            opts->gene_start = 0;
-        } else {
-            opts->gene_start = termini_begin;
-        }
-    }
-    if (opts->gene_end < 1 || opts->gene_end > arb->getAlignmentWidth()) {
-        if (termini_end == -1) {
-            opts->gene_end = arb->getAlignmentWidth();
-        } else {
-            opts->gene_end = termini_end;
-        }
-    }
-    log->info("Range of gene within alignment: {} - {}",
-              opts->gene_start, opts->gene_end);
-    // decrement range ... we start at 0 around here
-    --opts->gene_start;
-    --opts->gene_end;
-}
-#endif
-
-class famfinder::_famfinder {
-    search *index;
-    query_arb *arb;
+class famfinder::impl {
+public:
+    search *index{nullptr};
+    query_arb *arb{nullptr};
     vector<alignment_stats> vastats;
     
     void do_turn_check(cseq& /*c*/);
     int turn_check(const cseq& /*query*/, bool /*all*/);
     void select_astats(tray &t);
     
-public:
-    explicit _famfinder(int n);
-    _famfinder(const _famfinder&);
-    ~_famfinder();
+    explicit impl(int n);
+    impl(const impl&);
+    ~impl();
     tray operator()(tray /*t*/);
-    std::string getName() const {return "famfinder";}
 };
 
+// pimpl wrappers
+famfinder::famfinder(int n) : pimpl(new impl(n)) {}
+famfinder::famfinder(const famfinder& o) = default;
+famfinder& famfinder::operator=(const famfinder& o) = default;
+famfinder::~famfinder() = default;
+tray famfinder::operator()(const tray& t) { return (*pimpl)(t); }
 
-famfinder::finder::finder(int n)
-    : data(new _famfinder(n))
-{
+int famfinder::turn_check(const cseq& query, bool all) {
+    return pimpl->turn_check(query, all);
 }
 
-famfinder::finder::finder(const finder& o) = default;
-
-famfinder::finder&
-famfinder::finder::operator=(const finder& o) = default;
-
-famfinder::finder::~finder() = default;
-
-tray
-famfinder::finder::operator()(const tray& t) {
-    return (*data)(t);
-}
-
-famfinder::_famfinder::_famfinder(int n)
-    : arb(query_arb::getARBDB(opts->database))
+famfinder::impl::impl(int n)
+    : arb(query_arb::getARBDB(opts.database))
 {
-    string pt_port = opts->pt_port;
+    string pt_port = opts.pt_port;
     // FIXME: manage the port better. This works for unix sockets, but not
     // for TCP ports.
     if (n != 0) {
         pt_port +=  boost::lexical_cast<std::string>(n);
     }
-    switch(opts->engine) {
+    switch(opts.engine) {
     case ENGINE_ARB_PT:
-        index = new query_pt(pt_port.c_str(), opts->database.c_str(),
-                             not opts->fs_no_fast,
-                             opts->fs_kmer_len,
-                             opts->fs_kmer_mm,
-                             opts->fs_kmer_norel);
+        index = query_pt::get_pt_search(opts.database,
+                                        opts.fs_kmer_len,
+                                        not opts.fs_no_fast,
+                                        opts.fs_kmer_norel,
+                                        opts.fs_kmer_mm,
+                                        pt_port);
         break;
     case ENGINE_SINA_KMER:
-        index = kmer_search::get_kmer_search(opts->database, opts->fs_kmer_len);
+        index = kmer_search::get_kmer_search(opts.database, opts.fs_kmer_len);
         break;
     default:
         throw std::runtime_error("Unknown sequence search engine type");
     }
     vastats = arb->getAlignmentStats();
-    //index->set_range(opts->gene_start, opts->gene_end);
+    //index->set_range(opts.gene_start, opts.gene_end);
 
     //posvar_filter
     //readonly
 }
 
 
-famfinder::_famfinder::~_famfinder() {
+famfinder::impl::~impl() {
     delete index;
 }
 
 
 void
-famfinder::_famfinder::do_turn_check(cseq &c) {
+famfinder::impl::do_turn_check(cseq &c) {
     // Turning sequence.
     // Strictly, this could be considered a "modification" of the input
     // sequence. However, we're really only correcting its representation.
     // The purpose of keeping the original is so that we can compare
     // changed made to the alignment at the end. This is way easier if we
     // don't have to worry about sequence orientation.
-    if (opts->turn_which != TURN_NONE) {
-        switch(turn_check(c, opts->turn_which==TURN_ALL)) {
+    if (opts.turn_which != TURN_NONE) {
+        switch(turn_check(c, opts.turn_which==TURN_ALL)) {
         case 0:
             c.set_attr(query_arb::fn_turn, "none");
             break;
@@ -388,26 +353,31 @@ famfinder::_famfinder::do_turn_check(cseq &c) {
 
 
 int
-famfinder::_famfinder::turn_check(const cseq& query, bool all) {
+famfinder::impl::turn_check(const cseq& query, bool all) {
     std::vector<cseq> matches;
     double score[4];
 
-    score[0] = index->match(matches, query, 1, 1, 0.0f);
+    index->find(query, matches, 1);
+    score[0] = matches.empty() ? 0 : matches[0].getScore();
 
     cseq turn(query);
     turn.reverse();
     if (all) {
-        score[1] = index->match(matches, turn, 1, 1, 0.0f);
+        index->find(turn, matches, 1);
+        score[1] = matches.empty() ? 0 : matches[0].getScore();
 
         cseq comp(query);
         comp.complement();
-        score[2] = index->match(matches, comp, 1, 1, 0.0f);
+
+        index->find(comp, matches, 1);
+        score[2] = matches.empty() ? 0 : matches[0].getScore();
     } else {
         score[1] = score[2] = 0;
     }
 
     turn.complement();
-    score[3] = index->match(matches, turn, 1, 1, 0.0f);
+    index->find(turn, matches, 1);
+    score[3] = matches.empty() ? 0 : matches[0].getScore();
 
     double max = 0;
     int best = 0;
@@ -421,15 +391,15 @@ famfinder::_famfinder::turn_check(const cseq& query, bool all) {
 
 
 void
-famfinder::_famfinder::select_astats(tray& t) {
+famfinder::impl::select_astats(tray& t) {
     alignment_stats *astats = nullptr;
 
     // load default as per --filter
-    if (!opts->posvar_filter.empty()) {
+    if (!opts.posvar_filter.empty()) {
         for (alignment_stats &as: vastats) {
-            if (as.getName() == opts->posvar_filter
-                || as.getName() == opts->posvar_filter + ":ALL"
-                || as.getName() == opts->posvar_filter + ":all"
+            if (as.getName() == opts.posvar_filter
+                || as.getName() == opts.posvar_filter + ":ALL"
+                || as.getName() == opts.posvar_filter + ":all"
                 ) {
                 astats = &as;
             }
@@ -442,7 +412,7 @@ famfinder::_famfinder::select_astats(tray& t) {
     // must agree on the filter chosen
     // fixme: prefers higher level filters, should prefer most specific
     // filter, i.e. bacteria will always beat bacteria;proteobacteria
-    if (opts->posvar_autofilter_field.length() > 0) {
+    if (opts.posvar_autofilter_field.length() > 0) {
         vector<cseq> &vc = *t.alignment_reference;
         int best_count = 0;
         using vastats_t = pair<string, alignment_stats>;
@@ -451,7 +421,7 @@ famfinder::_famfinder::select_astats(tray& t) {
             string filter_name = p.getName();
             int n = 0;
             for (cseq &r: vc) {
-                string f = opts->posvar_filter + ":" + r.get_attr<string>(opts->posvar_autofilter_field);
+                string f = opts.posvar_filter + ":" + r.get_attr<string>(opts.posvar_autofilter_field);
                 if (boost::algorithm::istarts_with(f, filter_name)) {
                     ++n;
                 }
@@ -462,7 +432,7 @@ famfinder::_famfinder::select_astats(tray& t) {
                 best = &p;
             }
         }
-        if (best_count > vc.size() * opts->posvar_autofilter_thres) {
+        if (best_count > vc.size() * opts.posvar_autofilter_thres) {
             t.log << "autofilter: " << best->getName() << ";";
             astats = best;
         } else {
@@ -480,8 +450,8 @@ famfinder::_famfinder::select_astats(tray& t) {
 /* tests if cseq has less than n gaps before last base */
 struct has_max_n_gaps {
     using result_type = bool;
-    const int n_gaps;
-    explicit has_max_n_gaps(int _n_gaps) : n_gaps(_n_gaps) {}
+    const unsigned int n_gaps;
+    explicit has_max_n_gaps(unsigned int _n_gaps) : n_gaps(_n_gaps) {}
     bool operator()(const cseq& c) {
         return 0 == c.size() // safety, must have bases
             || c.rbegin()->getPosition() - c.size() +1 < n_gaps; 
@@ -489,23 +459,24 @@ struct has_max_n_gaps {
 };
 
 tray
-famfinder::_famfinder::operator()(tray t) {
+famfinder::impl::operator()(tray t) {
     t.alignment_reference = new vector<cseq>();
     vector<cseq> &vc = *t.alignment_reference;
     cseq &c = *t.input_sequence;
 
     do_turn_check(c);
 
-    // FIXME: int noid = opts->realign
+    // FIXME: int noid = opts.realign
     bool noid = false;
-    index->match(vc, c, opts->fs_min, opts->fs_max, opts->fs_msc, opts->fs_msc_max,
-                 arb, noid, opts->fs_min_len, opts->fs_req_full,
-                 opts->fs_full_len, opts->fs_cover_gene, opts->fs_leave_query_out);
-    
+    index->match(vc, c, opts.fs_min, opts.fs_max, opts.fs_msc, opts.fs_msc_max,
+                 arb, noid, opts.fs_min_len, opts.fs_req_full,
+                 opts.fs_full_len, opts.fs_cover_gene, opts.fs_leave_query_out);
+
+    // prepare log string for alignment reference
     stringstream tmp;
     for (cseq &r: vc) {
-        if (opts->posvar_autofilter_field.length() > 0) {
-            arb->loadKey(r,opts->posvar_autofilter_field);
+        if (opts.posvar_autofilter_field.length() > 0) {
+            arb->loadKey(r,opts.posvar_autofilter_field);
         }
         arb->loadKey(r, query_arb::fn_acc);
         arb->loadKey(r, query_arb::fn_start);
@@ -516,9 +487,9 @@ famfinder::_famfinder::operator()(tray t) {
     c.set_attr(query_arb::fn_family_str, tmp.str());
 
     // remove sequences having too few gaps
-    if (opts->fs_req_gaps != 0) {
+    if (opts.fs_req_gaps != 0) {
         vc.erase(std::remove_if(vc.begin(), vc.end(), 
-                                has_max_n_gaps(opts->fs_req_gaps)), 
+                                has_max_n_gaps(opts.fs_req_gaps)),
                  vc.end());
     }
 
@@ -527,7 +498,7 @@ famfinder::_famfinder::operator()(tray t) {
 
     
     // no reference => no alignment
-    if (vc.size() < opts->fs_req) {
+    if (vc.size() < opts.fs_req) {
         t.log << "unable to align: too few relatives (" << vc.size() << ");";
         delete t.alignment_reference;
         t.alignment_reference = nullptr;
@@ -538,6 +509,41 @@ famfinder::_famfinder::operator()(tray t) {
 }
 
 } // namespace sina
+
+
+#if 0
+void fixme() {
+    int termini_begin = -1, termini_end = -1;
+    string termini = arb->getFilter("termini");
+    if (!termini.empty()) {
+        termini_begin = termini.find_first_of('x')+1 ;
+        termini_end = termini.find_last_of('x')+1;
+        logger->info("Found TERMINI filter: {} - {}",
+                     termini_begin, termini_end);
+    }
+
+    // FIXME: find a good way to do this with program_options
+    if (opts.gene_start < 1) {
+        if (termini_begin == -1) {
+            opts.gene_start = 0;
+        } else {
+            opts.gene_start = termini_begin;
+        }
+    }
+    if (opts.gene_end < 1 || opts.gene_end > arb->getAlignmentWidth()) {
+        if (termini_end == -1) {
+            opts.gene_end = arb->getAlignmentWidth();
+        } else {
+            opts.gene_end = termini_end;
+        }
+    }
+    log->info("Range of gene within alignment: {} - {}",
+              opts.gene_start, opts.gene_end);
+    // decrement range ... we start at 0 around here
+    --opts.gene_start;
+    --opts.gene_end;
+}
+#endif
 
 
 /*

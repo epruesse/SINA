@@ -250,11 +250,6 @@ if test x"$BOOST_FILESYSTEM_LIB" = x""; then
   BOOST Program Options (libboost_filesystem)"
 fi
 
-AX_BOOST_SERIALIZATION
-if test x"$BOOST_SERIALIZATION_LIB" = x""; then
-  missing_libs="$missing_libs
-  BOOST Serialization (libboost_serialization)"
-fi
 AX_BOOST_SYSTEM
 if test x"$BOOST_SYSTEM_LIB" = x""; then
   missing_libs="$missing_libs
@@ -266,7 +261,7 @@ AX_BOOST_UNIT_TEST_FRAMEWORK
 #fi
 
 # Allways show warnings
-CXXFLAGS="$CXXFLAGS -w"
+CXXFLAGS="$CXXFLAGS -W"
 
 # Generate output
 
@@ -321,7 +316,6 @@ AC_MSG_NOTICE([    CPPFLAGS:        ${BOOST_CPPFLAGS}])
 AC_MSG_NOTICE([    PROGRAM_OPTIONS: ${BOOST_PROGRAM_OPTIONS_LIB}])
 AC_MSG_NOTICE([    THREAD:          ${BOOST_THREAD_LIB}])
 AC_MSG_NOTICE([    IOSTREAMS:       ${BOOST_IOSTREAMS_LIB}])
-AC_MSG_NOTICE([    SERIALIZATION:   ${BOOST_SERIALIZATION_LIB}])
 AC_MSG_NOTICE([    SYSTEM:          ${BOOST_SYSTEM_LIB}])
 AC_MSG_NOTICE([    FILESYSTEM:      ${BOOST_FILESYSTEM_LIB}])
 AC_MSG_NOTICE([    UNIT_TEST:       ${BOOST_UNIT_TEST_FRAMEWORK_LIB}])

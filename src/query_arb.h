@@ -33,6 +33,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <utility>
 #include <vector>
 #include <list>
+#include <memory>
 
 #include <boost/filesystem.hpp>
 
@@ -62,7 +63,7 @@ private:
 
 
 class query_arb{
-    query_arb(boost::filesystem::path& arbfile);
+    query_arb(const boost::filesystem::path& arbfile);
     ~query_arb();
 
  public:
@@ -71,7 +72,7 @@ class query_arb{
      * @param file_name ...
      * @returns one instance per database file. If the method is called multiple times on the same file the same instance is returned.
      */
-    static query_arb* getARBDB(boost::filesystem::path& file_name);
+    static query_arb* getARBDB(const boost::filesystem::path& file_name);
 
     static const char* fn_turn;
     static const char* fn_acc;
@@ -128,6 +129,7 @@ class query_arb{
     std::vector<std::string> getSequenceNames();
 
     cseq& getCseq(const std::string& name);
+    cseq getCseqUncached(const std::string& name);
     void putCseq(const cseq& seq);
     void putSequence(const cseq& seq);//calls write
     void loadKey(cseq& c, const std::string& key);
@@ -199,7 +201,7 @@ private:
     void addError(const std::string& message);
 
     struct priv_data;
-    priv_data& data;
+    std::shared_ptr<priv_data> data;
     struct storeKey_visitor;
     struct putKeyVal_visitor;
     static std::map<boost::filesystem::path, query_arb*> open_arb_dbs;

@@ -56,7 +56,7 @@ cseq_comparator::cseq_comparator() = default;
 
 template<typename FUNC> 
 void
-traverse(const cseq& A, const cseq& B, FUNC F) {
+traverse(const cseq_base& A, const cseq_base& B, FUNC F) {
     auto a = A.bases.begin();
     auto a_end = A.bases.end();
     auto b = B.bases.begin();
@@ -480,125 +480,6 @@ cseq_comparator::make_from_variables_map(po::variables_map& vm,
 
     return {iupac, dist, cover, filter_lc};
 }
-
-
-
-
-#if 0 
-
-
-template<typename T>
-boost::tuple<int,int,int>
-cseq::do_compare(const T& BASE_COMP, const cseq& rhs) const {
-    auto a = bases.begin();
-    auto a_end = bases.end();
-    auto b = rhs.bases.begin();
-    auto b_end = rhs.bases.end();
-
-    int mismatches = 0;
-    int matches = 0;
-    int overhang = 0;
-    
-    if (a->getPosition() < b->getPosition()) {
-        while(a != a_end && 
-              a->getPosition() < b->getPosition()) {
-            ++a; 
-            ++overhang;
-        }
-    } else if (a->getPosition() > b->getPosition()) {
-        while(b != b_end && 
-              a->getPosition() > b->getPosition()) {
-            ++b; 
-            ++overhang;
-        }
-    }
-        
-    while (a != a_end && b != b_end) {
-        int diff = a->getPosition() - b->getPosition();
-        if (diff > 0) { // a>b
-            ++mismatches;
-            ++b;
-        } else if (diff < 0) { // a<b
-            ++mismatches;
-            ++a;
-        } else { // a==b
-            if (BASE_COMP(a->getBase(),b->getBase())) {
-                ++matches;
-            } else {
-                ++mismatches;
-            }
-            ++a;
-            ++b;
-        }
-    }
-    while (a != a_end) ++overhang, ++a;
-    while (b != b_end) ++overhang, ++b;
-
-    return boost::make_tuple(matches, mismatches, overhang);
-}
-
-
-float
-cseq::compare(const cseq &seq_b, const vector<float> &weights, 
-              float gap_open, float gap_ext) const {
-
-    auto a = bases.begin();
-    auto a_end = bases.end();
-    auto b = seq_b.begin();
-    auto b_end = seq_b.end();
-
-    int columns = 0;
-    double score = 0;
-    int a_open_gap = 1; // start w/o gap open penalty
-    int b_open_gap = 1; // yes, both sides can have open gap
-
-    double sum_weights = 0;
-
-    while (a != a_end && b != b_end) {
-        int diff = a->getPosition() - b->getPosition();
-        if (diff > 0) { // a>b => b has gap
-            score -= (gap_open * (1-b_open_gap) + gap_ext * b_open_gap) * weights[b->getPosition()];
-            b_open_gap = 1;
-            ++b;
-            sum_weights += weights[b->getPosition()];
-        } else if (diff < 0) {
-            score -= (gap_open * (1-a_open_gap) + gap_ext * a_open_gap) * weights[a->getPosition()];
-            a_open_gap = 1;
-            ++a;
-            sum_weights += weights[a->getPosition()];
-        } else { // a=b
-            if (a->getBase() == b->getBase()) {
-                score += weights[a->getPosition()];
-            } else {
-                score -= weights[a->getPosition()];
-            }
-            a_open_gap = b_open_gap = 0;
-            ++a;
-            ++b;
-            sum_weights += weights[a->getPosition()];
-        }
-        ++columns;
-    }
-    return score/sum_weights;
-}
-
-float
-cseq::identity_with(const cseq& rhs) const {
-    boost::tuple<int,int,int> res = compare_simple(rhs);
-    return (float) res.get<0>() / size();
-}
-
-boost::tuple<int,int,int>
-cseq::compare_simple(const cseq& rhs) const {
-    return do_compare_simple(base_comp_iupac(), rhs);
-}
-
-boost::tuple<int,int,int>
-cseq::compare_simple_no_iupac(const cseq& rhs) const {
-    return do_compare_simple(base_comp_no_iupac(), rhs);
-}
-
-#endif //0
 
 } // namespace sina
 

@@ -57,9 +57,6 @@ CLEANFILES =
 # internal libs and binaries to .../bin and .../lib subdirs
 
 bin_PROGRAMS = src/sina
-noinst_PROGRAMS = \
-	src/sina_probematch \
-	src/kmer_test
 lib_LTLIBRARIES = src/libsina.la
 
 if ENABLE_FAT_TAR 
@@ -129,7 +126,6 @@ src_libsina_la_LIBADD = \
     $(BOOST_PROGRAM_OPTIONS_LIB) \
     $(BOOST_THREAD_LIB) \
     $(BOOST_IOSTREAMS_LIB) \
-    $(BOOST_SERIALIZATION_LIB) \
     $(BOOST_SYSTEM_LIB) \
     $(BOOST_FILESYSTEM_LIB) \
     $(TBB_LIB) \
@@ -139,10 +135,9 @@ sina_libs = \
     src/libsina.la \
     $(ARB_PROBE_LIBS) \
     $(ARB_HELIX_LIBS) \
+    $(ARB_LIBS) \
     $(CODE_COVERAGE_LIBS)
 
-src_sina_probematch_LDADD = $(sina_libs)
-src_kmer_test_LDADD = $(sina_libs)
 src_sina_LDADD = $(sina_libs)
 
 arb_pt_server$(EXEEXT): $(ARBHOME)/bin/arb_pt_server$(EXEEXT)
@@ -259,7 +254,8 @@ check_PROGRAMS = \
     src/unit_tests/cseq_comparator_test \
     src/unit_tests/idset_test \
     src/unit_tests/kmer_test \
-    src/unit_tests/kmer_search_test
+    src/unit_tests/kmer_search_test \
+    src/unit_tests/famfinder_test
 
 src_unit_tests_cseq_test_LDADD = $(test_libs)
 src_unit_tests_cseq_test_LDFLAGS = $(ARB_LDFLAGS)
@@ -271,6 +267,8 @@ src_unit_tests_kmer_test_LDADD = $(test_libs)
 src_unit_tests_kmer_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_kmer_search_test_LDADD = $(test_libs)
 src_unit_tests_kmer_search_test_LDFLAGS = $(ARB_LDFLAGS)
+src_unit_tests_famfinder_test_LDADD = $(test_libs)
+src_unit_tests_famfinder_test_LDFLAGS = $(ARB_LDFLAGS)
 
 test_scripts = \
     tests/readwrite.test \
@@ -314,6 +312,7 @@ clean-local: clean-local-check
 clean-local-check:
 	rm -f test.*.xml
 	rm -f test_data/ltp_reduced.arb.*
+	rm -f test_data/ltp_reduced.sidx
 
 .PHONY: clean-local-check
 

@@ -30,6 +30,7 @@ for the parts of ARB used as well as that of the covered work.
 #define _KMER_SEARCH_H_
 
 #include <map>
+#include <memory>
 #include <boost/filesystem.hpp>
 
 #include "search.h"
@@ -38,9 +39,8 @@ namespace sina {
 
 class kmer_search : public search {
 public:
-    class result_iterator;
-
-    static kmer_search* get_kmer_search(boost::filesystem::path& filename, int k=10);
+    static kmer_search* get_kmer_search(const boost::filesystem::path& filename, int k=10);
+    static void release_kmer_search(const boost::filesystem::path& filename, int k=10);
 
     /**
      * match runs a word search using the PT server
@@ -74,26 +74,18 @@ public:
                          int range_cover,
                          bool leave_query_out) override;
 
-    double match(std::vector<cseq> &family,
-                         const cseq& sequence,
-                         int min_match,
-                         int max_match,
-                         float min_score) override {
-        return match(family, sequence, min_match, max_match, min_score, 2.0,
-                     nullptr, false, 0, 0, 0, 0, false);
-    };
-    
-    void build_index();
-    void init();
-    void find(const cseq& query, std::vector<cseq>& results, int max);
+    void find(const cseq& query, std::vector<cseq>& results, int max) override;
 
-private:
-    kmer_search(query_arb* arbdb, int k=8);
+    /**
+     * dtor - must remain public (super is public)
+     */
     ~kmer_search() override;
+    
+    class impl;
+private:
+    kmer_search(std::shared_ptr<impl> pimpl);
 
-    class index;
-    index &data;
-    static std::map<std::string, kmer_search*> indices;
+    std::shared_ptr<impl> pimpl;
     static void destroy_indices();
 };
 

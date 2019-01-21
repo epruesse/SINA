@@ -27,6 +27,7 @@
 */
 
 #include "../kmer_search.h"
+#include "../query_pt.h"
 
 #define BOOST_TEST_MODULE kmer_search
 
@@ -42,10 +43,6 @@ namespace fs = boost::filesystem;
 
 #include "../query_arb.h"
 
-BOOST_AUTO_TEST_SUITE(kmer_search_test);
-
-const int N = 100;
-const int M = 10;
 
 using namespace sina;
 
@@ -63,34 +60,91 @@ ITER shuffle_n(ITER begin, ITER end, size_t n) {
     return begin;
 }
 
-BOOST_AUTO_TEST_CASE(simple, *boost::unit_test::tolerance(0.0001)) {
-    int argc = boost::unit_test::framework::master_test_suite().argc;
-    char** argv = boost::unit_test::framework::master_test_suite().argv;
+struct Fixture {
+    query_arb *arbdb;
+    std::vector<std::string> ids;
+    const unsigned int N{1000};
+    const unsigned int M{50};
 
-    BOOST_REQUIRE(argc>1);
-    fs::path database = argv[1];
-    std::cerr << "Using database " << database << "for testing" << std::endl;
-    kmer_search *search_index = kmer_search::get_kmer_search(database);
-    
-    query_arb *arbdb = query_arb::getARBDB(database);
-    std::vector<std::string> ids = arbdb->getSequenceNames();
-    BOOST_REQUIRE(ids.size() > N);
-    shuffle_n(ids.begin(), ids.end(), N);
-    
+    Fixture() {
+        std::srand(1234);
+        int argc = boost::unit_test::framework::master_test_suite().argc;
+        char** argv = boost::unit_test::framework::master_test_suite().argv;
+        BOOST_REQUIRE(argc>1);
+        fs::path database = argv[1];
+        BOOST_TEST_MESSAGE("Loading test database " <<  database << " for testing");
+        arbdb = query_arb::getARBDB(database);
+        ids = arbdb->getSequenceNames();
+        BOOST_REQUIRE(ids.size() > N);
+        shuffle_n(ids.begin(), ids.end(), N);
+    }
+
+    ~Fixture() {
+        BOOST_TEST_MESSAGE("Destroying fixture");
+    }
+};
+
+BOOST_AUTO_TEST_SUITE(search_tests);
+
+BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture) {
+    fs::path dbname = arbdb->getFileName();
+    fs::path idxname = fs::path(dbname).replace_extension("sidx");
+    if (fs::exists(idxname)) {
+        fs::remove(idxname);
+    }
+    // test runs twice, once with index cache absent (removed above if present),
+    // and once with index cache generated during first run.
+    for (int run = 0; run < 2; ++run) {
+        kmer_search::release_kmer_search(dbname);
+        kmer_search *search_index = kmer_search::get_kmer_search(dbname);
+        std::vector<cseq> family;
+        for (unsigned int i = 0; i < N; i++) {
+            if (i % (N/50) == 0) {
+                std::cerr << ".";
+            }
+            cseq query = arbdb->getCseq(ids[i]);
+            search_index->find(query, family, M);
+            BOOST_TEST(family.size() == M);
+            float max_score = family[0].getScore();
+            std::vector<cseq>::iterator self;
+            self = std::find_if(family.begin(), family.end(),
+                                [&](const cseq &c) {
+                                    return c.getName() == query.getName();}
+                );
+            BOOST_REQUIRE((self != family.end()));
+            if (self != family.end()) {
+                BOOST_TEST(self->getScore() == max_score);
+            }
+        }
+        std::cerr << std::endl;
+        delete search_index;
+    }
+}
+
+
+BOOST_FIXTURE_TEST_CASE(pt_simple, Fixture, *boost::unit_test::tolerance(0.0001)) {
+    search *search_index = query_pt::get_pt_search(arbdb->getFileName());
     std::vector<cseq> family;
-    for (int i=0; i<N; i++) {
+    for (unsigned int i = 0; i < N; i++) {
+        if (i % (N/50) == 0) {
+            std::cerr << ".";
+        }
         cseq query = arbdb->getCseq(ids[i]);
         search_index->find(query, family, M);
+        BOOST_TEST(family.size() == M);
         float max_score = family[0].getScore();
-        std::vector<cseq>::iterator self;
-        self = std::find_if(family.begin(), family.end(),
+        auto self = std::find_if(family.begin(), family.end(),
                             [&](const cseq &c) {
                                 return c.getName() == query.getName();}
             );
         BOOST_TEST((self != family.end()));
-        BOOST_TEST(self->getScore() == max_score);
+        // PT server counts duplicate kmers twice, allow for some discrepancy
+        BOOST_TEST(self->getScore() > max_score - 4);
     }
+    std::cerr << std::endl;
+    delete search_index;
 }
+
 
 BOOST_AUTO_TEST_SUITE_END(); // kmer_search_test
 

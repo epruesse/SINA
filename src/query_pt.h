@@ -34,6 +34,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <exception>
 
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 
 namespace sina {
 
@@ -48,6 +49,13 @@ public:
 
 class query_pt : public search {
 public:
+    static query_pt* get_pt_search(const boost::filesystem::path& filename,
+                                   int k=10,
+                                   bool fast=true,
+                                   bool norel=false,
+                                   int mk=0,
+                                   std::string portname="");
+
     query_pt(const char* portname,
              const char* dbname,
              bool fast=true,
@@ -55,6 +63,8 @@ public:
              int mk=0,
              bool norel=false);
     ~query_pt() override;
+
+    void find(const cseq& query, std::vector<cseq>& results, int max) override;
 
     /**
      * match runs a word search using the PT server
@@ -88,22 +98,13 @@ public:
                          int range_cover,
                          bool leave_query_out) override;
 
-    double match(std::vector<cseq> &family,
-                         const cseq& sequence,
-                         int min_match,
-                         int max_match,
-                         float min_score) override {
-        return match(family, sequence, min_match, max_match, min_score, 2.0,
-                     nullptr, false, 0, 0, 0, 0, false);
-    };
-
     int turn_check(const cseq& query, bool all);
 
     void set_find_type_fast(bool fast);
     void set_probe_len(int len);
     void set_mismatches(int len);
     void set_sort_type(bool absolute);
-    void set_range(int startpos, int stoppos);
+    void set_range(int startpos=-1, int stoppos=-1);
     void unset_range();
 
     static void get_options_description(boost::program_options::options_description& all,

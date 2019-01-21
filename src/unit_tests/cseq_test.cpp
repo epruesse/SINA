@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "../cseq.h"
 #include "../aligned_base.h"
 using sina::cseq;
+using sina::cseq_base;
 using sina::aligned_base;
 
 #include <string>
@@ -53,8 +54,8 @@ const float score = 15.f;
 
 
 #define test_empty(cs)                         \
-    EQUAL((cs).size(), 0);                     \
-    EQUAL((cs).getWidth(), 0);                 \
+    EQUAL((cs).size(), 0u);                    \
+    EQUAL((cs).getWidth(), 0u);                \
     EQUAL((cs).getBases(), string());          \
     EQUAL((cs).getAligned(true), string());    \
     EQUAL((cs).end() - c.begin(), 0);          \
@@ -63,19 +64,19 @@ const float score = 15.f;
     EQUAL((cs).getScore(), 0.f);
 
 
-#define test_data(cs, name, score, _aligned)                    \
-    {                                                           \
-        string aligned = (_aligned);                            \
-        string unaligned = aligned;                             \
-        boost::erase_all(unaligned, "-");                       \
-        EQUAL((cs).size(), unaligned.size());                   \
-        EQUAL((cs).getWidth(), aligned.size());                 \
-        EQUAL((cs).getBases(), unaligned);                      \
-        EQUAL((cs).getAligned(true), aligned);                  \
-        EQUAL((cs).end() - (cs).begin(), unaligned.size());     \
-        EQUAL((cs).rend() - (cs).rbegin(), unaligned.size());   \
-        EQUAL((cs).getName(), name);                            \
-        EQUAL((cs).getScore(), score);                          \
+#define test_data(cs, name, score, _aligned)                        \
+    {                                                               \
+        string aligned = (_aligned);                                \
+        string unaligned = aligned;                                 \
+        boost::erase_all(unaligned, "-");                           \
+        EQUAL((cs).size(), unaligned.size());                       \
+        EQUAL((cs).getWidth(), aligned.size());                     \
+        EQUAL((cs).getBases(), unaligned);                          \
+        EQUAL((cs).getAligned(true), aligned);                      \
+        EQUAL((cs).end() - (cs).begin(), (long)unaligned.size());   \
+        EQUAL((cs).rend() - (cs).rbegin(), (long)unaligned.size()); \
+        EQUAL((cs).getName(), name);                                \
+        EQUAL((cs).getScore(), score);                              \
     }
 
 CASE(test_constructor_empty) {
@@ -329,14 +330,18 @@ CASE(test_write_alignment) {
         {"1", 0, rna_aligned.c_str()},
         {"2", 0, rna_aligned.c_str()}
     };
-    cseq::write_alignment(out, vs, 0, rna_aligned.size()-1, false);
+    std::vector<cseq_base*> vsp;
+    for (auto& i : vs) {
+        vsp.push_back(&i);
+    }
+    cseq::write_alignment(out, vsp, 0, rna_aligned.size()-1, false);
     EQUAL(out.str(),
           "Dumping pos 0 through 29:\n"
           "AGCURYKMSWBDHVN-  0-1 <---(## NEW ##)  <---(%% ORIG %%) \n\n"
         );
 
     out.str(std::string());
-    cseq::write_alignment(out, vs, 0, rna_aligned.size()-1, true);
+    cseq::write_alignment(out, vsp, 0, rna_aligned.size()-1, true);
     EQUAL(out.str(),
           "Dumping pos 0 through 29:\n"
           "\033[34mA"
@@ -348,12 +353,14 @@ CASE(test_write_alignment) {
         );
 
     out.str(std::string());
-    cseq::write_alignment(out, vs, 0, rna_aligned.size(), false);
+    cseq::write_alignment(out, vsp, 0, rna_aligned.size(), false);
     EQUAL(out.str(), "cseq::write_alignment(): range out of bounds!\n");
 
     out.str(std::string());
     vs = std::vector<cseq>{{"1", 0, "ACGU"}};
-    cseq::write_alignment(out, vs, 0, 3, true);
+    vsp.clear();
+    vsp.push_back(&vs[0]);
+    cseq::write_alignment(out, vsp, 0, 3, true);
     EQUAL(out.str(),
           "Dumping pos 0 through 3:\n"
           "\033[34mA"
@@ -366,8 +373,8 @@ CASE(test_write_alignment) {
 
 CASE(test_write_alignment_empty) {
     std::stringstream out;
-    std::vector<cseq> vs;
-    cseq::write_alignment(out, vs, 0, 0, false);
+    std::vector<cseq_base*> vsp;
+    cseq::write_alignment(out, vsp, 0, 0, false);
     EQUAL(out.str(), "cseq::write_alignment(): no sequences?\n");
 }
 

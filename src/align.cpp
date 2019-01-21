@@ -375,7 +375,6 @@ aligner::operator()(tray t) {
                            refalignment.begin() + std::distance(refsequence.begin(), substr.end()),
                            std::back_inserter(subalignment) );
 
-
                 c.setAlignedBases(subalignment);
                 t.log << "copied alignment from (longer) template sequence "
                       << it->get_attr<string>(query_arb::fn_acc) << ":"
@@ -386,7 +385,9 @@ aligner::operator()(tray t) {
             c.setWidth(it->getWidth());
             c.set_attr(query_arb::fn_date, make_datetime());
             c.set_attr(query_arb::fn_qual, 100);
-            c.set_attr(query_arb::fn_idty, 100.f);
+            if (opts->calc_idty) {
+                c.set_attr(query_arb::fn_idty, 100.f);
+            }
             c.set_attr(query_arb::fn_head, 0);
             c.set_attr(query_arb::fn_tail, 0);
             c.set_attr("align_filter_slv", "");
@@ -483,7 +484,9 @@ sina::do_align(cseq& c, cseq& orig, MASTER &m,
     cnsts_type cns(tr);
 
     // create the alignment "mesh" (not quite a matrix)
-    mesh<MASTER, cseq, data_type, tbb::tbb_allocator<data_type> > A(m, c);
+    using mesh_t = mesh<MASTER, cseq, data_type, tbb::tbb_allocator<data_type>>;
+    logger->debug("Allocating {}MB for alignment matrix", mesh_t::guessMem(m, c)/1024/1024);
+    mesh_t A(m, c);
 
     int oh_head, oh_tail;
 #ifdef DEBUG

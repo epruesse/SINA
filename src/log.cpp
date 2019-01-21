@@ -400,14 +400,15 @@ Log::printer::operator()(tray t) {
     }
 
     if (opts->show_diff) {
-        cseq& orig = *t.input_sequence;
-        ref.push_back(orig);
-        ref.push_back(aligned);
-        for (auto part : orig.find_differing_parts(aligned)) {
-            cseq::write_alignment(tmp, ref, part.first, part.second, opts->colors);
+        std::vector<cseq_base*> refptrs;
+        for (auto& i : ref) {
+            refptrs.push_back(&i);
         }
-        ref.pop_back();
-        ref.pop_back();
+        refptrs.push_back(t.input_sequence);
+        refptrs.push_back(t.aligned_sequence);
+        for (auto part : t.input_sequence->find_differing_parts(aligned)) {
+            cseq::write_alignment(tmp, refptrs, part.first, part.second, opts->colors);
+        }
         tmp << endl << endl;
     }
 
