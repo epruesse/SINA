@@ -14,6 +14,7 @@ SINA - reference based multiple sequence alignment
 .. |Codecov| image:: https://img.shields.io/codecov/c/github/epruesse/sina.svg
    :target: https://codecov.io/gh/epruesse/SINA
 .. |Read the Docs| image:: https://img.shields.io/readthedocs/sina/latest.svg
+   :target: https://readthedocs.org/projects/sina/builds
 
 SINA is a tool to add sequences to an existing multiple sequence
 alignment. It needs about 1 second on a single core to add one 16S
