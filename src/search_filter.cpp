@@ -114,7 +114,7 @@ search_filter::get_options_description(po::options_description& main,
         ("search-all", po::bool_switch(&opts->search_all), "do not use k-mer heuristic")
         ("search-no-fast", po::bool_switch(&opts->fs_no_fast), "don't use fast family search")
         ("search-kmer-candidates", po::value<int>(&opts->kmer_candidates)->default_value(1000,""),         "number of most similar sequences to acquire via kmer-step (1000)")
-        ("search-kmer-len", po::value<int>(&opts->fs_kmer_len)->default_value(12,""),
+        ("search-kmer-len", po::value<int>(&opts->fs_kmer_len)->default_value(10, ""),
          "length of k-mers (12)")
         ("search-kmer-mm", po::value<int>(&opts->fs_kmer_mm)->default_value(0,""),
          "allowed mismatches per k-mer (0)")
