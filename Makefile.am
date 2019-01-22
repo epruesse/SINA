@@ -34,7 +34,7 @@ AM_CFLAGS = \
 EXTRA_BINDIST = \
     LICENSE \
     CHANGELOG \
-    README.md \
+    README \
     arb_LICENSE.txt \
     arb_PUBLIB_LICENSE.txt
 
@@ -161,12 +161,30 @@ CODE_COVERAGE_IGNORE_PATTERN = \
 
 ### DOCUMENTATION ###
 
+DOC_SOURCE = \
+    doc/source/conf.py \
+    doc/source/index.rst \
+    doc/source/install.rst \
+    doc/source/commandline.rst \
+    doc/source/CHANGELOG.rst \
+    doc/source/README.rst \
+    README.rst
 
-if ENABLE_DOCS
-doc_DATA = doc/sina-manual.pdf doc/sina-manual.html
-man1_MANS = doc/sina.man
-endif
-dist_doc_DATA = doc/sina.tex
+doc_DATA := $(filter %.txt,$(DOC_SOURCE:doc/source/%.rst=doc/text/%.txt))
+
+EXTRA_DIST += $(DOC_SOURCE) CHANGELOG
+
+man1_MANS = doc/man/sina.1
+
+$(doc_DATA): $(DOC_SOURCE)
+	sphinx-build -M text $$(dirname $<) doc
+
+$(man1_MANS): $(DOC_SOURCE)
+	sphinx-build -M man $$(dirname $<) doc
+
+%: doc/text/%.txt
+	cp $< $@
+
 
 
 CLEANFILES += sina-manual.log
