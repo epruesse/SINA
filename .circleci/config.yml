@@ -10,7 +10,8 @@ references:
   configure: &configure
     name: Running Configure
     command: |
-      env
+      # GCOV is missing from env vars exported by gcc_linux-64
+      export GCOV=${GCC%%cc}cov
       eval MINICONDA=$MINICONDA
       cd ~/build
       ~/project/configure \
@@ -21,8 +22,6 @@ references:
       --with-arbhome=$MINICONDA/lib/arb \
       $EXTRA_CONFIG_ARGS \
       || (cat config.log; false)
-
-      #      LDFLAGS="$LDFLAGS -Wl,-rpath -Wl,$MINICONDA/lib" \
 
   macos: &macos
     macos:
@@ -61,11 +60,6 @@ jobs:
       - run:
           name: Boostrapping Configure
           command: ./autogen.sh
-      - run:
-          name: Installing lcov
-          command: |
-            /usr/bin/sudo -n yum install -y epel-release
-            /usr/bin/sudo -n yum install -y lcov
       - run:
           <<: *configure
           environment:
