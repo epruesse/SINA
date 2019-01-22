@@ -48,8 +48,9 @@ EXTRA_DIST = \
     include \
     tests
 
-CLEANFILES =
-
+CLEANFILES = \
+    CHANGELOG \
+    README
 
 ### TARGETS ###
 
@@ -172,7 +173,7 @@ DOC_SOURCE = \
 
 doc_DATA := $(filter %.txt,$(DOC_SOURCE:doc/source/%.rst=doc/text/%.txt))
 
-EXTRA_DIST += $(DOC_SOURCE) CHANGELOG
+EXTRA_DIST += $(DOC_SOURCE)
 
 man1_MANS = doc/man/sina.1
 
@@ -192,29 +193,7 @@ LATEXTOMAN=$(top_srcdir)/tools/latex2man
 
 export TEXINPUTS=$(top_srcdir):$(top_srcdir)/tools/:
 
-CLEANFILES += $(doc_DATA) $(check_DATA) $(man1_MANS) doc/sina-manual.log  doc/sina-manual.toc doc/sina-manual.aux doc/sina-manual.out
-
-
-%.txt: sina_%.txt
-	-@mkdir `dirname $@`
-	groff -T utf8 $< > $@
-
-%.man: %.tex
-	-@mkdir `dirname $@`
-	$(SED) 's/{}//g; s/``/"/g; s/'\'\''/"/g;' $< | ${LATEXTOMAN} - $@
-
-%-manual.tex: %.tex
-	-@mkdir `dirname $@`
-	${LATEXTOMAN} -L $< $@
-
-%.pdf: %.tex
-	-@mkdir `dirname $@`
-	pdflatex -output-directory `dirname $@` $< 
-	pdflatex -output-directory `dirname $@` $< 
-
-%-manual.html: %.tex
-	-@mkdir `dirname $@`
-	$(SED) 's/{}//g; s/``/"/g; s/'\'\''/"/g;' $< | ${LATEXTOMAN} -H - $@
+CLEANFILES += $(doc_DATA) $(check_DATA) $(man1_MANS) doc/doctrees/
 
 
 ### PACKAGE ###
