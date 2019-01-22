@@ -177,8 +177,12 @@ EXTRA_DIST += $(DOC_SOURCE)
 
 man1_MANS = doc/man/sina.1
 
-$(doc_DATA): $(DOC_SOURCE)
+
+$(doc_DATA): doc/build.stamp
+doc/build.stamp: $(DOC_SOURCE)
 	sphinx-build -M text $$(dirname $<) doc
+	touch $@
+CLEANFILES += doc/build.stamp
 
 $(man1_MANS): $(DOC_SOURCE)
 	sphinx-build -M man $$(dirname $<) doc
