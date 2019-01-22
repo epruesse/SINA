@@ -225,7 +225,7 @@ bindistdir: all
           cp -fpR $(top_builddir)/$$f $(bindistdir)/$$f; done; \
 	find $(bindistdir) -depth -type d -empty -exec rmdir {} \;
 	binaries=$$(find $(bindistdir) -type f -exec file --mime {} \; | \
-                grep -E "application/x-.*(mach|executable)" | cut -d: -f1); \
+                grep -E "application/x-.*(mach|executable|sharedlib)" | cut -d: -f1); \
 	export LDPATHS="$(subst -L,,$(filter -L%, $(BOOST_LDFLAGS)))"; \
         for binary in $$binaries; do $(top_srcdir)/tools/fix_libpaths.sh "$$binary"; done; \
 	find $(bindistdir) \( -name \*.la -or -name \*.a \) -delete
