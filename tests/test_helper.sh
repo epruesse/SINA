@@ -143,10 +143,10 @@ assert_output_value() {
     snot2bc='s/([+-]?[0-9.]+)[eE]\+?(-?)([0-9]+)/(\1*10^\2\3)/g'
 
     val=$(echo "$output" | sed -n 's/.*'$1'//p' | sed -E "$snot2bc")
-    if (( $(echo "$val $2" | bc -l ) )); then
+    if (( $(echo "$val $2" | bc) )); then
 	:
     else
-	test_err="{$test_err# value for key $1 ($val) did not match $2
+	test_err="{$test_err}# value for key $1 ($val) did not match $2
 "
     fi
 }
