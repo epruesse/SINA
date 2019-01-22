@@ -193,7 +193,10 @@ LATEXTOMAN=$(top_srcdir)/tools/latex2man
 
 export TEXINPUTS=$(top_srcdir):$(top_srcdir)/tools/:
 
-CLEANFILES += $(doc_DATA) $(check_DATA) $(man1_MANS) doc/doctrees/
+CLEANFILES += $(doc_DATA) $(check_DATA) $(man1_MANS)
+
+clean-local-docs:
+	rm -rf doc/doctrees
 
 
 ### PACKAGE ###
@@ -304,13 +307,13 @@ test_data/%: test_data/%.xz
 	mkdir -p $$(dirname $@)
 	unxz -c $< > $@
 
-clean-local: clean-local-check
+clean-local: clean-local-check clean-local-docs
 
 clean-local-check:
 	rm -f test.*.xml
 	rm -f test_data/ltp_reduced.arb.*
 	rm -f test_data/ltp_reduced.sidx
 
-.PHONY: clean-local-check
+.PHONY: clean-local-check clean-local-docs
 
 
