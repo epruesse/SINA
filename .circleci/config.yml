@@ -45,12 +45,12 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - conda-{{arch}}
+            - conda-1-{{arch}}
       - run:
           name: Preparing Conda Environment
           command: ./ci_scripts/install_conda.sh
       - save_cache:
-          key: conda-{{arch}}-{{checksum "conda/info.txt" }}-{{checksum "conda/root.txt"}}-{{checksum "conda/pkgs.txt"}}
+          key: conda-1-{{arch}}-{{checksum "conda/info.txt" }}-{{checksum "conda/root.txt"}}-{{checksum "conda/pkgs.txt"}}
           paths: ~/miniconda
       - run:
           name: Checking out submodules
