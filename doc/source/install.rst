@@ -51,7 +51,7 @@ To install, follow these steps:
 SINA should also work fine if installed with conda into the ``base``
 environment. If you encounter problems, try the separate environment.
 
-.. _Conda: https://conda.io/docs/index.html
+.. _Conda: https://conda.io
 .. _Bioconda: https://bioconda.github.io
 .. _Conda-Forge: https://conda-forge.org
 .. _Miniconda: https://conda.io/miniconda.html
@@ -82,7 +82,7 @@ To install SINA system wide, place the contents of the archive in
   sudo ln -s /opt/sina-1.4.0-linux /opt/sina
   sudo ln -s /opt/sina/bin/sina /usr/local/bin/sina
 
-.. _`SINA releases`: https://github.com/epruesse/SINA/release
+.. _`SINA releases`: https://github.com/epruesse/SINA/releases
 
 
 .. _`from source`:

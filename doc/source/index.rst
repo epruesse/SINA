@@ -35,7 +35,7 @@ genes. *Bioinformatics*. 2012;28(14):1823-9.
 doi::doi:`10.1093/bioinformatics/bts252`
 
 .. _SILVA: https://www.arb-silva.de
-.. _ARB: https://www.arb-home.de
+.. _ARB: http://www.arb-home.de
 
 
 
