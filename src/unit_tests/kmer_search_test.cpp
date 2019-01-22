@@ -139,7 +139,7 @@ BOOST_FIXTURE_TEST_CASE(pt_simple, Fixture, *boost::unit_test::tolerance(0.0001)
             );
         BOOST_TEST((self != family.end()));
         // PT server counts duplicate kmers twice, allow for some discrepancy
-        BOOST_TEST(self->getScore() > max_score - 4);
+        BOOST_TEST(self->getScore() > max_score - 5);
     }
     std::cerr << std::endl;
     delete search_index;
