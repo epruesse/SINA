@@ -221,7 +221,8 @@ bindistdir: all
 	cd $(bindistdir); for f in bin/sina share/doc/sina*; do \
 	  test -f $$f && $(LN_S) $$f; done || true
 	for f in $(EXTRA_BINDIST); do \
-          cp -fpR $(top_srcdir)/$$f $(bindistdir)/$$f; done
+          cp -fpR $(top_srcdir)/$$f $(bindistdir)/$$f 2>/dev/null || \
+          cp -fpR $(top_builddir)/$$f $(bindistdir)/$$f; done; \
 	find $(bindistdir) -depth -type d -empty -exec rmdir {} \;
 	binaries=$$(find $(bindistdir) -type f -exec file --mime {} \; | \
                 grep -E "application/x-(mach|executable)" | cut -d: -f1); \
