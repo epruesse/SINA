@@ -196,7 +196,6 @@ Log::validate_vm(po::variables_map& vm,
     console_sink->set_level(opts->verbosity);
     console_sink->set_pattern("%T [%n] %^%v%$");
 
-    logger->info("Loglevel set to {}", opts->verbosity);
 
     if (vm.count("log-file") != 0u) {
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
@@ -210,6 +209,8 @@ Log::validate_vm(po::variables_map& vm,
             l->sinks() = sinks;
             l->set_level(spdlog::level::trace);
         });
+
+    logger->info("Loglevel set to {}", opts->verbosity);
 
     // database for computing distance to test case
     if (vm["orig-db"].empty()) {
