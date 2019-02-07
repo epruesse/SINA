@@ -47,7 +47,7 @@ AC_DEFUN([AX_LIB_ARBDB],
                 success="no"
             fi
 	fi
-	if test x"ax_arb_path" != x""; then
+	if test x"$ax_arb_path" != x""; then
             saved_CPPFLAGS="$CPPFLAGS"
             CPPFLAGS="$CPPFLAGS -I$ax_arb_path/INCLUDE $GLIB_CFLAGS"
             AC_CHECK_HEADER([arbdb.h], [
