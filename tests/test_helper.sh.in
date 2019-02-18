@@ -6,7 +6,7 @@ exec 6>&1
 exec 7>&2
 
 test_num=0
-test_count=$(grep -c "begin_test" "$0")
+test_count=$(@GREP@ -c "begin_test" "$0")
 echo "1..$test_count"
 
 do_clean=yes
@@ -14,7 +14,6 @@ test_helper_tmpdirs_=()
 trap test_helper_cleanup_ EXIT
 script_error_disable_=
 trap script_error ERR
-
 
 script_error() {
     if [ -z "$script_error_disable_" ]; then
@@ -32,7 +31,7 @@ script_error() {
 
 maketmpdir() {
     local tmp
-    tmp=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
+    tmp=$(@MKTEMP@ -d 2>/dev/null || mktemp -d -t 'mytmpdir')
     test_helper_tmpdirs_+=($tmp)
     eval $1=$tmp
 }
@@ -59,21 +58,21 @@ test_helper_cleanup_() {
 capture_stdout() {
     echo "Running \"$*"\"
     script_error_disable_=1
-    output=$(eval "$*" | tee /dev/fd/6)
+    output=$(eval "$*" | @TEE@ /dev/fd/6)
     exit_code=$?
     script_error_disable_=
 }
 capture_stderr() {
     echo "Running \"$*"\"
     script_error_disable_=1
-    output=$(eval "$*" 2>&1 >&6 | tee /dev/fd/7)
+    output=$(eval "$*" 2>&1 >&6 | @TEE@ /dev/fd/7)
     exit_code=$?
     script_error_disable_=
 }
 capture_stdouterr() {
     echo "Running \"$*"\"
     script_error_disable_=1
-    output=$(eval "$*" 2>&1 | tee /dev/fd/6)
+    output=$(eval "$*" 2>&1 | @TEE@ /dev/fd/6)
     exit_code=$?
     script_error_disable_=
 }
@@ -108,7 +107,7 @@ assert_exit_failure() {
 }
 
 assert_output_contains() {
-    if echo "$output" | grep "$1" >/dev/null; then
+    if echo "$output" | @GREP@ "$1" >/dev/null; then
 	:
     else
 	test_err="${test_err}# command output did not include '$1'
@@ -120,7 +119,7 @@ OUTPUT_END
 }
 
 assert_output_not_contains() {
-    if echo "$output" | grep "$1" >/dev/null; then
+    if echo "$output" | @GREP@ "$1" >/dev/null; then
 	test_err="${test_err}# command should not have included '$1'
 OUTPUT_BEGIN
 $output
@@ -130,7 +129,7 @@ OUTPUT_END
 }
 
 assert_output_count() {
-    if test $(echo "$output" | grep -c "$1") $2 $3; then
+    if test $(echo "$output" | @GREP@ -c "$1") $2 $3; then
 	:
     else
 	test_err="${test_err}# command output did not match $@
@@ -142,8 +141,8 @@ assert_output_value() {
     # convert 8.4e-10 to 8.4*10^-10 (from https://stackoverflow.com/questions/12882611)
     snot2bc='s/([+-]?[0-9.]+)[eE]\+?(-?)([0-9]+)/(\1*10^\2\3)/g'
 
-    val=$(echo "$output" | sed -n 's/.*'$1'//p' | sed -E "$snot2bc")
-    if (( $(echo "$val $2" | bc) )); then
+    val=$(echo "$output" | @SED@ -n 's/.*'$1'//p' | @SED@ -E "$snot2bc")
+    if (( $(echo "$val $2" | @BC@) )); then
 	:
     else
 	test_err="{$test_err}# value for key $1 ($val) did not match $2
