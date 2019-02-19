@@ -150,13 +150,6 @@ std::unique_ptr<Log::options> Log::opts;
 
 static std::vector<spdlog::sink_ptr> sinks;
 
-namespace spdlog { namespace level {
-std::ostream& operator<<(std::ostream& out, const level_enum& i) {
-    return out << to_c_str(i);
-}
-} // namespace level
-} // namespace spdlog
-
 void
 Log::get_options_description(po::options_description& main,
                              po::options_description& adv) {
@@ -210,7 +203,8 @@ Log::validate_vm(po::variables_map& vm,
             l->set_level(spdlog::level::trace);
         });
 
-    logger->info("Loglevel set to {}", opts->verbosity);
+    logger->info("Loglevel set to {}",
+                 to_string_view(opts->verbosity));
 
     // database for computing distance to test case
     if (vm["orig-db"].empty()) {
