@@ -29,6 +29,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "search_filter.h"
 #include "config.h"
 #include "log.h"
+#include "progress.h"
 
 #include <string>
 using std::string;
@@ -52,8 +53,6 @@ namespace po = boost::program_options;
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
-
-#include <boost/progress.hpp>
 
 #include <boost/algorithm/string.hpp>
 
@@ -182,9 +181,8 @@ search_filter::search_filter()
     data->arb = query_arb::getARBDB(opts->pt_database);
 
     if (opts->search_all) {
-        logger->info("Caching Sequencences...");
+        Progress p("Caching Sequences", data->arb->getSeqCount());
         vector<string> names = data->arb->getSequenceNames();
-        boost::progress_display p(data->arb->getSeqCount(), std::cerr);
         for (string& name: names) {
             data->sequences.push_back(&data->arb->getCseq(name));
             ++p;
