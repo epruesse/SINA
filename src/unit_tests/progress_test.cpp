@@ -70,7 +70,7 @@ BOOST_DATA_TEST_CASE(
 
 BOOST_DATA_TEST_CASE(
     show_progress,
-    bdata::make({60,43,41}) *
+    bdata::make({60u,43u,42u}) *
     bdata::make({10,50,99}),
     width, n)
 {
@@ -84,8 +84,13 @@ BOOST_DATA_TEST_CASE(
     fseek(filebuf, 0, SEEK_SET);
     p.update(n);
     std::string result(buf.begin());
+    BOOST_TEST_INFO("result: '" << result << "'");
     std::string beg = fmt::format("text:  {}% |", n);
     std::string end = fmt::format("| {}/100 [00:00:00 / 00:00:00]\n\x1B[A", n);
+    BOOST_TEST_INFO("expected begin: '" << beg << "'");
+    BOOST_TEST_INFO("expected end: '" << end << "'");
+    BOOST_REQUIRE_LE(result.size(), width+4);
+    BOOST_REQUIRE_GE(result.size(), beg.size() + end.size());
     BOOST_CHECK_EQUAL(result.substr(0, beg.size()), beg);
     BOOST_CHECK_EQUAL(result.substr(result.size()-end.size(), end.size()), end);
 
