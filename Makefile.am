@@ -94,6 +94,7 @@ src_libsina_la_SOURCES = \
     src/mesh_debug.h \
     src/mseq.cpp \
     src/mseq.h \
+    src/progress.h \
     src/pseq.cpp \
     src/pseq.h \
     src/query_arb.cpp \
