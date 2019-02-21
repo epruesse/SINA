@@ -163,23 +163,35 @@ public:
         update(n);
     }
 
+    void set_total(unsigned int n) {
+        _total = n;
+    }
+
     void show_progress(timepoint_t now=clock_t::now()) {
         _last_print_n = _n;
-        float frac = (float) _n / _total;
+        auto arg_desc    = fmt::arg("desc", _desc);
         auto elapsed = now - _started_at;
+        auto arg_elapsed = fmt::arg("elapsed", elapsed);
+        auto arg_eol     = fmt::arg("eol", term_eol);
+        auto arg_n       = fmt::arg("n", _n);
+
+        if (_total == 0) {
+            fmt::memory_buffer buf;
+            fmt::format_to(buf, nototal_fmt, arg_desc, arg_elapsed, arg_eol, arg_n);
+            fwrite(buf.data(), 1, buf.size(), _file);
+            return;
+        }
+
+        float frac = (float) _n / _total;
         auto eta =  elapsed * (1/frac -1);
         auto remaining = (frac > 0) ? elapsed * (1/frac - 1) : duration_t(0);
 
         fmt::memory_buffer left, right;
 
-        auto arg_desc    = fmt::arg("desc", _desc);
         float percent    = frac * 100;
         auto arg_frac    = fmt::arg("frac", percent);
-        auto arg_n       = fmt::arg("n", _n);
         auto arg_total   = fmt::arg("total", _total);
-        auto arg_elapsed = fmt::arg("elapsed", elapsed);
         auto arg_remain  = fmt::arg("remaining", remaining);
-        auto arg_eol     = fmt::arg("eol", term_eol);
         auto args = fmt::make_format_args(arg_desc, arg_frac, arg_n, arg_total,
                                           arg_elapsed, arg_remain, arg_eol);
 
@@ -221,6 +233,7 @@ private:
     const std::string term_eol = "\n";
     const std::string lbar_fmt = "{desc}: {frac:3.0f}% |";
     const std::string rbar_fmt = "| {n}/{total} [{elapsed:%T} / {remaining:%T}]{eol}";
+    const std::string nototal_fmt = "{desc}: {n} [{elapsed:%T}]{eol}";
 };
 
 
