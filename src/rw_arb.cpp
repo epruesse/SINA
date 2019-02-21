@@ -53,7 +53,6 @@ using boost::split;
 using boost::is_any_of;
 
 #include "query_arb.h"
-#include "align.h"
 #include "log.h"
 
 
