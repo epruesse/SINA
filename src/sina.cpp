@@ -69,6 +69,7 @@ namespace tf = tbb::flow;
 #include "search_filter.h"
 #include "timer.h"
 #include "cseq_comparator.h"
+#include "progress.h"
 
 using namespace sina;
 
@@ -378,6 +379,8 @@ int real_main(int argc, char** argv) {
     tbb::task_scheduler_init init(vm["threads"].as<unsigned int>());
 
     tf::graph g;  // Main data flow graph (pipeline)
+    Progress p("Processing", 0);
+
     vector<std::unique_ptr<tf::graph_node>> nodes; // Nodes (for cleanup)
     tf::sender<tray> *last_node; // Last tray producing node
 
@@ -389,15 +392,17 @@ int real_main(int argc, char** argv) {
     // Make source node reading sequences
     source_node *source; // will be activated once graph complete
     switch (opts.intype) {
-    case SEQUENCE_DB_ARB:
-        source = new source_node(g, rw_arb::reader(opts.in,
-                                                   opts.v_fields),
-                                 false);
+    case SEQUENCE_DB_ARB: {
+        auto arbreader = rw_arb::reader(opts.in, opts.v_fields);
+        arbreader.set_progress(p);
+        source = new source_node(g, arbreader, false);
+    }
         break;
-    case SEQUENCE_DB_FASTA:
-        source = new source_node(g, rw_fasta::reader(opts.in,
-                                                     opts.v_fields),
-                                 false);
+    case SEQUENCE_DB_FASTA: {
+        auto fastareader = rw_fasta::reader(opts.in, opts.v_fields);
+        fastareader.set_progress(p);
+        source = new source_node(g, fastareader, false);
+    }
         break;
     default:
         throw logic_error("input type undefined");
@@ -519,6 +524,7 @@ int real_main(int argc, char** argv) {
     tf::function_node<tray, tf::continue_msg>
         sink(g, 1, [&](tray t) -> tf::continue_msg {
                 count++;
+                ++p;
                 t.destroy();
                 return tf::continue_msg();
             });
