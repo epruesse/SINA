@@ -76,13 +76,13 @@ BOOST_DATA_TEST_CASE(
 {
     fmt::memory_buffer buf;
     buf.resize(500);
-    FILE * filebuf = fmemopen(buf.begin(), buf.size(), "rw");
+    FILE * filebuf = fmemopen(buf.begin(), buf.size(), "w");
 
     int total = 100;
-    std::fill_n(buf.begin(), buf.size(), 0);
     Progress p("text", total, /*ascii=*/true, filebuf, width);
     p.update(n);
     fseek(filebuf, 0, SEEK_SET);
+    std::fill_n(buf.begin(), buf.size(), 0);
     p.show_progress();
     fflush(filebuf);
     std::string result(buf.begin());
