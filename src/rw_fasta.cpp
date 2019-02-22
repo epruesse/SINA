@@ -218,8 +218,6 @@ rw_fasta::reader::set_progress(Progress& p) {
 
 bool
 rw_fasta::reader::operator()(tray& t) {
-    std::cerr << data->in.tellg() << std::endl;
-    
     t.seqno = ++data->seqno;
     t.input_sequence = new cseq();
     cseq &c = *t.input_sequence;
