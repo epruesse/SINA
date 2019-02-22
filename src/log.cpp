@@ -72,7 +72,7 @@ static auto logger = Log::create_logger("log");
 template<typename T>
 struct counting_type {
     T val;
-    counting_type(const T& t) : val(t) {}
+    explicit counting_type(const T& t) : val(t) {}
     static T initial() { return 0; };
     static T increment(const T& t) { return t+1; }
 };
@@ -99,7 +99,7 @@ class counting_value : public po::typed_value<counting_type<T>, char> {
 public:
     /* The store is of type T, but typed_value doesn't know that. */
     using super = po::typed_value<counting_type<T>, char>;
-    counting_value(T* store_to)
+    explicit counting_value(T* store_to)
         : super(reinterpret_cast<counting_type<T>*>(store_to))
     {
         super::zero_tokens();

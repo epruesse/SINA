@@ -207,7 +207,7 @@ cseq_base::compressAligned(std::vector<unsigned char> &out) {
     }
 
     idx_type last=0;
-    for (uint i=0; i < bas; i++) {
+    for (uint i=0; i < bas; ++i) {
         idx_type idx = bases[i].getPosition();
         idx_type diff = idx - last;
         for (uint j = 0; j < sizeof(idx_type); ++j) {

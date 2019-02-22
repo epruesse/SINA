@@ -128,7 +128,7 @@ struct rw_arb::reader::priv_data {
     int total_expected_sequences{0};
     vector<string>& v_fields;
     Progress *p{nullptr};
-    priv_data(vector<string>& fields)
+    explicit priv_data(vector<string>& fields)
         : v_fields(fields)
     {
     }

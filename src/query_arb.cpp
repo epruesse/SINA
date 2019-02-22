@@ -494,8 +494,6 @@ query_arb::loadCache(std::vector<std::string>& keys) {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data->gbmain);
 
-    unsigned int scache_size = data->sequence_cache.size();
-
     logger->info("Loading {} sequences...", data->count);
     Progress p("Loading", data->count);
 
