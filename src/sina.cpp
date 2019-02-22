@@ -115,8 +115,9 @@ void validate(boost::any& v,
 }
 
 // make known any<> types printable
+template <class T, typename = std::enable_if_t<std::is_same<T, boost::any>::value> >
 std::ostream& operator<<(std::ostream& out,
-                         const boost::any& a) {
+                         const T& a) {
     using boost::any_cast;
     if (any_cast<bool>(&a) != nullptr) {
         out << any_cast<bool>(a);
