@@ -53,9 +53,8 @@ using boost::split;
 using boost::is_any_of;
 
 #include "query_arb.h"
-#include "align.h"
 #include "log.h"
-
+#include "progress.h"
 
 using namespace sina;
 namespace po = boost::program_options;
@@ -126,8 +125,10 @@ struct rw_arb::reader::priv_data {
     query_arb* arb{nullptr};
     istream *in{nullptr};
     int seqno{0};
+    int total_expected_sequences{0};
     vector<string>& v_fields;
-    priv_data(vector<string>& fields)
+    Progress *p{nullptr};
+    explicit priv_data(vector<string>& fields)
         : v_fields(fields)
     {
     }
@@ -142,12 +143,14 @@ rw_arb::reader::reader(const reader& o) = default;
 rw_arb::reader::~reader() = default;
 rw_arb::reader& rw_arb::reader::operator=(const reader& o) = default;
 
-
 rw_arb::reader::reader(fs::path infile,
                        vector<string>& fields)
     : data(new priv_data(fields))
 {
     data->arb = query_arb::getARBDB(infile);
+
+    int n_seqs_db = data->arb->getSeqCount();
+    int n_seqs_sel = 0;
 
     if (opts->select_file ==  "-") {
         data->in = &std::cin;
@@ -160,13 +163,39 @@ rw_arb::reader::reader(fs::path infile,
             *tmp << it << std::endl;
         }
         data->in = tmp;
+        n_seqs_sel = n_seqs_db;
     }
 
     // ignore first <select_skip> names
-    string tmp;
-    for (int i = 0; i < opts->select_skip; i++) {
-        (*data->in) >> tmp;
+    if (opts->select_skip) {
+        logger->info("Skipping first {} sequences", opts->select_skip);
+        string tmp;
+        for (int i = 0; i < opts->select_skip; i++) {
+            if (data->in->bad()) {
+                logger->error("After skipping {} sequences, none where left", i);
+                break;
+            }
+            (*data->in) >> tmp;
+        }
+        n_seqs_sel -= opts->select_skip;
     }
+
+    if (opts->select_step > 1) {
+        logger->info("Processing only every {}th sequence", opts->select_step);
+        n_seqs_sel = 1 + (n_seqs_sel - 1) / opts->select_step;
+    }
+
+    if (n_seqs_sel > 0 && n_seqs_sel < n_seqs_db) {
+        logger->info("Processing {} sequences out of {} in the input database",
+                     n_seqs_sel, n_seqs_db);
+    }   
+    data->total_expected_sequences = (n_seqs_sel > 0) ? n_seqs_sel : 0;
+}
+
+void
+rw_arb::reader::set_progress(Progress &p) {
+    data->p = &p;
+    data->p->set_total(data->total_expected_sequences);
 }
 
 
@@ -174,10 +203,13 @@ bool
 rw_arb::reader::operator()(tray& t) {
     string name;
     t.seqno = ++data->seqno;
+
     t.input_sequence = nullptr; // we may get initialized tray
 
     while (t.input_sequence == nullptr) {
         if (data->in->bad()) {
+            data->total_expected_sequences = data->seqno - 1;
+            data->p->set_total(data->total_expected_sequences);
             return false;
         }
 
@@ -187,12 +219,16 @@ rw_arb::reader::operator()(tray& t) {
         (*data->in) >> name;
     
         if (name.empty()) {
+            data->total_expected_sequences = data->seqno - 1;
+            data->p->set_total(data->total_expected_sequences);
             return false;
         }
 
         try {
             t.input_sequence = new cseq(data->arb->getCseq(name));
         } catch (base_iupac::bad_character_exception& e) {
+            --data->total_expected_sequences;
+            data->p->set_total(data->total_expected_sequences);
             logger->error("Bad character {} in sequence {}",
                           e.character, name);
         }

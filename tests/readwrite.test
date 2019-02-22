@@ -1,5 +1,6 @@
 #!/bin/bash
-. $(dirname $0)/test_helper.sh
+
+source tests/test_helper.sh
 
 TEST_ARB=$TEST_ARGS
 maketmpdir T

@@ -38,6 +38,8 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
+class Progress;
+
 class rw_arb {
 private:
     struct options;
@@ -56,6 +58,8 @@ public:
         ~reader();
 
         bool operator()(tray& t);
+
+        void set_progress(Progress& p);
     };
         
     class writer {

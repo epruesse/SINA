@@ -28,6 +28,12 @@ AC_PROG_SED
 AC_PROG_LN_S
 AC_PROG_INSTALL
 AC_PROG_MKDIR_P
+AC_CHECK_TOOL([BC], [bc], [:])
+AC_CHECK_TOOL([TEE], [tee], [:])
+AC_CHECK_TOOL([MKTEMP], [mktemp], [:])
+AC_CHECK_TOOL([SPHINX_BUILD], [sphinx-build], [:])
+AC_PROG_GREP
+
 LT_INIT([shared static])
 
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
@@ -268,6 +274,7 @@ CXXFLAGS="$CXXFLAGS -W"
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
   Makefile
+  tests/test_helper.sh
 ])
 
 
@@ -304,7 +311,8 @@ AC_MSG_NOTICE([    CXXFLAGS:        $CODE_COVERAGE_CXXFLAGS])
 AC_MSG_NOTICE([    LIBS:            $CODE_COVERAGE_LIBS])
 AC_MSG_NOTICE([])
 ])
-AC_MSG_NOTICE([  ARB:               ${ARBHOME}])
+AC_MSG_NOTICE([  ARB:])
+AC_MSG_NOTICE([    ARBHOME:         ${ARBHOME}])
 AC_MSG_NOTICE([    CPPFLAGS:        ${ARB_CPPFLAGS}])
 AC_MSG_NOTICE([    LDFLAGS:         ${ARB_LDFLAGS}])
 AC_MSG_NOTICE([    LIBS:            ${ARB_LIBS}])

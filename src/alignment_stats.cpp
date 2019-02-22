@@ -134,6 +134,7 @@ alignment_stats::alignment_stats(
 const aligned_base::matrix_type 
 alignment_stats::getSubstMatrix(double  /*identity*/) const {
     aligned_base::matrix_type m;
+#if 0
     int total_bases = global_freqs.num_a + global_freqs.num_c + 
         global_freqs.num_g + global_freqs.num_u;
     double f[BASE_MAX];
@@ -142,7 +143,6 @@ alignment_stats::getSubstMatrix(double  /*identity*/) const {
     f[BASE_G] = (double)global_freqs.num_g/total_bases;
     f[BASE_TU] = (double)global_freqs.num_u/total_bases;
 
-#if 0
     double avgmm=0;
     for (int i=0; i < BASE_MAX; i++) {
         for (int j=0; j < BASE_MAX; j++) {

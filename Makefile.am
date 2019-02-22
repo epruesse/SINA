@@ -94,6 +94,7 @@ src_libsina_la_SOURCES = \
     src/mesh_debug.h \
     src/mseq.cpp \
     src/mseq.h \
+    src/progress.h \
     src/pseq.cpp \
     src/pseq.h \
     src/query_arb.cpp \
@@ -180,12 +181,12 @@ man1_MANS = doc/man/sina.1
 
 $(doc_DATA): doc/build.stamp
 doc/build.stamp: $(DOC_SOURCE)
-	sphinx-build -M text $$(dirname $<) doc
+	$(SPHINX_BUILD) -M text $$(dirname $<) doc
 	touch $@
 CLEANFILES += doc/build.stamp
 
 $(man1_MANS): $(DOC_SOURCE)
-	sphinx-build -M man $$(dirname $<) doc
+	$(SPHINX_BUILD) -M man $$(dirname $<) doc
 
 %: doc/text/%.txt
 	cp $< $@
@@ -225,7 +226,7 @@ bindistdir: all
           cp -fpR $(top_builddir)/$$f $(bindistdir)/$$f; done; \
 	find $(bindistdir) -depth -type d -empty -exec rmdir {} \;
 	binaries=$$(find $(bindistdir) -type f -exec file --mime {} \; | \
-                grep -E "application/x-.*(mach|executable|sharedlib)" | cut -d: -f1); \
+                $(GREP) -E "application/x-.*(mach|executable|sharedlib)" | cut -d: -f1); \
 	export LDPATHS="$(subst -L,,$(filter -L%, $(BOOST_LDFLAGS)))"; \
         for binary in $$binaries; do $(top_srcdir)/tools/fix_libpaths.sh "$$binary"; done; \
 	find $(bindistdir) \( -name \*.la -or -name \*.a \) -delete
@@ -260,7 +261,8 @@ check_PROGRAMS = \
     src/unit_tests/idset_test \
     src/unit_tests/kmer_test \
     src/unit_tests/kmer_search_test \
-    src/unit_tests/famfinder_test
+    src/unit_tests/famfinder_test \
+    src/unit_tests/progress_test
 
 src_unit_tests_cseq_test_LDADD = $(test_libs)
 src_unit_tests_cseq_test_LDFLAGS = $(ARB_LDFLAGS)
@@ -274,6 +276,7 @@ src_unit_tests_kmer_search_test_LDADD = $(test_libs)
 src_unit_tests_kmer_search_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_famfinder_test_LDADD = $(test_libs)
 src_unit_tests_famfinder_test_LDFLAGS = $(ARB_LDFLAGS)
+src_unit_tests_progress_test_LDADD = $(BOOST_UNIT_TEST_FRAMEWORK_LIB)
 
 test_scripts = \
     tests/readwrite.test \
@@ -305,7 +308,7 @@ check-filtered:
 ## pass ARGS to tests
 TEST_ARGS := $(check_DATA) $(TEST_EXTRA_ARGS)
 export TEST_ARGS
-$(test_scripts): $(bin_PROGRAMS) $(check_DATA)
+$(test_scripts): $(bin_PROGRAMS) $(check_DATA) tests/test_helper.sh
 
 ## unzip source test data into build folder
 test_data/%: test_data/%.xz

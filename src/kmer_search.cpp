@@ -33,6 +33,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "helpers.h"
 #include "timer.h"
 #include "log.h"
+#include "progress.h"
 
 #include <vector>
 using std::vector;
@@ -44,9 +45,6 @@ using std::string;
 
 #include <unordered_map>
 #include <unordered_set>
-
-#include <boost/progress.hpp>
-using progress = boost::progress_display;
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -120,7 +118,7 @@ kmer_search::~kmer_search() = default;
 
 class IndexBuilder {
     kmer_search::impl *idx;
-    boost::progress_display *p;
+    Progress *p;
 public:
     std::vector<vlimap*> kmer_idx;
 
@@ -137,7 +135,7 @@ public:
                 }
                 kmer_idx[kmer]->push_back(i);
             }
-            ++(*p);
+            p->update();
         }
     }
 
@@ -165,7 +163,7 @@ public:
     {
     }
 
-    IndexBuilder(kmer_search::impl *idx_, boost::progress_display *p_)
+    IndexBuilder(kmer_search::impl *idx_, Progress *p_)
         : idx(idx_), p(p_), kmer_idx(idx->n_kmers, nullptr)
     {
     }
@@ -197,12 +195,12 @@ kmer_search::impl::impl(query_arb* arbdb_, int k_)
 void
 kmer_search::impl::build() {
     timestamp start;
-    logger->warn("Building kmer index (k={})", k);
 
     sequence_names = arbdb->getSequenceNames();
     n_sequences = sequence_names.size();
 
-    boost::progress_display p(n_sequences, std::cerr);
+    Progress p("Building Index", n_sequences);
+
     IndexBuilder bi(this, &p);
     tbb::parallel_reduce(tbb::blocked_range<size_t>(0, n_sequences), bi);
     p += n_sequences - p.count();
@@ -210,7 +208,7 @@ kmer_search::impl::build() {
     kmer_idx.clear();
     kmer_idx.reserve(n_kmers);
     int total = 0;
-    p.restart(n_kmers);
+    p.restart("Compressing", n_kmers);
     for (unsigned int i=0; i < n_kmers; i++) {
         ++p;
         if (bi.kmer_idx[i] != nullptr) {

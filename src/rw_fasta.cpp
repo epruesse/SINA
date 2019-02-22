@@ -45,6 +45,7 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "query_arb.h"
 #include "log.h"
+#include "progress.h"
 
 using std::stringstream;
 using std::vector;
@@ -165,6 +166,7 @@ struct rw_fasta::reader::priv_data {
     int lineno;
     int seqno;
     vector<string>& v_fields;
+    Progress* p{nullptr};
 
     priv_data(fs::path filename_, vector<string>& fields)
         : filename(std::move(filename_)),
@@ -208,6 +210,11 @@ rw_fasta::reader::reader(const fs::path& infile, vector<string>& fields)
 rw_fasta::reader::reader(const reader& r) = default;
 rw_fasta::reader& rw_fasta::reader::operator=(const reader& r) = default;
 rw_fasta::reader::~reader() = default;
+
+void
+rw_fasta::reader::set_progress(Progress& p) {
+    data->p = &p;
+}
 
 bool
 rw_fasta::reader::operator()(tray& t) {

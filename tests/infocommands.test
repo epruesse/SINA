@@ -1,5 +1,5 @@
 #!/bin/bash
-. $(dirname $0)/test_helper.sh
+source tests/test_helper.sh
 
 TEST_ARB=$TEST_ARGS
 maketmpdir T
@@ -36,4 +36,11 @@ end_test
 begin_test "Asserts CLI 3 unsupported"
 capture_stderr $SINA --has-cli-vers 3
 assert_exit_failure
+end_test
+
+begin_test "Show effective conf"
+capture_stderr $SINA --show-conf
+assert_exit_failure
+assert_output_contains "Effective parameters"
+assert_output_not_contains "UNKNOWN TYPE"
 end_test

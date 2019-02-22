@@ -35,6 +35,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "timer.h"
 #include "alignment_stats.h"
 #include "log.h"
+#include "progress.h"
 
 #include <iostream>
 using std::uppercase;
@@ -98,7 +99,6 @@ inline GBDATA* GBT_find_sequence(GBDATA* gbd, const char* ali) {
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include <boost/progress.hpp>
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
@@ -269,7 +269,8 @@ query_arb::query_arb(const fs::path& arbfile)
     data->count=spec_count;
 
     logger->info("Loading names map... (for {})", data->filename);
-    boost::progress_display p(spec_count, std::cerr);
+
+    Progress p("Scanning", spec_count);
     for ( GBDATA* gbspec = GBT_first_species(data->gbmain);
           gbspec != nullptr; gbspec = GBT_next_species(gbspec)) {
         data->gbdata_cache[GBT_read_name(gbspec)] = gbspec;
@@ -493,10 +494,8 @@ query_arb::loadCache(std::vector<std::string>& keys) {
     boost::mutex::scoped_lock lock(arb_db_access);
     GB_transaction trans(data->gbmain);
 
-    unsigned int scache_size = data->sequence_cache.size();
-
     logger->info("Loading {} sequences...", data->count);
-    boost::progress_display p(data->count, std::cerr);
+    Progress p("Loading", data->count);
 
     data->sequence_cache.reserve(data->count);
 

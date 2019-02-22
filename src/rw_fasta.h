@@ -38,6 +38,8 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
+class Progress;
+
 enum FASTA_META_TYPE {
     FASTA_META_NONE=0,
     FASTA_META_HEADER=1,
@@ -60,6 +62,8 @@ public:
         reader& operator=(const reader& r);
         ~reader();
         bool operator()(tray& t);
+
+        void set_progress(Progress& p);
     };
 
     class writer {
