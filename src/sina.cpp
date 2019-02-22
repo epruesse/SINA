@@ -123,6 +123,8 @@ std::ostream& operator<<(std::ostream& out,
         out << any_cast<bool>(a);
     } else if (any_cast<int>(&a) != nullptr) {
         out << any_cast<int>(a);
+    } else if (any_cast<unsigned int>(&a) != nullptr) {
+        out << any_cast<unsigned int>(a);
     } else if (any_cast<long>(&a) != nullptr) {
         out << any_cast<long>(a);
     } else if (any_cast<float>(&a) != nullptr) {
@@ -147,6 +149,8 @@ std::ostream& operator<<(std::ostream& out,
         out << any_cast<CMP_DIST_TYPE>(a);
     } else if (any_cast<CMP_COVER_TYPE>(&a) != nullptr) {
         out << any_cast<CMP_COVER_TYPE>(a);
+    } else if (any_cast<fs::path>(&a) != nullptr) {
+        out << any_cast<fs::path>(a);
     } else {
         out << "UNKNOWN TYPE: '" << a.type().name()<<"'";
     }
