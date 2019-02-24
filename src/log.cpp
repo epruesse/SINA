@@ -221,7 +221,7 @@ Log::create_logger(std::string name) {
         return logger;
     }
     if (sinks.empty()) {
-        sinks.push_back(std::make_shared<spdlog::sinks::stderr_color_sink_mt>());
+        sinks.push_back(std::make_shared<terminal_stderr_sink_mt>());
     }
     logger = std::make_shared<spdlog::logger>(name, sinks.begin(), sinks.end());
     spdlog::register_logger(logger);
