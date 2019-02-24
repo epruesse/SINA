@@ -89,6 +89,10 @@ public:
         _total = n;
     }
 
+    unsigned int size() {
+        return _total;
+    }
+
     void format_bar_to(fmt::memory_buffer& buf, unsigned int width, float frac) {
         if (width == 0) {
             return;

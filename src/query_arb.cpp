@@ -313,8 +313,38 @@ static void log_arb_info(const char *msg) {
     arb_logger->info(msg);
 };
 
+logger_progress *arb_progress{nullptr};
+static void arb_openstatus(const char* title) {
+    delete arb_progress;
+    arb_progress = new logger_progress(logger, title, 100);
+}
+static void arb_closestatus() {
+    delete arb_progress;
+}
+static void arb_set_title(const char* title) {
+    arb_logger->info("Progress title: {}", title);
+}
+static void arb_set_subtitle(const char* title) {
+    arb_logger->info("Progress subttitle: {}", title);
+}
+static void arb_set_gauge(double gauge) {
+    if (arb_progress) {
+        auto cur = arb_progress->count();
+        auto set_to = arb_progress->size() * gauge;
+        arb_progress->update(set_to - cur);
+    }
+}
+static bool arb_user_abort() {
+    return false;
+}
+
+static arb_status_implementation log_arb_status {
+    AST_RANDOM, arb_openstatus, arb_closestatus, arb_set_title,
+        arb_set_subtitle, arb_set_gauge, arb_user_abort
+};
+
 static arb_handlers arb_log_handlers = {
-    log_arb_err, log_arb_warn, log_arb_info, active_arb_handlers->status
+    log_arb_err, log_arb_warn, log_arb_info, log_arb_status
 };
 
 
