@@ -45,11 +45,10 @@ using std::string;
 
 #include <unordered_map>
 #include <unordered_set>
+#include <mutex>
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
-
-#include <boost/thread/mutex.hpp>
 
 #include <tbb/tbb.h>
 #include <tbb/cache_aligned_allocator.h>
@@ -91,14 +90,14 @@ public:
 using kmer_search_key_t = std::pair<fs::path, int>;
 static std::map<kmer_search_key_t,
                 std::shared_ptr<kmer_search::impl>> indices;
-static boost::mutex indices_access;
+static std::mutex indices_access;
 
 kmer_search*
 kmer_search::get_kmer_search(const fs::path& filename, int k) {
     kmer_search_key_t key(filename, k);
     if (indices.count(key) == 0u) {
         std::shared_ptr<kmer_search::impl> pimpl(new impl(query_arb::getARBDB(filename), k));
-        boost::mutex::scoped_lock lock(indices_access);
+        std::lock_guard<std::mutex> lock(indices_access);
         indices[key] = pimpl;
     }
     return new kmer_search(indices[key]);
@@ -107,7 +106,7 @@ kmer_search::get_kmer_search(const fs::path& filename, int k) {
 void
 kmer_search::release_kmer_search(const fs::path& filename, int k) {
     kmer_search_key_t key(filename, k);
-    boost::mutex::scoped_lock lock(indices_access);
+    std::lock_guard<std::mutex> lock(indices_access);
     indices.erase(key);
 }
 

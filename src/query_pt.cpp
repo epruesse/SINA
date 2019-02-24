@@ -35,6 +35,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <iostream>
 #include <sstream>
 #include <cmath>
+#include <mutex>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -56,7 +57,6 @@ using std::vector;
 #include <arbdb.h>
 #include <PT_com.h>
 #include <client.h>
-#include <boost/thread/mutex.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/dll.hpp>
 #include <pstream.h>
@@ -223,7 +223,7 @@ struct query_pt::priv_data {
     T_PT_LOCS         locs;
     T_PT_FAMILYFINDER ffinder;
 
-    boost::mutex arb_pt_access;
+    std::mutex arb_pt_access;
 
     unsigned int  range_begin{0};
     unsigned int  range_end{INT_MAX};
@@ -246,7 +246,7 @@ struct query_pt::priv_data {
 
 bool
 query_pt::priv_data::connect_server(const string& portname) {
-    boost::mutex::scoped_lock lock(arb_pt_access);
+    std::lock_guard<std::mutex> lock(arb_pt_access);
     GB_ERROR error = nullptr;
     link = aisc_open(portname.c_str(), com, AISC_MAGIC_NUMBER, &error);
     if (error != nullptr) {
@@ -275,7 +275,7 @@ query_pt::priv_data::connect_server(const string& portname) {
 
 void
 query_pt::priv_data::disconnect_server() {
-    boost::mutex::scoped_lock lock(arb_pt_access);
+    std::lock_guard<std::mutex> lock(arb_pt_access);
     aisc_close(link, com);
 }
 
@@ -331,7 +331,7 @@ query_pt::~query_pt() {
 
 void
 query_pt::set_find_type_fast(bool fast) {
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_FIND_TYPE, fast?1L:0L,
@@ -345,7 +345,7 @@ query_pt::set_find_type_fast(bool fast) {
 
 void
 query_pt::set_probe_len(int len) {
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_PROBE_LEN, long(len),
@@ -359,7 +359,7 @@ query_pt::set_probe_len(int len) {
 
 void
 query_pt::set_mismatches(int len) {
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_MISMATCH_NUMBER, long(len),
@@ -374,7 +374,7 @@ query_pt::set_mismatches(int len) {
 
 void
 query_pt::set_sort_type(bool absolute) {
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_SORT_TYPE, absolute?0L:1L,
@@ -388,7 +388,7 @@ query_pt::set_sort_type(bool absolute) {
 
 void
 query_pt::set_range(int startpos, int stoppos) {
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
 
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
@@ -435,7 +435,7 @@ query_pt::match(std::vector<cseq> &family, const cseq& queryc,
 
 match_retry:
     family.reserve(max_match);
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
@@ -607,7 +607,7 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
     results.clear();
     results.reserve(max);
 
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     data->timeit.stop("acquire lock");
 
     bytestring bs;

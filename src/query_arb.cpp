@@ -56,6 +56,7 @@ using std::ofstream;
 
 #include <cmath>
 #include <exception>
+#include <mutex>
 
 #include <sstream>
 using std::stringstream;
@@ -94,7 +95,6 @@ inline GBDATA* GBT_find_sequence(GBDATA* gbd, const char* ali) {
 }
 #endif
 
-#include <boost/thread/mutex.hpp>
 #include <boost/functional/hash/hash.hpp>
 
 #include <boost/archive/binary_iarchive.hpp>
@@ -128,11 +128,9 @@ const char* query_arb::fn_family     = "NONE";
 const char* query_arb::fn_align_log  = "align_log_slv";
 
 
-// Global lock -- ARB database access is not guaranteed to be thread safe.
-// Note: if this ever changes and lock is moved into query ARB, locking
-//       order must be considered when accessing two databases at once
-//       to prevent chance of deadlock.
-static boost::mutex arb_db_access;
+// Global lock -- ARB database access is not thread safe! Not even between
+//                open datases.
+static std::mutex arb_db_access;
 
 // List of opened ARB databases
 map<fs::path, query_arb*> query_arb::open_arb_dbs;
@@ -158,7 +156,7 @@ struct query_arb::priv_data {
     using gbdata_cache_type = std::unordered_map<string, GBDATA*,
                                                  boost::hash<string>>;
 
-    boost::mutex sequence_cache_access;
+    std::mutex sequence_cache_access;
     sequence_cache_type sequence_cache;
     gbdata_cache_type gbdata_cache;
     error_list_type write_errors;
@@ -198,11 +196,11 @@ string
 query_arb::priv_data::getSequence(const char *name, const char *ali) {
     // if there is a preloaded cache, just hand out sequence
     if (have_cache) {
-        boost::mutex::scoped_lock lock(sequence_cache_access);
+        std::lock_guard<std::mutex> lock(sequence_cache_access);
         return sequence_cache[name].getAligned();
     }
 
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(gbmain);
 
     if (ali == nullptr) {
@@ -294,6 +292,7 @@ query_arb::setProtectionLevel(int p) {
 void
 query_arb::closeOpenARBDBs() {
     // atexit registered method
+    std::lock_guard<std::mutex> lock(arb_db_access);
     for (auto& it: open_arb_dbs) {
         if(it.second->hasErrors()){
             it.second->printErrors(std::cerr);
@@ -321,7 +320,7 @@ static arb_handlers arb_log_handlers = {
 
 query_arb*
 query_arb::getARBDB(const fs::path& file_name) {
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     if (query_arb::priv_data::the_arb_shell == nullptr) {
         query_arb::priv_data::the_arb_shell = new GB_shell();
 
@@ -397,7 +396,7 @@ loadKey(cseq& c, const string& key, GBDATA* gbspec) {
 
 void
 query_arb::loadKey(cseq& c, const string& key) {
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
     ::loadKey(c, key, data->getGBDATA(c.getName()));
 }
@@ -480,7 +479,7 @@ query_arb::storeKey(GBDATA* gbmain, GBDATA* gbspec, const std::string& key,
 
 void
 query_arb::storeKey(cseq& c, const std::string& key) {
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
     storeKey(data->gbmain, data->getGBDATA(c.getName()), key,
                c.get_attr<cseq::variant>(key));
@@ -492,12 +491,12 @@ query_arb::loadCache(std::vector<std::string>& keys) {
 
     const char *ali = data->default_alignment;
 
-    boost::mutex::scoped_lock lock_cache(data->sequence_cache_access);
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock_cache(data->sequence_cache_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
 
     logger->info("Loading {} sequences...", data->count);
-    Progress p("Loading", data->count);
+    logger_progress p(logger, "Loading sequences", data->count);
 
     data->sequence_cache.reserve(data->count);
 
@@ -605,7 +604,7 @@ query_arb::loadCache(std::vector<std::string>& keys) {
 vector<cseq*>
 query_arb::getCacheContents() {
     vector<cseq*> tmp;
-    boost::mutex::scoped_lock lock_cache(data->sequence_cache_access);
+    std::lock_guard<std::mutex> lock(data->sequence_cache_access);
     tmp.reserve(data->sequence_cache.size());
     for (auto & it : data->sequence_cache) {
         tmp.push_back(&it.second);
@@ -631,7 +630,7 @@ query_arb::getSequenceNames() {
 cseq&
 query_arb::getCseq(const string& name) { //, bool nocache) {
     // if there is a preloaded cache, just hand out sequence
-    boost::mutex::scoped_lock lock_cache(data->sequence_cache_access);
+    std::lock_guard<std::mutex> lock(data->sequence_cache_access);
     if (data->have_cache) {
         return data->sequence_cache[name];
     }
@@ -677,7 +676,7 @@ void
 query_arb::putCseq(const cseq& seq) {
     putSequence(seq);
 
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
     GBDATA* gbspec = data->getGBDATA(seq.getName());
     for (auto& ap: seq.get_attrs()) {
@@ -687,7 +686,7 @@ query_arb::putCseq(const cseq& seq) {
 
 void
 query_arb::putSequence(const cseq& seq) {
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
 
     const char *ali = data->default_alignment;
@@ -734,7 +733,7 @@ query_arb::putSequence(const cseq& seq) {
 
 void
 query_arb::copySequence(query_arb& other, const std::string& name, bool mark) {
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
 
     // lock underlying arb database
     GB_transaction t1(data->gbmain);
@@ -769,7 +768,7 @@ query_arb::copySequence(query_arb& other, const std::string& name, bool mark) {
 
 void
 query_arb::setMark() {
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     if (data->gblast != nullptr) {
         GB_transaction trans(data->gbmain);
         write_flag(data->gblast,1l);
@@ -778,7 +777,7 @@ query_arb::setMark() {
 
 void
 query_arb::setMark(const std::string& name) {
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
     GBDATA *gbdata = data->getGBDATA(name);
     if (gbdata != nullptr) {
@@ -795,7 +794,7 @@ query_arb::setMark(const std::string& name) {
 
 string
 query_arb::getFilter(const string& name) {
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
 
     // structure of most sai entries:
@@ -839,7 +838,7 @@ query_arb::getAlignmentStats() {
         NA = 0, NC = 1, NG = 2, NU = 3, TRNS = 4, TRVRS = 5
     };
 
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
 
     for (GBDATA *gbsai = GBT_first_SAI(data->gbmain); gbsai != nullptr;
@@ -911,7 +910,7 @@ query_arb::getAlignmentStats() {
 vector<int>
 query_arb::getPairs() {
     vector<int> pairs;
-    boost::mutex::scoped_lock lock(arb_db_access);
+    std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
 
     const char *ali = data->default_alignment;
