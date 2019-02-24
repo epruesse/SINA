@@ -330,16 +330,19 @@ class terminal_sink
     : public spdlog::sinks::ansicolor_sink<TargetStream, ConsoleMutex>, public status_msg_sink {
 public:
     using super = spdlog::sinks::ansicolor_sink<TargetStream, ConsoleMutex>;
+    using mutex_t = typename ConsoleMutex::mutex_t;
+
     terminal_sink() {
         update_term_width();
     }
 
-    void log(const spdlog::details::log_msg &msg) override{
+    void log(const spdlog::details::log_msg &msg) override {
         if (msg.source.filename == status_msg::magic_filename()) {
             return; // special messages handled elsewhere
         }
         fmt::memory_buffer messages;
         int nlines = update_messages(messages, _ncols);
+        std::lock_guard<mutex_t> lock(super::mutex_);
         for (int i=0; i < nlines; ++i) {
             fwrite(term_move_up.data(), 1, term_move_up.size(), super::target_file_);
         }
@@ -354,6 +357,7 @@ public:
         int fd = fileno(super::target_file_);
         struct winsize size;
         if (ioctl(fd, TIOCGWINSZ, &size) == 0) {
+            std::lock_guard<mutex_t> lock(super::mutex_);
             _ncols = size.ws_col;
         }
     }
@@ -361,6 +365,7 @@ public:
     void print_status_message(status_msg*) {
         fmt::memory_buffer messages;
         int nlines = update_messages(messages, _ncols);
+        std::lock_guard<mutex_t> lock(super::mutex_);
         for (int i=0; i < nlines; ++i) {
             fwrite(term_move_up.data(), 1, term_move_up.size(), super::target_file_);
         }
