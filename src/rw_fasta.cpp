@@ -41,6 +41,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <boost/algorithm/string.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filter/counter.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
 
 #include "query_arb.h"
@@ -162,16 +163,17 @@ rw_fasta::validate_vm(po::variables_map& /*vm*/,
 struct rw_fasta::reader::priv_data {
     bi::file_descriptor_source file;
     bi::filtering_istream in;
+    bi::counter *counter{0};
     fs::path filename;
-    int lineno;
-    int seqno;
+    size_t file_size{0};
+    int lineno{0};
+    int seqno{0};
+
     vector<string>& v_fields;
     logger_progress* p{nullptr};
 
     priv_data(fs::path filename_, vector<string>& fields)
         : filename(std::move(filename_)),
-          lineno(0),
-          seqno(0),
           v_fields(fields)
     {}
     ~priv_data() {
@@ -186,6 +188,9 @@ rw_fasta::reader::reader(const fs::path& infile, vector<string>& fields)
         data->file.open(STDIN_FILENO, bi::never_close_handle);
     } else {
         data->file.open(infile.c_str(), std::ios_base::binary);
+        if (fs::is_regular_file(infile)) {
+            data->file_size = fs::file_size(infile);
+        }
     }
     if (!data->file.is_open()) {
         stringstream msg; 
@@ -195,8 +200,12 @@ rw_fasta::reader::reader(const fs::path& infile, vector<string>& fields)
     if (infile.extension() == ".gz") {
         data->in.push(bi::gzip_decompressor());
     }
+    if (data->file_size > 0) {
+        data->in.push(bi::counter());
+        data->counter = data->in.component<bi::counter>(data->in.size()-1);
+    }
     data->in.push(data->file);
-    
+
     // if fasta blocking enabled, seek to selected block
     if (opts->fasta_block > 0) {
         if (infile == "-") {
@@ -292,6 +301,13 @@ rw_fasta::reader::operator()(tray& t) {
         }
         delete t.input_sequence;
         return (*this)(t); // FIXME: stack size?
+    }
+
+    if (data->p && data->counter) {
+        auto bytes_read = data->counter->characters();
+        if (bytes_read) {
+            data->p->set_total(data->seqno * data->file_size / bytes_read);
+        }
     }
 
     logger->debug("loaded sequence {}", t.input_sequence->getName());
