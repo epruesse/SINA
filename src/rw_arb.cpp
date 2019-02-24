@@ -127,7 +127,7 @@ struct rw_arb::reader::priv_data {
     int seqno{0};
     int total_expected_sequences{0};
     vector<string>& v_fields;
-    Progress *p{nullptr};
+    logger_progress *p{nullptr};
     explicit priv_data(vector<string>& fields)
         : v_fields(fields)
     {
@@ -193,7 +193,7 @@ rw_arb::reader::reader(fs::path infile,
 }
 
 void
-rw_arb::reader::set_progress(Progress &p) {
+rw_arb::reader::set_progress(logger_progress &p) {
     data->p = &p;
     data->p->set_total(data->total_expected_sequences);
 }

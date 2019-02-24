@@ -38,7 +38,7 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
-class Progress;
+class logger_progress;
 
 enum FASTA_META_TYPE {
     FASTA_META_NONE=0,
@@ -63,7 +63,7 @@ public:
         ~reader();
         bool operator()(tray& t);
 
-        void set_progress(Progress& p);
+        void set_progress(logger_progress& p);
     };
 
     class writer {

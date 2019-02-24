@@ -38,7 +38,7 @@ for the parts of ARB used as well as that of the covered work.
 
 namespace sina {
 
-class Progress;
+class logger_progress;
 
 class rw_arb {
 private:
@@ -59,7 +59,7 @@ public:
 
         bool operator()(tray& t);
 
-        void set_progress(Progress& p);
+        void set_progress(logger_progress& p);
     };
         
     class writer {

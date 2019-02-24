@@ -35,19 +35,9 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/bundled/chrono.h"
-
+#include "spdlog/sinks/ansicolor_sink.h"
 
 namespace sina {
-
-struct print_n {
-    print_n(size_t n, const char *sym) : _n(n), _sym(sym) {}
-    friend std::ostream& operator<<(std::ostream& out, const print_n& p) {
-        for (size_t i=0; i<p._n; i++) out << p._sym;
-        return out;
-    }
-    size_t _n;
-    const char *_sym;
-};
 
 static const char* bar_syms_unicode[] = {
     " ",
@@ -59,27 +49,20 @@ static const char* bar_syms_ascii[] = {
 };
 
 
-class Progress {
+class base_progress {
+public:
     using clock_t = std::chrono::steady_clock;
     using timepoint_t = clock_t::time_point;
     using duration_t = clock_t::duration;
 
-public:
-    Progress(std::string desc="", unsigned int total=0, bool ascii=false,
-             FILE* file=stderr, unsigned int width=0)
-        : _file(file),
-          _ncols(width),
-          _total(total),
+    base_progress(std::string desc="", unsigned int total=0, bool ascii=false)
+        : _total(total),
           _desc(desc),
           _bar_syms(ascii?bar_syms_ascii:bar_syms_unicode),
           _nsyms(ascii?std::extent<decltype(bar_syms_ascii)>::value
                  :std::extent<decltype(bar_syms_unicode)>::value)
     {
-        if (_ncols == 0) {
-            update_term_width();
-        }
-        show_progress();
-        print(term_move_up);
+        //show_progress();
     }
 
     void restart(std::string desc="", unsigned int total=0) {
@@ -87,19 +70,23 @@ public:
         _total = total;
         _desc = desc;
         show_progress();
-        print(term_move_up);
     }
 
     unsigned int count() {
         return _n;
     }
 
-    void update_term_width() {
-        int fd = fileno(_file);
-        struct winsize size;
-        if (ioctl(fd, TIOCGWINSZ, &size) == 0) {
-            _ncols = size.ws_col;
-        }
+    base_progress& operator++() {
+        update();
+        return *this;
+    }
+
+    void operator+=(unsigned int n) {
+        update(n);
+    }
+
+    void set_total(unsigned int n) {
+        _total = n;
     }
 
     void format_bar_to(fmt::memory_buffer& buf, unsigned int width, float frac) {
@@ -137,7 +124,6 @@ public:
         if (_n == _total) {
             std::lock_guard<std::mutex> lock(_mutex);
             show_progress();
-            fflush(_file);
             return;
         }
         if (_n >= _last_print_n + _miniterations) {
@@ -148,26 +134,11 @@ public:
                 _last_update = now;
                 _miniterations = (_n - _last_print_n) * _mininterval / delta_time;
                 show_progress(now);
-                print(term_move_up);
-                fflush(_file);
             }
         }
     }
 
-    Progress& operator++() {
-        update();
-        return *this;
-    }
-
-    void operator+=(unsigned int n) {
-        update(n);
-    }
-
-    void set_total(unsigned int n) {
-        _total = n;
-    }
-
-    void show_progress(timepoint_t now=clock_t::now()) {
+    void render_progress(timepoint_t now, unsigned int width, fmt::memory_buffer& buf) {
         _last_print_n = _n;
         auto arg_desc    = fmt::arg("desc", _desc);
         auto elapsed = now - _started_at;
@@ -176,9 +147,7 @@ public:
         auto arg_n       = fmt::arg("n", _n);
 
         if (_total == 0) {
-            fmt::memory_buffer buf;
             fmt::format_to(buf, nototal_fmt, arg_desc, arg_elapsed, arg_eol, arg_n);
-            fwrite(buf.data(), 1, buf.size(), _file);
             return;
         }
 
@@ -186,7 +155,7 @@ public:
         auto eta =  elapsed * (1/frac -1);
         auto remaining = (frac > 0) ? elapsed * (1/frac - 1) : duration_t(0);
 
-        fmt::memory_buffer left, right;
+        fmt::memory_buffer right;
 
         float percent    = frac * 100;
         auto arg_frac    = fmt::arg("frac", percent);
@@ -195,26 +164,20 @@ public:
         auto args = fmt::make_format_args(arg_desc, arg_frac, arg_n, arg_total,
                                           arg_elapsed, arg_remain, arg_eol);
 
-        fmt::vformat_to(left, lbar_fmt, args);
+        fmt::vformat_to(buf, lbar_fmt, args);
         fmt::vformat_to(right, rbar_fmt, args);
 
-        int space_for_bar = _ncols - left.size() - right.size() + term_eol.size();
+        int space_for_bar = width - buf.size() - right.size() + term_eol.size();
         if (space_for_bar > 0) {
-            format_bar_to(left, space_for_bar, frac);
+            format_bar_to(buf, space_for_bar, frac);
         }
-        left.reserve(left.size() + right.size());
-        std::copy(right.begin(), right.end(), std::back_inserter(left));
-
-        fwrite(left.data(), 1, left.size(), _file);
+        buf.reserve(buf.size() + right.size());
+        std::copy(right.begin(), right.end(), std::back_inserter(buf));
     }
 
-    void print(const std::string &str) {
-        fwrite(str.data(), sizeof(char), str.size(), _file);
-    }
-
+    virtual void show_progress(timepoint_t now=clock_t::now()) = 0;
 private:
-    FILE* _file;
-    unsigned int _ncols;
+
     std::atomic<unsigned int> _n{0};
     unsigned int _last_print_n{0};
     unsigned int _total;
@@ -228,13 +191,244 @@ private:
     std::string _bar_tpl;
     std::mutex _mutex;
 
-    const std::string term_move_up = "\x1B[A";
     const std::string term_erase_line = "\x1B[0K";
     const std::string term_eol = "\n";
     const std::string lbar_fmt = "{desc}: {frac:3.0f}% |";
     const std::string rbar_fmt = "| {n}/{total} [{elapsed:%T} / {remaining:%T}]{eol}";
     const std::string nototal_fmt = "{desc}: {n} [{elapsed:%T}]{eol}";
 };
+
+class Progress final : public base_progress {
+public:
+    Progress(std::string desc="", unsigned int total=0, bool ascii=false,
+             FILE* file=stderr, unsigned int width=0)
+        : base_progress(desc, total, ascii),
+          _width(width),
+          _file(file)
+
+    {
+        if (_width == 0) {
+            update_term_width();
+        }
+    }
+
+    void update_term_width() {
+        int fd = fileno(_file);
+        struct winsize size;
+        if (ioctl(fd, TIOCGWINSZ, &size) == 0) {
+            _width = size.ws_col;
+        }
+    }
+
+    void show_progress(timepoint_t now=clock_t::now()) override final {
+        fmt::memory_buffer buf;
+        render_progress(now, _width, buf);
+        std::copy(term_move_up.begin(), term_move_up.end(), std::back_inserter(buf));
+        fwrite(buf.data(), 1, buf.size(), _file);
+        fflush(_file);
+    }
+    const std::string term_move_up = "\x1B[A";
+private:
+    unsigned int _width;
+    FILE* _file;
+};
+
+class status_msg;
+
+class status_msg_sink {
+public:
+    virtual ~status_msg_sink() {}
+
+    void add_status(status_msg *msg) {
+        _status_messages.push_back(msg);
+    }
+    void remove_status(status_msg *msg) {
+        _status_messages.erase(
+            std::remove(_status_messages.begin(), _status_messages.end(), msg),
+            _status_messages.end());
+    }
+    virtual void print_status_message(status_msg* msg) = 0;
+
+    int update_messages(fmt::memory_buffer& buf, unsigned int width);
+
+
+private:
+    std::vector<status_msg*> _status_messages;
+};
+
+
+class status_msg {
+public:
+    status_msg(std::shared_ptr<spdlog::logger> logger,
+               spdlog::level::level_enum level)
+        : _logger(logger), _level(level)
+    {
+        for (auto &sink : _logger->sinks()) {
+            auto ptr = dynamic_cast<status_msg_sink*>(sink.get());
+            if (ptr) {
+                ptr->add_status(this);
+            }
+        }
+    }
+
+    ~status_msg() {
+        for (auto &sink : _logger->sinks()) {
+            auto ptr = dynamic_cast<status_msg_sink*>(sink.get());
+            if (ptr) {
+                ptr->remove_status(this);
+            }
+        }
+    }
+
+    void trigger_message_print() {
+        for (auto &sink : _logger->sinks()) {
+            auto ptr = dynamic_cast<status_msg_sink*>(sink.get());
+            if (ptr) {
+                ptr->print_status_message(this);
+            }
+        }
+    }
+
+    virtual void update_message(fmt::memory_buffer &buf, unsigned int width) = 0;
+
+    static const char* magic_filename() {
+        static const char* file = "PROGRESS MONITOR";
+        return file;
+    }
+    bool should_log() {
+        return _logger->should_log(_level);
+    }
+
+    void log(fmt::memory_buffer &buf) {
+        using spdlog::details::fmt_helper::to_string_view;
+        spdlog::source_loc loc;
+        loc.filename = magic_filename();
+        spdlog::details::log_msg msg{loc, &_logger->name(), _level, to_string_view(buf)};
+        for (auto &sink : _logger->sinks()) {
+            if (sink->should_log(_level)) {
+                sink->log(msg);
+            }
+        }
+    }
+
+private:
+    std::shared_ptr<spdlog::logger> _logger;
+    spdlog::level::level_enum _level;
+};
+
+inline int status_msg_sink::update_messages(fmt::memory_buffer &buf, unsigned int width) {
+    for (auto msg : _status_messages) {
+        msg->update_message(buf, width);
+    }
+    return _status_messages.size();
+}
+
+
+
+template<typename TargetStream, class ConsoleMutex>
+class terminal_sink 
+    : public spdlog::sinks::ansicolor_sink<TargetStream, ConsoleMutex>, public status_msg_sink {
+public:
+    using super = spdlog::sinks::ansicolor_sink<TargetStream, ConsoleMutex>;
+    terminal_sink() {
+        update_term_width();
+    }
+
+    void log(const spdlog::details::log_msg &msg) override{
+        if (msg.source.filename == status_msg::magic_filename()) {
+            return; // special messages handled elsewhere
+        }
+        fmt::memory_buffer messages;
+        int nlines = update_messages(messages, _ncols);
+        for (int i=0; i < nlines; ++i) {
+            fwrite(term_move_up.data(), 1, term_move_up.size(), super::target_file_);
+        }
+
+        fwrite(term_clear_line.data(), 1, term_clear_line.size(), super::target_file_);
+        super::log(msg);
+        fwrite(messages.data(), 1, messages.size(), super::target_file_);
+        fflush(super::target_file_);
+    }
+
+    void update_term_width() {
+        int fd = fileno(super::target_file_);
+        struct winsize size;
+        if (ioctl(fd, TIOCGWINSZ, &size) == 0) {
+            _ncols = size.ws_col;
+        }
+    }
+
+    void print_status_message(status_msg*) {
+        fmt::memory_buffer messages;
+        int nlines = update_messages(messages, _ncols);
+        for (int i=0; i < nlines; ++i) {
+            fwrite(term_move_up.data(), 1, term_move_up.size(), super::target_file_);
+        }
+        fwrite(messages.data(), 1, messages.size(), super::target_file_);
+        fflush(super::target_file_);
+    }
+    const std::string term_move_up = "\x1B[A";
+    const std::string term_clear_line = "\x1B[K";
+private:
+    unsigned int _ncols;
+};
+
+using terminal_stdout_sink_mt = terminal_sink<spdlog::details::console_stdout, spdlog::details::console_mutex>;
+using terminal_stdout_sink_st = terminal_sink<spdlog::details::console_stdout, spdlog::details::console_nullmutex>;
+using terminal_stderr_sink_mt = terminal_sink<spdlog::details::console_stderr, spdlog::details::console_mutex>;
+using terminal_stderr_sink_st = terminal_sink<spdlog::details::console_stderr, spdlog::details::console_nullmutex>;
+
+template<typename Factory = spdlog::default_factory>
+inline std::shared_ptr<spdlog::logger> stdout_terminal_mt(const std::string &logger_name)
+{
+    return Factory::template create<terminal_stdout_sink_mt>(logger_name);
+}
+template<typename Factory = spdlog::default_factory>
+inline std::shared_ptr<spdlog::logger> stderr_terminal_mt(const std::string &logger_name)
+{
+    return Factory::template create<terminal_stderr_sink_mt>(logger_name);
+}
+
+
+class logger_progress final : public base_progress, status_msg {
+public:
+    logger_progress(std::shared_ptr<spdlog::logger> logger,
+                    std::string desc="", unsigned int total=0, bool ascii=false,
+                    unsigned int width=0,
+                    spdlog::level::level_enum level=spdlog::level::err
+        )
+        : base_progress(desc, total, ascii),
+          status_msg(logger, level)
+    {
+    }
+    ~logger_progress() {
+    }
+
+    void show_progress(timepoint_t now=clock_t::now()) override final {
+        if (!should_log()) return;
+        duration_t delta_time = now - _last_update;
+        if (delta_time < _mininterval) {
+            trigger_message_print();
+            return;
+        }
+        _last_update = now;
+
+        fmt::memory_buffer buf;
+        render_progress(now, 80, buf);
+        log(buf);
+    }
+
+    void update_message(fmt::memory_buffer &buf, unsigned int width) {
+        render_progress(clock_t::now(), width, buf);
+    }
+
+private:
+    timepoint_t _last_update{std::chrono::seconds(0)};
+    duration_t _mininterval{std::chrono::milliseconds(500)};
+
+};
+
+
 
 
 } // namespace sina

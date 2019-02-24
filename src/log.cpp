@@ -58,6 +58,7 @@ using std::map;
 #include "cseq_comparator.h"
 #include "query_arb.h"
 #include "query_arb.h"
+#include "progress.h"
 
 using namespace sina;
 namespace po = boost::program_options;
@@ -188,7 +189,6 @@ Log::validate_vm(po::variables_map& vm,
     auto console_sink = sinks[0];
     console_sink->set_level(opts->verbosity);
     console_sink->set_pattern("%T [%n] %^%v%$");
-
 
     if (vm.count("log-file") != 0u) {
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
