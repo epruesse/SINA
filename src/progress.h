@@ -400,7 +400,7 @@ public:
     logger_progress(std::shared_ptr<spdlog::logger> logger,
                     std::string desc="", unsigned int total=0, bool ascii=false,
                     unsigned int width=0,
-                    spdlog::level::level_enum level=spdlog::level::err
+                    spdlog::level::level_enum level=spdlog::level::warn
         )
         : base_progress(desc, total, ascii),
           status_msg(logger, level)
@@ -419,7 +419,7 @@ public:
         _last_update = now;
 
         fmt::memory_buffer buf;
-        render_progress(now, 80, buf);
+        render_progress(now, 60, buf);
         log(buf);
     }
 
