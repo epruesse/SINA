@@ -321,18 +321,22 @@ static void arb_openstatus(const char* title) {
 static void arb_closestatus() {
     delete arb_progress;
 }
-static void arb_set_title(const char* title) {
+
+static ARB_STATUS_RETURN_TYPE arb_set_title(const char* title) {
     arb_logger->info("Progress title: {}", title);
+    return ARB_STATUS_RETURN_VALUE;
 }
-static void arb_set_subtitle(const char* title) {
+static ARB_STATUS_RETURN_TYPE arb_set_subtitle(const char* title) {
     arb_logger->info("Progress subttitle: {}", title);
+    return ARB_STATUS_RETURN_VALUE;
 }
-static void arb_set_gauge(double gauge) {
+static ARB_STATUS_RETURN_TYPE arb_set_gauge(double gauge) {
     if (arb_progress) {
         auto cur = arb_progress->count();
         auto set_to = arb_progress->size() * gauge;
         arb_progress->update(set_to - cur);
     }
+    return ARB_STATUS_RETURN_VALUE;
 }
 static bool arb_user_abort() {
     return false;

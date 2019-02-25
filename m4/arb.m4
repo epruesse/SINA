@@ -1,6 +1,6 @@
 AC_DEFUN([AX_LIB_ARBDB],
 [
-    AH_TEMPLATE([HAVE_ARB], [], [Defined to 1 if ARB libraries are present])
+    AH_TEMPLATE([HAVE_ARB], [Defined to 1 if ARB libraries are present])
     # Check for dynamic libraries
 
     AC_ARG_WITH([arbhome],
@@ -247,7 +247,7 @@ AC_DEFUN([AX_LIB_ARB_HELIX],
 [
     AC_REQUIRE([AX_LIB_ARBDB])
 
-    AH_TEMPLATE([HAVE_ARB_HELIX], [], [Defined to 1 if ARB SL HELIX is present])
+    AH_TEMPLATE([HAVE_ARB_HELIX], [Defined to 1 if ARB SL HELIX is present])
     AC_MSG_CHECKING([for ARB HELIX static lib])
 
     saved_CPPFLAGS="$CPPFLAGS"
@@ -280,4 +280,57 @@ AC_DEFUN([AX_LIB_ARB_HELIX],
     CPPFLAGS="$saved_CPPFLAGS"
     LDFLAGS="$saved_LDFLAGS"
 ])
+
+AC_DEFUN([AX_ARB_STATUS_RETURN_TYPE],
+[
+    AH_TEMPLATE([ARB_STATUS_RETURN_TYPE], [void or bool depending on version...])
+    AH_TEMPLATE([ARB_STATUS_RETURN_VALUE], ['' or true depending on RETURN_TYPE])
+    AC_REQUIRE([AX_LIB_ARBDB])
+
+    saved_CPPFLAGS="$CPPFLAGS"
+    saved_LDFLAGS="$LDFLAGS"
+    saved_LIBS="$LIBS"
+    CPPFLAGS="$CPPFLAGS $ARB_CPPFLAGS"
+    LDFLAGS="$LDFLAGS $ARB_LDFLAGS"
+    LIBS="$LIBS $ARBHOME/SL/HELIX/HELIX.a $ARB_LIBS"
+    AC_LANG_PUSH(C++)
+
+    AC_CHECK_HEADER([arb_handlers.h])
+    AC_MSG_CHECKING([ARB status return type])
+
+    ARB_STATUS_RETURN_TYPE=error
+    for sig in bool void; do
+        AC_LINK_IFELSE([
+            AC_LANG_PROGRAM([[
+                #include <arb_handlers.h>
+            ]], [[
+	        arb_status_implementation status;
+		$sig (*x)(const char*) = status.set_title;
+            ]])
+        ],[
+            ARB_STATUS_RETURN_TYPE=$sig
+	    break
+        ])
+    done
+    AC_MSG_RESULT([$ARB_STATUS_RETURN_TYPE])
+    if test x"$ARB_STATUS_RETURN_TYPE" == x"error"; then
+      ARB_STATUS_RETURN_TYPE=
+    fi
+    AC_DEFINE_UNQUOTED(ARB_STATUS_RETURN_TYPE, [$ARB_STATUS_RETURN_TYPE])
+    AC_SUBST(ARB_STATUS_RETURN_TYPE)
+
+    if test x"$ARB_STATUS_RETURN_TYPE" == x"bool"; then
+      ARB_STATUS_RETURN_VALUE=true
+    else
+      ARB_STAUTS_RETURN_VALUE=
+    fi
+    AC_DEFINE_UNQUOTED(ARB_STATUS_RETURN_VALUE, [$ARB_STATUS_RETURN_VALUE])
+    AC_SUBST(ARB_STATUS_RETURN_VALUE)
+
+    AC_LANG_POP(C++)
+    LIBS="$saved_LIBS"
+    CPPFLAGS="$saved_CPPFLAGS"
+    LDFLAGS="$saved_LDFLAGS"
+])
+
 

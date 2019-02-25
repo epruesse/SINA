@@ -197,6 +197,7 @@ if test x"$ARB_HELIX_LIBS" = x""; then
 fi
 
 AX_ARB_CHECK_FUNC([GBT_FIND_SEQUENCE], [GBT_find_sequence(NULL, NULL)])
+AX_ARB_STATUS_RETURN_TYPE
 
 case "$host_os" in
   darwin*)
