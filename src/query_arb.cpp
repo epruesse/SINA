@@ -315,11 +315,13 @@ static void log_arb_info(const char *msg) {
 
 logger_progress *arb_progress{nullptr};
 static void arb_openstatus(const char* title) {
-    delete arb_progress;
+    if (arb_progress)
+        delete arb_progress;
     arb_progress = new logger_progress(logger, title, 100);
 }
 static void arb_closestatus() {
     delete arb_progress;
+    arb_progress = nullptr;
 }
 
 static ARB_STATUS_RETURN_TYPE arb_set_title(const char* title) {
