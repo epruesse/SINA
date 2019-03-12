@@ -49,7 +49,7 @@ AC_TYPE_SIZE_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_HEADER_STDBOOL
-AX_CXX_COMPILE_STDCXX([11],[noext],[mandatory])
+AX_CXX_COMPILE_STDCXX([14],[noext],[mandatory])
 
 # Check general functions
 
