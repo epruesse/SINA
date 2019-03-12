@@ -3,6 +3,11 @@
 Changelog
 =========
 
+Version 1.6.0:
+--------------
+ - add progress monitor
+
+
 Version 1.5.0:
 --------------
  - update documentation (:issue:`20`)
