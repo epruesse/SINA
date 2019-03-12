@@ -427,7 +427,7 @@ public:
         log(buf);
     }
 
-    void update_message(fmt::memory_buffer &buf, unsigned int width) {
+    void update_message(fmt::memory_buffer &buf, unsigned int width) override final {
         render_progress(clock_t::now(), width, buf);
     }
 
