@@ -98,8 +98,6 @@ public:
                          int range_cover,
                          bool leave_query_out) override;
 
-    int turn_check(const cseq& query, bool all);
-
     void set_find_type_fast(bool fast);
     void set_probe_len(int len);
     void set_mismatches(int len);
