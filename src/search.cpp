@@ -33,5 +33,4 @@ std::ostream& operator<<(std::ostream& out, const ENGINE_TYPE& t) {
     }
     return out;
 }
-  
 } // namespace sina
