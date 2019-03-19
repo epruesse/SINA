@@ -52,8 +52,7 @@ private:
     class impl;
     std::shared_ptr<impl> pimpl;
 public:
-    famfinder() = default;
-    explicit famfinder(int n);
+    famfinder();
     famfinder(const famfinder& o);
     famfinder& operator=(const famfinder& o);
     ~famfinder();

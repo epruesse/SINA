@@ -85,6 +85,7 @@ public:
     ~managed_pt_server();
 };
 
+static std::mutex build_lock;
 
 managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
     : dbname(std::move(dbname_)), portname(std::move(portname_))
@@ -129,30 +130,34 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
         }
     }
 
-    // (Re)build index if missing or older than database
-    struct stat ptindex_stat;
-    string ptindex = dbname + ".index.arb.pt";
-    if ((stat(ptindex.c_str(), &ptindex_stat) != 0)
-        || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-        if (arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-            logger->info("PT server index missing for {}. Building:", dbname);
-        } else {
-            logger->info("PT server index out of date for {}. Rebuilding:", dbname);
-        }
+    {
+        std::lock_guard<std::mutex> lock(build_lock);
 
-        vector<string> cmds;
-        cmds.push_back(string("cp ") + dbname + " " + dbname + ".index.arb");
-        cmds.push_back(arb_pt_server_path.native() + " -build_clean -D" + dbname + ".index.arb");
-        cmds.push_back(arb_pt_server_path.native() + " -build -D" + dbname + ".index.arb");
-        for (auto& cmd :  cmds) {
-            logger->debug("Executing '{}'", cmd);
-            system(cmd.c_str());
-            logger->debug("Command finished");
-        }
-
+        // (Re)build index if missing or older than database
+        struct stat ptindex_stat;
+        string ptindex = dbname + ".index.arb.pt";
         if ((stat(ptindex.c_str(), &ptindex_stat) != 0)
             || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-            throw query_pt_exception("Failed to (re)build PT server index! (out of memory?)");
+            if (arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
+                logger->info("PT server index missing for {}. Building:", dbname);
+            } else {
+                logger->info("PT server index out of date for {}. Rebuilding:", dbname);
+            }
+
+            vector<string> cmds;
+            cmds.push_back(string("cp ") + dbname + " " + dbname + ".index.arb");
+            cmds.push_back(arb_pt_server_path.native() + " -build_clean -D" + dbname + ".index.arb");
+            cmds.push_back(arb_pt_server_path.native() + " -build -D" + dbname + ".index.arb");
+            for (auto& cmd :  cmds) {
+                logger->debug("Executing '{}'", cmd);
+                system(cmd.c_str());
+                logger->debug("Command finished");
+            }
+
+            if ((stat(ptindex.c_str(), &ptindex_stat) != 0)
+                || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
+                throw query_pt_exception("Failed to (re)build PT server index! (out of memory?)");
+            }
         }
     }
 
@@ -660,6 +665,101 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
                        return c;
                    });
     data->timeit.stop("load seqs");
+}
+
+
+
+
+struct query_pt_pool::pimpl {
+    pimpl(fs::path& filename, int k, bool fast, bool norel, int km, string portname)
+        : _filename(filename), _k(k), _fast(fast), _norel(norel), _km(km), _portname(portname)
+    {}
+    ~pimpl() {
+        for (auto pt : _pts) {
+            delete pt;
+        }
+    }
+
+    using pool_map = std::map<fs::path, std::shared_ptr<query_pt_pool::pimpl>>;
+    static pool_map _pools;
+
+    // parameters for creating new query_pts
+    fs::path _filename;
+    int _k;
+    bool _fast;
+    bool _norel;
+    int _km;
+    string _portname;
+
+    std::mutex _access_pts;
+    std::list<query_pt*> _pts;
+    int _count{0};
+    query_pt* borrow() {
+        int n = 0;
+        {
+            std::lock_guard<std::mutex> lock(_access_pts);
+            if (!_pts.empty()) {
+                query_pt* pt = _pts.front();
+                _pts.pop_front();
+                return pt;
+            }
+            n = _count++;
+        }
+        std::string portname;
+        if (n > 0) {
+            // FIXME: manage the port better. This works for unix sockets, but not
+            // for TCP ports.
+            portname = fmt::format("{}_{}", _portname, n);
+        } else {
+            portname = _portname;
+        }
+        query_pt *pt = query_pt::get_pt_search(
+            _filename, _k, _fast, _norel, _km, portname
+            );
+        return pt;
+    }
+    void giveback(query_pt* pt) {
+        std::lock_guard<std::mutex> lock(_access_pts);
+        _pts.push_front(pt);
+    }
+};
+
+query_pt_pool::pimpl::pool_map query_pt_pool::pimpl::_pools;
+
+query_pt_pool* query_pt_pool::get_pool(fs::path filename,
+                                       int k, bool fast, bool norel, int mk,
+                                       std::string portname) {
+    if (query_pt_pool::pimpl::_pools.count(filename) == 0u) {
+        query_pt_pool::pimpl::_pools.emplace(
+            filename, std::make_shared<query_pt_pool::pimpl>(filename, k, fast, norel, mk, portname)
+            );
+    }
+    return new query_pt_pool(pimpl::_pools.at(filename));
+}
+
+query_pt_pool::query_pt_pool(std::shared_ptr<query_pt_pool::pimpl> p)
+    : impl(p) {
+}
+
+query_pt_pool::~query_pt_pool() {}
+
+void
+query_pt_pool::find(const cseq& query, std::vector<cseq>& results, int max) {
+    query_pt *pt = impl->borrow();
+    pt->find(query, results, max);
+    impl->giveback(pt);
+}
+
+double
+query_pt_pool::match(std::vector<cseq> &family, const cseq& queryc, int min_match,
+                     int max_match, float min_score, float max_score, query_arb *arb,
+                     bool noid, int min_len, int num_full, int full_min_len,
+                     int range_cover, bool leave_query_out) {
+    query_pt *pt = impl->borrow();
+    double res = pt->match(family, queryc, min_match, max_match, min_score, max_score, arb,
+                           noid, min_len, num_full, full_min_len, range_cover, leave_query_out);
+    impl->giveback(pt);
+    return res;
 }
 
 

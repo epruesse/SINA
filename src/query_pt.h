@@ -46,6 +46,36 @@ public:
     const char* what() const noexcept override;
 };
 
+class query_pt_pool : public search {
+    struct pimpl;
+    std::shared_ptr<pimpl> impl;
+public:
+    static query_pt_pool* get_pool(boost::filesystem::path filename,
+                            int k=10, bool fast=true, bool norel=false, int mk=0,
+                            std::string portname="");
+    query_pt_pool(std::shared_ptr<pimpl>);
+    ~query_pt_pool() override;
+private:
+    query_pt_pool() = delete;
+    query_pt_pool(const query_pt_pool&) = delete;
+
+
+    void find(const cseq& query, std::vector<cseq>& results, int max) override;
+
+    double match(std::vector<cseq> &family,
+                 const cseq& queryc,
+                 int min_match,
+                 int max_match,
+                 float min_score,
+                 float max_score,
+                 query_arb *arb,
+                 bool noid,
+                 int min_len,
+                 int num_full,
+                 int full_min_len,
+                 int range_cover,
+                 bool leave_query_out) override;
+};
 
 class query_pt : public search {
 public:

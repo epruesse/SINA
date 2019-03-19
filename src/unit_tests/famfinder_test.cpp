@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_SUITE(famfinder_tests)
 BOOST_DATA_TEST_CASE_F(Fixture, turn, bdata::make({"internal", "pt-server"}), engine) {
     configure({"--db", arbdb->getFileName().c_str(), "--fs-engine", engine});
 
-    famfinder finder(0);
+    famfinder finder;
     
     for (unsigned int i = 0; i < N; i++) {
         cseq query = arbdb->getCseq(ids[i]);

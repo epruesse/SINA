@@ -431,48 +431,13 @@ int real_main(int argc, char** argv) {
         nodes.emplace_back(node);
         last_node = node;
     } else {
-        // Make node(s) finding reference set
-        using tray_and_finder = tuple<tray, famfinder>;
-        using finder_node = tf::multifunction_node<tray_and_finder, tray_and_finder>;
-        using finder_node_out = finder_node::output_ports_type;
-        using finder_buffer_node = tf::buffer_node<famfinder>;
-        using tray_and_finder_join_node = tf::join_node<tray_and_finder>;
-
-        auto *buffer = new finder_buffer_node(g);
-        auto *join = new tray_and_finder_join_node(g);
-
-        finder_node *family_find = new finder_node(
-            g, opts.num_pt_servers,
-            [&](const tray_and_finder &in, finder_node_out &out) -> void {
-                const tray& t = get<0>(in);
-                famfinder finder(get<1>(in));
-                tray t_out = finder(t);
-                get<0>(out).try_put(t_out);
-                get<1>(out).try_put(finder);
-            });
-
-
-        // ---tray--> join ---------> family_find --> tray
-        //            ^                         |
-        //            |                         |
-        //            +-finder- buffer <-finder-+
-        tf::make_edge(*buffer, tf::input_port<1>(*join));
-        tf::make_edge(tf::output_port<1>(*family_find), *buffer);
-        nodes.emplace_back(join);
-        nodes.emplace_back(buffer);
-
-        tf::make_edge(*last_node, tf::input_port<0>(*join));
-        tf::make_edge(*join, *family_find);
-        nodes.emplace_back(family_find);
-
-        buffer->try_put(famfinder(0));
-        tbb::parallel_for(1U, opts.num_pt_servers, [&](unsigned int i) {
-                logger->warn("Launching PT server no {}", i);
-                buffer->try_put(famfinder(i));
-            });
+        node = new filter_node(g, opts.num_pt_servers, famfinder());
+        tf::make_edge(*last_node, *node);
+        nodes.emplace_back(node);
+        last_node = node;
 
         node = new filter_node(g, tf::unlimited, aligner());
-        tf::make_edge(tf::output_port<0>(*family_find), *node);
+        tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
         last_node = node;
     }
