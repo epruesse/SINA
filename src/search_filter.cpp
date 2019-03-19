@@ -195,7 +195,7 @@ search_filter::search_filter()
             data->sequences.push_back(&data->arb->getCseq(name));
             ++p;
         }
-    } else if (opts->engine = ENGINE_ARB_PT) {
+    } else if (opts->engine == ENGINE_ARB_PT) {
         data->index = std::unique_ptr<search>(
             query_pt_pool::get_pool(
                 opts->pt_database,
@@ -205,7 +205,7 @@ search_filter::search_filter()
                 opts->fs_kmer_mm,
                 opts->pt_port
                 ));
-    } else if (opts->engine = ENGINE_SINA_KMER) {
+    } else if (opts->engine == ENGINE_SINA_KMER) {
         data->index = std::unique_ptr<search>(
             kmer_search::get_kmer_search(
                 opts->pt_database,
