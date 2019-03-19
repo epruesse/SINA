@@ -69,10 +69,6 @@ namespace sina {
 
 static auto logger = Log::create_logger("famfinder");
 
-enum ENGINE_TYPE {
-    ENGINE_ARB_PT=0,
-    ENGINE_SINA_KMER=1
-};
 
 
 struct options {
@@ -109,29 +105,6 @@ struct options {
 static options opts;
 
 
-void validate(boost::any& v,
-              const std::vector<std::string>& values,
-              ENGINE_TYPE* /*tt*/, int /*unused*/) {
-    using namespace boost::program_options;
-    validators::check_first_occurrence(v);
-    const std::string& s = validators::get_single_string(values);
-    if (iequals(s, "pt-server")) {
-        v = ENGINE_ARB_PT;
-    } else if (iequals(s, "internal")) {
-        v = ENGINE_SINA_KMER;
-    } else {
-        throw po::invalid_option_value(s);
-    }
-}
-
-std::ostream& operator<<(std::ostream& out, const ENGINE_TYPE& t) {
-    switch(t) {
-    case ENGINE_ARB_PT: out << "pt-server"; break;
-    case ENGINE_SINA_KMER: out << "internal"; break;
-    default: out << "[UNKNOWN!]";
-    }
-    return out;
-}
 
 void validate(boost::any& v,
               const std::vector<std::string>& values,
@@ -255,24 +228,28 @@ void famfinder::validate_vm(po::variables_map& vm,
 
 }
 
+ENGINE_TYPE famfinder::get_engine() {
+    return opts.engine;
+}
+
 class famfinder::impl {
 public:
     search *index{nullptr};
     query_arb *arb{nullptr};
     vector<alignment_stats> vastats;
-    
+
     void do_turn_check(cseq& /*c*/);
     int turn_check(const cseq& /*query*/, bool /*all*/);
     void select_astats(tray &t);
-    
-    explicit impl(int n);
+
+    impl();
     impl(const impl&);
     ~impl();
     tray operator()(tray /*t*/);
 };
 
 // pimpl wrappers
-famfinder::famfinder(int n) : pimpl(new impl(n)) {}
+famfinder::famfinder() : pimpl(new impl()) {}
 famfinder::famfinder(const famfinder& o) = default;
 famfinder& famfinder::operator=(const famfinder& o) = default;
 famfinder::~famfinder() = default;
@@ -282,26 +259,23 @@ int famfinder::turn_check(const cseq& query, bool all) {
     return pimpl->turn_check(query, all);
 }
 
-famfinder::impl::impl(int n)
+famfinder::impl::impl()
     : arb(query_arb::getARBDB(opts.database))
 {
-    string pt_port = opts.pt_port;
-    // FIXME: manage the port better. This works for unix sockets, but not
-    // for TCP ports.
-    if (n != 0) {
-        pt_port +=  boost::lexical_cast<std::string>(n);
-    }
     switch(opts.engine) {
     case ENGINE_ARB_PT:
-        index = query_pt::get_pt_search(opts.database,
-                                        opts.fs_kmer_len,
-                                        not opts.fs_no_fast,
-                                        opts.fs_kmer_norel,
-                                        opts.fs_kmer_mm,
-                                        pt_port);
+        index = query_pt_pool::get_pool(
+            opts.database,
+            opts.fs_kmer_len,
+            not opts.fs_no_fast,
+            opts.fs_kmer_norel,
+            opts.fs_kmer_mm,
+            opts.pt_port);
         break;
     case ENGINE_SINA_KMER:
-        index = kmer_search::get_kmer_search(opts.database, opts.fs_kmer_len);
+        index = kmer_search::get_kmer_search(
+            opts.database,
+            opts.fs_kmer_len);
         break;
     default:
         throw std::runtime_error("Unknown sequence search engine type");

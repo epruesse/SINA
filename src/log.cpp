@@ -248,7 +248,58 @@ struct Log::printer::priv_data {
     query_arb *arb{nullptr};
 
     std::vector<int> helix_pairs;
+
+    void show_dist(cseq& orig, cseq& aligned, std::vector<cseq>& ref);
 };
+
+
+void Log::printer::priv_data::show_dist(cseq& orig, cseq& aligned, std::vector<cseq>& ref) {
+    if (arb != nullptr) {  // we have a comparison db
+        string name = orig.getName();
+        orig = arb->getCseq(name);
+        logger->info("len-orig: {}", orig.size());
+        logger->info("len-alig: {}", aligned.size());
+    }
+    if (orig.getWidth() != aligned.getWidth()) {
+        logger->error("Cannot show dist - {} and {} have lengths {} and {}",
+                     orig.getName(), aligned.getName(), orig.getWidth(), aligned.getWidth());
+        return;
+    }
+
+    cseq_comparator cmp_exact(CMP_IUPAC_EXACT, CMP_DIST_NONE,
+                              CMP_COVER_QUERY, false);
+    float sps = cmp_exact(orig, aligned);
+
+    logger->log((sps > 0.9999) ? spdlog::level::info : spdlog::level::warn,
+                "orig_idty: {}", sps);
+    total_sps += sps;
+
+    if (ref.empty()) {
+        logger->info("reference / search result empty?");
+        return;
+    }
+
+    cseq_comparator cmp_optimistic(CMP_IUPAC_OPTIMISTIC, CMP_DIST_NONE,
+                                   CMP_COVER_QUERY, false);
+
+    for (auto& r : ref) {
+        r.setScore(cmp_optimistic(orig, r));
+    }
+
+    std::sort(ref.begin(), ref.end());
+    cseq &closest = *ref.rbegin();
+
+    float orig_idty = closest.getScore();
+    total_idty += orig_idty;
+    logger->info("orig_closest_idty: {}", orig_idty);
+
+    float aligned_idty = cmp_optimistic(aligned, closest);
+    logger->info("closest_idty: {}", aligned_idty);
+    float cpm = orig_idty - aligned_idty;
+    logger->info("cpm: {}", cpm);
+
+    total_cpm += cpm;
+}
 
 
 Log::printer::printer()
@@ -306,7 +357,6 @@ static int calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c
 
 tray
 Log::printer::operator()(tray t) {
-    stringstream tmp;
     if (t.input_sequence == nullptr) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
@@ -355,43 +405,7 @@ Log::printer::operator()(tray t) {
     }
 
     if (opts->show_dist) {
-        cseq& orig = *t.input_sequence;
-        if (data->arb != nullptr) {  // we have a comparison db
-            string name = orig.getName();
-            orig = data->arb->getCseq(name);
-            logger->info("len-orig: {}", orig.size());
-            logger->info("len-alig: {}", aligned.size());
-        }
-        cseq_comparator cmp(CMP_IUPAC_EXACT, CMP_DIST_NONE,
-                            CMP_COVER_QUERY, false);
-        float sps = cmp(orig, aligned);
-
-        logger->log((sps > 0.9999) ? spdlog::level::info : spdlog::level::warn,
-                    "orig_idty: {}", sps);
-        data->total_sps += sps;
-
-        if (!ref.empty()) {
-            cseq_comparator cmp(CMP_IUPAC_OPTIMISTIC, CMP_DIST_NONE,
-                                CMP_COVER_QUERY, false);
-            for (auto& r : ref) {
-                r.setScore(cmp(orig, r));
-            }
-            std::sort(ref.begin(), ref.end());
-            cseq &closest = *ref.rbegin();
-
-            float orig_idty = closest.getScore();
-            data->total_idty += orig_idty;
-            logger->info("orig_closest_idty: {}", orig_idty);
-
-            float aligned_idty = cmp(aligned, closest);
-            logger->info("closest_idty: {}", aligned_idty);
-            float cpm = orig_idty - aligned_idty;
-            logger->info("cpm: {}", cpm);
-
-            data->total_cpm += cpm;
-        } else {
-            tmp << "reference / search result empty?" << endl;
-        }
+        data->show_dist(*t.input_sequence, aligned, ref);
     }
 
     if (opts->show_diff) {
@@ -401,13 +415,14 @@ Log::printer::operator()(tray t) {
         }
         refptrs.push_back(t.input_sequence);
         refptrs.push_back(t.aligned_sequence);
+
+        stringstream tmp;
         for (auto part : t.input_sequence->find_differing_parts(aligned)) {
             cseq::write_alignment(tmp, refptrs, part.first, part.second, opts->colors);
         }
         tmp << endl << endl;
+        logger->info(tmp.str());
     }
-
-    logger->info(tmp.str());
 
     return t;
 }

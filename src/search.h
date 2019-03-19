@@ -30,6 +30,7 @@ for the parts of ARB used as well as that of the covered work.
 #define _SEARCH_H_
 
 #include <boost/core/noncopyable.hpp>
+#include <boost/program_options.hpp>
 #include <string>
 #include <vector>
 #include "cseq.h"
@@ -37,6 +38,15 @@ for the parts of ARB used as well as that of the covered work.
 namespace sina {
 
 class query_arb;
+
+enum ENGINE_TYPE {
+    ENGINE_ARB_PT=0,
+    ENGINE_SINA_KMER=1
+};
+std::ostream& operator<<(std::ostream& out, const sina::ENGINE_TYPE& t);
+void validate(boost::any& v, const std::vector<std::string>& values,
+              sina::ENGINE_TYPE* /*unused*/,int /*unused*/);
+
 
 class search : private boost::noncopyable {
 protected:
