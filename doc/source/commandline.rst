@@ -267,6 +267,11 @@ at least the fraction :option:`--lca-quorum` of the search result.
    alignment reference, but wish to search a larger set of sequences
    for classification purposes.
 
+.. option:: --search-engine=[internal|pt-server]
+
+   Override the value of :option:`--fs-engine` for use within the
+   search module.
+
 .. option:: --search-min-sim=id (0.7)
 
    The minimum fractional identity each result sequence must have with

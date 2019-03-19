@@ -6,6 +6,11 @@ Changelog
 Version 1.6.0:
 --------------
  - add progress monitor
+ - default :option:`--num-pts` to number of cores available
+ - run search stage in parallel (:issue:`32`)
+ - split num pt servers evently between search and align
+ - add :option:`--search-engine` setting search engine for search module
+ - run internal engine on max threads always
 
 
 Version 1.5.0:
