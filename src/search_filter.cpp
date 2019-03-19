@@ -30,6 +30,8 @@ for the parts of ARB used as well as that of the covered work.
 #include "config.h"
 #include "log.h"
 #include "progress.h"
+#include "famfinder.h"
+#include "kmer_search.h"
 
 #include <string>
 using std::string;
@@ -65,6 +67,7 @@ static auto logger = Log::create_logger("search");
 
 struct search_filter::options {
     fs::path pt_database;
+    ENGINE_TYPE engine;
     string pt_port;
     bool search_all;
     string posvar_filter;
@@ -93,7 +96,10 @@ search_filter::get_options_description(po::options_description& main,
 
     po::options_description mid("Search & Classify");
     mid.add_options()
-        ("search-db", po::value<fs::path>(&opts->pt_database), "reference db")
+        ("search-db", po::value<fs::path>(&opts->pt_database),
+         "reference db if different from -r/--db")
+        ("search-engine", po::value<ENGINE_TYPE>(&opts->engine),
+         "engine if different from --fs-engine")
         ("search-min-sim", po::value<float>(&opts->min_sim)->default_value(.7, ""),
          "required sequence similarity (0.7)")
         ("search-max-result", po::value<int>(&opts->max_result)->default_value(10, ""),
@@ -149,6 +155,9 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
         }
     }
 
+    if (vm.count("search-engine") == 0u) {
+        opts->engine = famfinder::get_engine();
+    }
 
     opts->comparator = cseq_comparator::make_from_variables_map(vm, "search-");
 
@@ -162,7 +171,6 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
     if (opts->v_copy_fields.back().empty()) {
         opts->v_copy_fields.pop_back();
     }
-
 }
 
 } // namespace sina
@@ -187,14 +195,24 @@ search_filter::search_filter()
             data->sequences.push_back(&data->arb->getCseq(name));
             ++p;
         }
-    } else {
+    } else if (opts->engine = ENGINE_ARB_PT) {
         data->index = std::unique_ptr<search>(
-            new query_pt(opts->pt_port.c_str(), opts->pt_database.c_str(),
-                         not opts->fs_no_fast,
-                         opts->fs_kmer_len,
-                         opts->fs_kmer_mm,
-                         opts->fs_kmer_norel)
-            );
+            query_pt_pool::get_pool(
+                opts->pt_database,
+                opts->fs_kmer_len,
+                not opts->fs_no_fast,
+                opts->fs_kmer_norel,
+                opts->fs_kmer_mm,
+                opts->pt_port
+                ));
+    } else if (opts->engine = ENGINE_SINA_KMER) {
+        data->index = std::unique_ptr<search>(
+            kmer_search::get_kmer_search(
+                opts->pt_database,
+                opts->fs_kmer_len
+                ));
+    } else {
+        throw std::runtime_error("Unknown engine");
     }
 }
 

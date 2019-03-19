@@ -30,6 +30,7 @@ for the parts of ARB used as well as that of the covered work.
 #define _FAMFINDER_H_
 
 #include "tray.h"
+#include "search.h"
 
 #include <memory>
 #include <boost/program_options.hpp>
@@ -64,6 +65,7 @@ public:
                                         boost::program_options::options_description& adv);
     static void validate_vm(boost::program_options::variables_map& vm,
                             boost::program_options::options_description& desc);
+    static ENGINE_TYPE get_engine();
 };
 
 

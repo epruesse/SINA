@@ -229,8 +229,8 @@ void get_options_description(po::options_description& main,
         ("prealigned,P", po::bool_switch(&opts.skip_align), "skip alignment stage")
         ("threads,p", po::value<unsigned int>(&opts.threads)->default_value(tbb_automatic, ""),
          "limit number of threads (automatic)")
-        ("num-pts", po::value<unsigned int>(&opts.num_pt_servers)->default_value(1, ""),
-         "number of PT servers to start (1)")
+        ("num-pts", po::value<unsigned int>(&opts.num_pt_servers)->default_value(tbb_threads),
+         "number of PT servers to start")
         ("version,V", "show version")
         ;
 }
@@ -421,6 +421,17 @@ int real_main(int argc, char** argv) {
     nodes.emplace_back(limiter);
     last_node = limiter;
 
+    // determine number of pt servers for search and align
+    if (not opts.skip_align && not opts.noalign && opts.do_search) {
+        opts.num_pt_servers /= 2;
+    }
+    if (opts.num_pt_servers < 1) {
+        opts.num_pt_servers = 1;
+    }
+    if (famfinder::get_engine() == ENGINE_SINA_KMER) {
+        opts.num_pt_servers = tf::unlimited;
+    }
+
     if (opts.skip_align || opts.noalign) {
         // Just copy alignment over
         node = new filter_node(g, tf::unlimited, [](tray t) -> tray {
@@ -443,7 +454,7 @@ int real_main(int argc, char** argv) {
     }
 
     if (opts.do_search) {
-        node = new filter_node(g, 1, search_filter());
+        node = new filter_node(g, opts.num_pt_servers, search_filter());
         tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
         last_node = node;

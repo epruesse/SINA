@@ -109,6 +109,7 @@ src_libsina_la_SOURCES = \
     src/log.h \
     src/scoring_schemes.h \
     src/search.h \
+    src/search.cpp \
     src/search_filter.cpp \
     src/search_filter.h \
     src/timer.h \
