@@ -284,7 +284,8 @@ test_scripts = \
     tests/align.test \
     tests/search.test \
     tests/infocommands.test \
-    tests/accuracy.test
+    tests/accuracy.test \
+    tests/accuracy_kmer.test
 
 
 check_DATA = test_data/ltp_reduced.arb
