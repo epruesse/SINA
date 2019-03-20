@@ -88,6 +88,10 @@ public:
     bool try_load(const fs::path& filename);
 };
 
+unsigned int
+kmer_search::size() const {
+    return pimpl->n_sequences;
+}
 
 using kmer_search_key_t = std::pair<fs::path, int>;
 static std::map<kmer_search_key_t,

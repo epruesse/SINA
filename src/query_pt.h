@@ -75,6 +75,8 @@ private:
                  int full_min_len,
                  int range_cover,
                  bool leave_query_out) override;
+
+    unsigned int size() const override;
 };
 
 class query_pt : public search {
@@ -95,6 +97,7 @@ public:
     ~query_pt() override;
 
     void find(const cseq& query, std::vector<cseq>& results, int max) override;
+    unsigned int size() const override;
 
     /**
      * match runs a word search using the PT server

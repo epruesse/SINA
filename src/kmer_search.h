@@ -76,6 +76,7 @@ public:
 
     void find(const cseq& query, std::vector<cseq>& results, int max) override;
 
+    unsigned int size() const override;
     /**
      * dtor - must remain public (super is public)
      */

@@ -667,8 +667,9 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
     data->timeit.stop("load seqs");
 }
 
-
-
+unsigned int query_pt::size() const {
+    return data->arbdb->getSeqCount();
+}
 
 struct query_pt_pool::pimpl {
     pimpl(fs::path& filename, int k, bool fast, bool norel, int km, string portname)
@@ -758,6 +759,14 @@ query_pt_pool::match(std::vector<cseq> &family, const cseq& queryc, int min_matc
     query_pt *pt = impl->borrow();
     double res = pt->match(family, queryc, min_match, max_match, min_score, max_score, arb,
                            noid, min_len, num_full, full_min_len, range_cover, leave_query_out);
+    impl->giveback(pt);
+    return res;
+}
+
+unsigned int
+query_pt_pool::size() const {
+    query_pt *pt = impl->borrow();
+    unsigned int res = pt->size();
     impl->giveback(pt);
     return res;
 }

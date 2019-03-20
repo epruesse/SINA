@@ -88,7 +88,7 @@ public:
 
     virtual void find(const cseq& query, std::vector<cseq>& results, int max) = 0;
 
-    
+    virtual unsigned int size() const = 0;
 };
 
 } // namespace sina
