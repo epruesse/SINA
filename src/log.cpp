@@ -270,8 +270,7 @@ void Log::printer::priv_data::show_dist(cseq& orig, cseq& aligned, std::vector<c
                               CMP_COVER_QUERY, false);
     float sps = cmp_exact(orig, aligned);
 
-    logger->log((sps > 0.9999) ? spdlog::level::info : spdlog::level::warn,
-                "orig_idty: {}", sps);
+    logger->info("orig_idty: {}", sps);
     total_sps += sps;
 
     if (ref.empty()) {
