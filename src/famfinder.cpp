@@ -32,6 +32,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "query_arb.h"
 #include "kmer_search.h"
 #include "log.h"
+#include "cseq_comparator.h"
 
 #include <iostream>
 using std::ostream;
@@ -63,6 +64,7 @@ namespace fs = boost::filesystem;
 #include <boost/algorithm/string/predicate.hpp>
 using boost::algorithm::istarts_with;
 using boost::algorithm::iequals;
+
 
 
 namespace sina {
@@ -100,6 +102,8 @@ struct options {
 
     fs::path database;
     string   pt_port;
+
+    bool oldmatch;
 };
 
 static options opts;
@@ -202,6 +206,8 @@ famfinder::get_options_description(po::options_description& main,
          ->default_value(""), "select field for auto filter selection")
         ("auto-filter-threshold",  po::value<float>(&opts.posvar_autofilter_thres)
          ->default_value(0.8, ""), "quorum for auto filter selection (0.8)")
+        ("fs-oldmatch", po::bool_switch(&opts.oldmatch),
+         "use legacy family composition algorithm")
         ;
     adv.add(od);
 }
@@ -224,8 +230,9 @@ void famfinder::validate_vm(po::variables_map& vm,
     if (vm["fs-req"].as<unsigned int>() < 1) {
         throw logic_error("Family Finder: fs-req must be >= 1");
     }
-
-
+    if (vm["fs-oldmatch"].as<bool>() && vm["fs-engine"].as<ENGINE_TYPE>() != ENGINE_ARB_PT) {
+        throw logic_error("Legacy family composition only available for pt-server engine");
+    }
 }
 
 ENGINE_TYPE famfinder::get_engine() {
@@ -241,6 +248,7 @@ public:
     void do_turn_check(cseq& /*c*/);
     int turn_check(const cseq& /*query*/, bool /*all*/);
     void select_astats(tray &t);
+    void match(std::vector<cseq>& results, const cseq& query);
 
     impl();
     impl(const impl&);
@@ -442,9 +450,13 @@ famfinder::impl::operator()(tray t) {
 
     // FIXME: int noid = opts.realign
     bool noid = false;
-    index->match(vc, c, opts.fs_min, opts.fs_max, opts.fs_msc, opts.fs_msc_max,
-                 arb, noid, opts.fs_min_len, opts.fs_req_full,
-                 opts.fs_full_len, opts.fs_cover_gene, opts.fs_leave_query_out);
+    if (opts.oldmatch) {
+        index->match(vc, c, opts.fs_min, opts.fs_max, opts.fs_msc, opts.fs_msc_max,
+                     arb, noid, opts.fs_min_len, opts.fs_req_full,
+                     opts.fs_full_len, opts.fs_cover_gene, opts.fs_leave_query_out);
+    } else {
+        match(vc, c);
+    }
 
     // prepare log string for alignment reference
     stringstream tmp;
@@ -469,7 +481,6 @@ famfinder::impl::operator()(tray t) {
 
     // load apropriate alignment statistics into tray
     select_astats(t);
-
     
     // no reference => no alignment
     if (vc.size() < opts.fs_req) {
@@ -481,6 +492,115 @@ famfinder::impl::operator()(tray t) {
 
     return t;
 }
+
+
+void
+famfinder::impl::match(std::vector<cseq>& results, const cseq& query) {
+    unsigned int min_match = opts.fs_min;
+    unsigned int max_match = opts.fs_max;
+    float min_score = opts.fs_msc;
+    float max_score = opts.fs_msc_max;
+    bool noid = false;
+    unsigned int min_len = opts.fs_min_len;
+    unsigned int num_full = opts.fs_req_full;
+    unsigned int full_min_len = opts.fs_full_len;
+    unsigned int range_cover = opts.fs_cover_gene;
+    bool leave_query_out = opts.fs_leave_query_out;
+
+    size_t range_begin = 0, range_end = 0;
+    auto is_full = [full_min_len](const cseq& result) {
+        return result.size() >= full_min_len;
+    };
+    auto is_range_left = [range_begin](const cseq& result) {
+        return result.begin()->getPosition() <= range_begin;
+    };
+    auto is_range_right = [range_end](const cseq& result) {
+        return result.getById(result.size()-1).getPosition() >= range_end;
+    };
+
+    size_t have = 0, have_full = 0, have_cover_left = 0, have_cover_right = 0;
+    auto count_good = [&](const cseq& result) {
+        ++have;
+        if (num_full && is_full(result)) {
+            ++have_full;
+        }
+        if (range_cover && is_range_right(result)) {
+            ++have_cover_right;
+        }
+        if (range_cover && is_range_left(result)) {
+            ++have_cover_left;
+        }
+        return false;
+    };
+
+    // matches results shorter than min_len
+    auto remove_short = [min_len](const cseq& result) {
+        return result.size() < min_len;
+    };
+
+    // matches results sharing name with query
+    auto remove_query = [&, leave_query_out](const cseq& result) {
+        return leave_query_out && query.getName() == result.getName();
+    };
+
+    // matches results containing query
+    auto remove_superstring = [&, noid](const cseq& result) {
+        return noid && boost::algorithm::icontains(result.getBases(), query.getBases());
+    };
+
+    // matches results too similar to query
+    cseq_comparator cmp(CMP_IUPAC_OPTIMISTIC, CMP_DIST_NONE, CMP_COVER_QUERY, false);
+    auto remove_similar = [&, max_score](const cseq& result) {
+        return max_score <= 2 && cmp(query, result) > max_score;
+    };
+
+    // matches results in dynamic range too dissimilar with query
+    auto remove_dissimilar = [&](const cseq& result) {
+        return have > min_match && result.getScore() < min_score;
+    };
+
+    auto remove_no_cover = [&](const cseq& result) {
+        return
+        (num_full && num_full < have_full && is_full(result))
+        || (range_cover && have_cover_right < range_cover && is_range_right(result))
+        || (range_cover && have_cover_left < range_cover && is_range_left(result))
+        ;
+    };
+
+    auto remove = [&](const cseq& result) {
+        return
+        remove_short(result) ||
+        remove_query(result) ||
+        remove_superstring(result) ||
+        remove_similar(result) ||
+        (remove_no_cover(result) && remove_dissimilar(result) ) ||
+        count_good(result);
+    };
+
+    results.clear();
+    size_t max_results = max_match * 2;
+    std::vector<cseq>::iterator from;
+    while (have < max_match || have_full < num_full ||
+           have_cover_left < range_cover || have_cover_right < range_cover) {
+
+        index->find(query, results, max_results);
+        if (results.empty()) {
+            return;
+        }
+
+        have = 0, have_full = 0, have_cover_left = 0, have_cover_right = 0;
+        from = std::remove_if(results.begin(), results.end(), remove);
+        if (max_results >= index->size()) {
+            break;
+        }
+        max_results *= 10;
+    }
+
+    results.erase(from, results.end());
+    return;
+}
+
+
 
 } // namespace sina
 
