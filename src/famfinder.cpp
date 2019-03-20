@@ -555,15 +555,21 @@ famfinder::impl::match(std::vector<cseq>& results, const cseq& query) {
         return max_score <= 2 && cmp(query, result) > max_score;
     };
 
-    // matches results in dynamic range too dissimilar with query
-    auto remove_dissimilar = [&](const cseq& result) {
-        return have > min_match && result.getScore() < min_score;
+    auto min_reached = [&](const cseq& result) {
+        return have >= min_match;
     };
-
-    auto remove_no_cover = [&](const cseq& result) {
+    auto max_reached = [&](const cseq& result) {
+        return have >= max_match;
+    };
+    auto score_good = [&](const cseq& result) {
+        return result.getScore() < min_score;
+    };
+    auto adds_to_full = [&](const cseq& result) {
+        return num_full && have_full < num_full && is_full(result);
+    };
+    auto adds_to_range = [&](const cseq& result) {
         return
-        (num_full && num_full < have_full && is_full(result))
-        || (range_cover && have_cover_right < range_cover && is_range_right(result))
+        (range_cover && have_cover_right < range_cover && is_range_right(result))
         || (range_cover && have_cover_left < range_cover && is_range_left(result))
         ;
     };
@@ -573,8 +579,11 @@ famfinder::impl::match(std::vector<cseq>& results, const cseq& query) {
         remove_short(result) ||
         remove_query(result) ||
         remove_superstring(result) ||
-        remove_similar(result) ||
-        (remove_no_cover(result) && remove_dissimilar(result) ) ||
+        remove_similar(result) || (
+            min_reached(result) &&
+            (max_reached(result) || !score_good(result)) &&
+            !adds_to_full(result) &&
+            !adds_to_range(result) ) ||
         count_good(result);
     };
 
