@@ -34,6 +34,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "timer.h"
 #include "log.h"
 #include "progress.h"
+#include "cseq_comparator.h"
 
 #include <vector>
 using std::vector;
@@ -47,6 +48,7 @@ using std::string;
 #include <unordered_set>
 #include <mutex>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
@@ -292,21 +294,113 @@ kmer_search::impl::try_load(const fs::path& filename) {
 double
 kmer_search::match(std::vector<cseq>& results,
                    const cseq& query,
-                   int  /*min_match*/,
-                   int max_match,
-                   float  /*min_score*/,
-                   float  /*max_score*/,
+                   int   min_match,
+                   int   max_match,
+                   float min_score,
+                   float max_score,
                    query_arb*  /*arb*/,
-                   bool  /*noid*/,
-                   int  /*min_len*/,
-                   int  /*num_full*/,
-                   int  /*full_min_len*/,
-                   int  /*range_cover*/,
-                   bool  /*leave_query_out*/) {
-    find(query, results, max_match);
+                   bool  noid,
+                   int   min_len,
+                   int   num_full,
+                   int   full_min_len,
+                   int   range_cover,
+                   bool  leave_query_out) {
+
+    size_t range_begin = 0, range_end = 0;
+    auto is_full = [full_min_len](const cseq& result) {
+        return result.size() >= full_min_len;
+    };
+    auto is_range_left = [range_begin](const cseq& result) {
+        return result.begin()->getPosition() <= range_begin;
+    };
+    auto is_range_right = [range_end](const cseq& result) {
+        return result.getById(result.size()-1).getPosition() >= range_end;
+    };
+
+    size_t have = 0, have_full = 0, have_cover_left = 0, have_cover_right = 0;
+    auto count_good = [&](const cseq& result) {
+        ++have;
+        if (num_full && is_full(result)) {
+            ++have_full;
+        }
+        if (range_cover && is_range_right(result)) {
+            ++have_cover_right;
+        }
+        if (range_cover && is_range_left(result)) {
+            ++have_cover_left;
+        }
+        return false;
+    };
+
+    // matches results shorter than min_len
+    auto remove_short = [min_len](const cseq& result) {
+        return result.size() < min_len;
+    };
+
+    // matches results sharing name with query
+    auto remove_query = [&, leave_query_out](const cseq& result) {
+        return leave_query_out && query.getName() == result.getName();
+    };
+
+    // matches results containing query
+    auto remove_superstring = [&, noid](const cseq& result) {
+        return noid && boost::algorithm::icontains(result.getBases(), query.getBases());
+    };
+
+    // matches results too similar to query
+    cseq_comparator cmp(CMP_IUPAC_OPTIMISTIC, CMP_DIST_NONE, CMP_COVER_QUERY, false);
+    auto remove_similar = [&, max_score](const cseq& result) {
+        return max_score <= 2 && cmp(query, result) > max_score;
+    };
+
+    // matches results in dynamic range too dissimilar with query
+    auto remove_dissimilar = [&](const cseq& result) {
+        return have > min_match && result.getScore() < min_score;
+    };
+
+    auto remove_no_cover = [&](const cseq& result) {
+        return
+        (num_full && num_full < have_full && is_full(result))
+        || (range_cover && have_cover_right < range_cover && is_range_right(result))
+        || (range_cover && have_cover_left < range_cover && is_range_left(result))
+        ;
+    };
+
+    auto remove = [&](const cseq& result) {
+        return
+        remove_short(result) ||
+        remove_query(result) ||
+        remove_superstring(result) ||
+        remove_similar(result) ||
+        (remove_no_cover(result) && remove_dissimilar(result) ) ||
+        count_good(result);
+    };
+
+    results.clear();
+    size_t max_results = max_match * 2;
+    std::vector<cseq>::iterator from;
+    while (have < max_match || have_full < num_full ||
+           have_cover_left < range_cover || have_cover_right < range_cover) {
+
+        find(query, results, max_results);
+        if (results.empty()) {
+            return 0;
+        }
+
+        have = 0, have_full = 0, have_cover_left = 0, have_cover_right = 0;
+        from = std::remove_if(results.begin(), results.end(), remove);
+        if (max_results >= pimpl->n_sequences) {
+            break;
+        }
+        max_results *= 10;
+    }
+
+    results.erase(from, results.end());
+
     if (results.empty()) {
         return 0;
     }
+
     return results[0].getScore();
 }
 
