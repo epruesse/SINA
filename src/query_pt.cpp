@@ -643,8 +643,9 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
     char* f_name;
     double f_rel_matches = 0.f;
     long f_matches = 0;
+    int mult = (data->find_type_fast) ? 4:1;
 
-    std::vector<std::pair<int, string> > scored_names;
+    std::vector<std::pair<float, string> > scored_names;
     while (max-- && f_list.exists()) {
         aisc_get(data->link, PT_FAMILYLIST, f_list,
                  FAMILYLIST_NAME, &f_name,
@@ -652,14 +653,15 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
                  FAMILYLIST_MATCHES, &f_matches,
                  FAMILYLIST_NEXT, f_list.as_result_param(),
                  NULL);
-        scored_names.emplace_back(f_matches, f_name);
+        f_rel_matches = 1 - log((f_rel_matches*mult) + 1.0/bs.size)/log(1.0/bs.size);
+        scored_names.emplace_back(f_rel_matches, f_name);
         free(f_name);
     }
     data->timeit.stop("get all");
 
     std::transform(scored_names.begin(), scored_names.end(),
                    std::back_inserter(results),
-                   [&] (std::pair<int, string> hit) {
+                   [&] (std::pair<float, string> hit) {
                        cseq c = data->arbdb->getCseq(hit.second);
                        c.setScore(hit.first);
                        return c;
