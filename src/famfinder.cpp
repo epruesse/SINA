@@ -587,12 +587,12 @@ famfinder::impl::match(std::vector<cseq>& results, const cseq& query) {
         count_good(result);
     };
 
-    results.clear();
     size_t max_results = max_match * 2;
     std::vector<cseq>::iterator from;
     while (have < max_match || have_full < num_full ||
            have_cover_left < range_cover || have_cover_right < range_cover) {
 
+        results.clear();
         index->find(query, results, max_results);
         if (results.empty()) {
             return;
