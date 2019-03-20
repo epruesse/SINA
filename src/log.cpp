@@ -270,7 +270,7 @@ void Log::printer::priv_data::show_dist(cseq& orig, cseq& aligned, std::vector<c
                               CMP_COVER_QUERY, false);
     float sps = cmp_exact(orig, aligned);
 
-    logger->info("orig_idty: {}", sps);
+    logger->info("orig_idty: {:.6f}", sps);
     total_sps += sps;
 
     if (ref.empty()) {
@@ -290,12 +290,12 @@ void Log::printer::priv_data::show_dist(cseq& orig, cseq& aligned, std::vector<c
 
     float orig_idty = closest.getScore();
     total_idty += orig_idty;
-    logger->info("orig_closest_idty: {}", orig_idty);
+    logger->info("orig_closest_idty: {:.6f}", orig_idty);
 
     float aligned_idty = cmp_optimistic(aligned, closest);
-    logger->info("closest_idty: {}", aligned_idty);
+    logger->info("closest_idty: {:.6f}", aligned_idty);
     float cpm = orig_idty - aligned_idty;
-    logger->info("cpm: {}", cpm);
+    logger->info("cpm: {:.6f}", cpm);
 
     total_cpm += cpm;
 }
@@ -329,10 +329,10 @@ Log::printer::~printer() = default;
 Log::printer::priv_data::~priv_data() {
     logger->info("avg_score: {}", total_score / sequence_num);
     if (Log::opts->show_dist) {
-        logger->warn("avg_sps: {}", total_sps / sequence_num);
-        logger->warn("avg_cpm: {}", total_cpm / sequence_num);
-        logger->warn("avg_idty: {}", total_idty / sequence_num);
-        logger->info("avg_bps: {}", total_bps / sequence_num);
+        logger->warn("avg_sps: {:.6f}", total_sps / sequence_num);
+        logger->warn("avg_cpm: {:.6f}", total_cpm / sequence_num);
+        logger->warn("avg_idty: {:.6f}", total_idty / sequence_num);
+        logger->warn("avg_bps: {:.6f}", total_bps / sequence_num);
     }
 }
 
