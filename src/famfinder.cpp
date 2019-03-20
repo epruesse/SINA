@@ -459,18 +459,19 @@ famfinder::impl::operator()(tray t) {
     }
 
     // prepare log string for alignment reference
-    stringstream tmp;
+    fmt::memory_buffer tmp;
     for (cseq &r: vc) {
         if (opts.posvar_autofilter_field.length() > 0) {
-            arb->loadKey(r,opts.posvar_autofilter_field);
+            arb->loadKey(r, opts.posvar_autofilter_field);
         }
         arb->loadKey(r, query_arb::fn_acc);
         arb->loadKey(r, query_arb::fn_start);
-        tmp << r.get_attr<string>(query_arb::fn_acc) << "."
-            << r.get_attr<string>(query_arb::fn_start) << ":"
-            << setprecision(2) << r.getScore() << " ";
+        fmt::format_to(tmp, "{}.{}:{:.2f} ",
+                       r.get_attr<string>(query_arb::fn_acc),
+                       r.get_attr<string>(query_arb::fn_start),
+                       r.getScore());
     }
-    c.set_attr(query_arb::fn_family_str, tmp.str());
+    c.set_attr(query_arb::fn_family_str, string(tmp.data(), tmp.size()));
 
     // remove sequences having too few gaps
     if (opts.fs_req_gaps != 0) {
