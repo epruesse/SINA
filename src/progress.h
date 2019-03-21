@@ -337,10 +337,16 @@ public:
     using mutex_t = typename ConsoleMutex::mutex_t;
 
     terminal_sink() {
-        update_term_width();
+        if (super::should_do_colors_) {
+            update_term_width();
+        }
     }
 
     void log(const spdlog::details::log_msg &msg) override {
+        if (not super::should_do_colors_) {
+            super::log(msg);
+            return;
+        }
         if (msg.source.filename == status_msg::magic_filename()) {
             return; // special messages handled elsewhere
         }
@@ -366,7 +372,10 @@ public:
         }
     }
 
-    void print_status_message(status_msg*) {
+    void print_status_message(status_msg* msg) {
+        if (not super::should_do_colors_) {
+            return;
+        }
         fmt::memory_buffer messages;
         int nlines = update_messages(messages, _ncols);
         std::lock_guard<mutex_t> lock(super::mutex_);

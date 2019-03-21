@@ -135,6 +135,7 @@ public:
 protected:
     FILE *target_file_;
     mutex_t &mutex_;
+    bool should_do_colors_;
 
 private:
     void print_ccode_(const std::string &color_code)
@@ -147,7 +148,6 @@ private:
     }
 
 
-    bool should_do_colors_;
     std::unordered_map<level::level_enum, std::string, level::level_hasher> colors_;
 };
 
