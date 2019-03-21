@@ -414,13 +414,13 @@ loadKey(cseq& c, const string& key, GBDATA* gbspec) {
                 c.set_attr(key, (const char*)GB_read_pntr(gbd));
                 return;
             case GB_BYTE:
-                c.set_attr(key, (const char)GB_read_byte(gbd));
+                c.set_attr(key, (char)GB_read_byte(gbd));
                 return;
             case GB_INT:
-                c.set_attr(key, (const int)GB_read_int(gbd));
+                c.set_attr(key, (int)GB_read_int(gbd));
                 return;
             case GB_FLOAT:
-                c.set_attr(key, (const float)GB_read_float(gbd));
+                c.set_attr(key, (float)GB_read_float(gbd));
                 return;
             case GB_BITS:
             default:
