@@ -152,7 +152,7 @@ famfinder::get_options_description(po::options_description& main,
 
     po::options_description mid("Reference Selection");
     mid.add_options()
-        ("fs-engine", po::value<ENGINE_TYPE>(&opts.engine),
+        ("fs-engine", po::value<ENGINE_TYPE>(&opts.engine)->default_value(ENGINE_SINA_KMER, ""),
          "search engine to use for reference selection "
          "[*pt-server*|internal]")
         ("fs-kmer-len", po::value<unsigned int>(&opts.fs_kmer_len)->default_value(10u,""),
