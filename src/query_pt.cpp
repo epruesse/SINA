@@ -85,7 +85,7 @@ public:
     ~managed_pt_server();
 };
 
-static std::mutex build_lock;
+static std::mutex build_lock, launch_lock;
 
 managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
     : dbname(std::move(dbname_)), portname(std::move(portname_))
@@ -176,7 +176,11 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
     vector<string> cmd{arb_pt_server_path.native(), "-D"+dbname, "-T"+portname};
     logger->info("Launching background PT server for {} on {}", dbname, portname);
     logger->debug("Executing ['{}']", fmt::join(cmd, "', '"));
-    process = new redi::ipstream(cmd, redi::pstreams::pstdout|redi::pstreams::pstderr);
+    {
+        std::lock_guard<std::mutex> lock(launch_lock);
+        // something in here appears to not be thread safe
+        process = new redi::ipstream(cmd, redi::pstreams::pstdout|redi::pstreams::pstderr);
+    }
 
     // read the pt server output. once it says "ok"
     // we can be sure that it's ready for connections
