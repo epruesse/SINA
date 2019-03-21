@@ -726,6 +726,11 @@ Advanced Reference Selection Options
    selection. See :option:`--lca-quorum` for information on how the
    value is interpreted.
 
+.. option:: --fs-oldmatch
+
+   Use the pre-1.6.0 implementation for composing the alignment
+   family. Requires :option:`--fs-engine` = ``pt-server``.
+
 Search & Classify Options
 -------------------------
 
