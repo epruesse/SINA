@@ -298,8 +298,7 @@ search_filter::operator()(tray t) {
             ++it;
         }
     } else {
-        data->index->match(vc, *c, 1, opts->kmer_candidates, 0.3, 2.0, data->arb,
-                           false, 50, 0, 0, 0,false);
+        data->index->find(*c, vc, opts->kmer_candidates);
         if (opts->ignore_super) {
             iupac_contains contains(*c);
             auto it = partition(vc.begin(), vc.end(),
