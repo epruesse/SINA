@@ -319,7 +319,10 @@ kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {
 
 void
 kmer_search::impl::find(const cseq& query, std::vector<cseq>& results, int max) {
-    if (n_sequences == 0) {
+    if (max > n_sequences) {
+        max = n_sequences;
+    }
+    if (max == 0) {
         return;
     }
     timer& timing = timeit.get_timer();
