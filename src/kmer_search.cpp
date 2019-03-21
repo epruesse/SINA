@@ -185,12 +185,13 @@ kmer_search::impl::impl(query_arb* arbdb_, int k_)
         if (fs::last_write_time(idxpath) >= fs::last_write_time(dbpath)) {
             if (try_load(idxpath)) {
                 return;
-            } else {
-                logger->error("Failed to load {} - rebuilding", idxpath);
             }
-            logger->error("Reference {} newer than {} - rebuilding index.",
-                          dbpath, idxpath);
+        } else {
+            logger->warn("Reference {} newer than {}", dbpath, idxpath);
         }
+        logger->warn("Failed to load {} - rebuilding", idxpath);
+    } else {
+        logger->warn("No cached index found.");
     }
     build();
     store(idxpath);
@@ -269,7 +270,19 @@ kmer_search::impl::try_load(const fs::path& filename) {
     std::ifstream in(filename.native(), std::ifstream::binary);
     idx_header header;
     in.read((char*)&header, sizeof(idx_header));
+    if (idx_header_magic != header.magic) {
+        logger->error("Index file {} has wrong magic. Aborting.",
+                      filename);
+        exit(1);
+    }
+    if (idx_header_vers != header.vers) {
+        logger->error("Index file {} created by different version.",
+                      filename);
+        return false;
+    }
     if (k != header.k) {
+        logger->error("Index file {} build for k={} not k={}",
+                      filename, header.k, k);
         return false;
     }
     n_sequences = header.n_sequences;
