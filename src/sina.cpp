@@ -70,6 +70,7 @@ namespace tf = tbb::flow;
 #include "timer.h"
 #include "cseq_comparator.h"
 #include "progress.h"
+#include "search.h"
 
 using namespace sina;
 
@@ -150,6 +151,8 @@ std::ostream& operator<<(std::ostream& out,
         out << any_cast<CMP_DIST_TYPE>(a);
     } else if (any_cast<CMP_COVER_TYPE>(&a) != nullptr) {
         out << any_cast<CMP_COVER_TYPE>(a);
+    } else if (any_cast<ENGINE_TYPE>(&a) != nullptr) {
+        out << any_cast<ENGINE_TYPE>(a);
     } else if (any_cast<fs::path>(&a) != nullptr) {
         out << any_cast<fs::path>(a);
     } else {
