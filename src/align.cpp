@@ -489,9 +489,6 @@ sina::do_align(cseq& c, cseq& orig, MASTER &m,
     mesh_t A(m, c);
 
     int oh_head, oh_tail;
-#ifdef DEBUG
-    log << "refsize: " << m.size() << "; ";
-#endif
 
     // compute values of mesh nodes
     compute(A, cns);
