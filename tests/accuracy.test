@@ -36,19 +36,36 @@ assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.996"
 assert_output_value avg_cpm: "<0.00011"
-assert_output_value avg_cpm: ">-0.00011"
 assert_output_value avg_idty: ">0.96"
 end_test
 
-begin_test "realign remove query"
+begin_test "realign/noquery"
 capture_stdouterr "$SINA --select-step 250 --realign --fs-leave-query-out"
 assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.996"
 assert_output_value avg_cpm: "<0.0001"
-assert_output_value avg_cpm: ">-0.0001"
 assert_output_value avg_idty: ">0.96"
 end_test
+
+begin_test "realign/noquery k=8"
+capture_stdouterr "$SINA --select-step 250 --realign --fs-leave-query-out --fs-kmer-len 8"
+assert_exit_success
+assert_output_contains "align 48 sequences"
+assert_output_value avg_sps: ">0.996"
+assert_output_value avg_cpm: "<0.00011"
+assert_output_value avg_idty: ">0.96"
+end_test
+
+begin_test "realign/noquery nofast"
+capture_stdouterr "$SINA --select-step 250 --realign --fs-leave-query-out --fs-kmer-no-fast"
+assert_exit_success
+assert_output_contains "align 48 sequences"
+assert_output_value avg_sps: ">0.997"
+assert_output_value avg_cpm: "<0.00001"
+assert_output_value avg_idty: ">0.96"
+end_test
+
 
 begin_test "realign msc 0.9"
 capture_stdouterr "$SINA --select-step 250 --realign --fs-leave-query-out --fs-msc-max 0.9"
@@ -56,7 +73,6 @@ assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.99"
 assert_output_value avg_cpm: "<0.001"
-assert_output_value avg_cpm: ">-0.001"
 assert_output_value avg_idty: "<0.9"
 assert_output_value avg_idty: ">0.88"
 end_test
@@ -67,7 +83,6 @@ assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.97"
 assert_output_value avg_cpm: "<0.002"
-assert_output_value avg_cpm: ">-0.002"
 assert_output_value avg_idty: "<0.8"
 assert_output_value avg_idty: ">0.78"
 end_test
@@ -78,7 +93,6 @@ assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.95"
 assert_output_value avg_cpm: "<0.01"
-assert_output_value avg_cpm: ">-0.01"
 assert_output_value avg_idty: "<0.7"
 assert_output_value avg_idty: ">0.68"
 end_test

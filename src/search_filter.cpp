@@ -209,7 +209,8 @@ search_filter::search_filter()
         data->index = std::unique_ptr<search>(
             kmer_search::get_kmer_search(
                 opts->pt_database,
-                opts->fs_kmer_len
+                opts->fs_kmer_len,
+                opts->fs_no_fast
                 ));
     } else {
         throw std::runtime_error("Unknown engine");

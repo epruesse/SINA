@@ -39,8 +39,10 @@ namespace sina {
 
 class kmer_search : public search {
 public:
-    static kmer_search* get_kmer_search(const boost::filesystem::path& filename, int k=10);
-    static void release_kmer_search(const boost::filesystem::path& filename, int k=10);
+    static kmer_search* get_kmer_search(const boost::filesystem::path& filename,
+                                        int k=10, bool fast=true);
+    static void release_kmer_search(const boost::filesystem::path& filename,
+                                    int k=10, bool fast=true);
 
     /**
      * match runs a word search using the PT server

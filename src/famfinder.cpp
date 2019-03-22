@@ -283,7 +283,8 @@ famfinder::impl::impl()
     case ENGINE_SINA_KMER:
         index = kmer_search::get_kmer_search(
             opts.database,
-            opts.fs_kmer_len);
+            opts.fs_kmer_len,
+            opts.fs_no_fast);
         break;
     default:
         throw std::runtime_error("Unknown sequence search engine type");
