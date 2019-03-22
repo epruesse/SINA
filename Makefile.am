@@ -80,6 +80,7 @@ src_libsina_la_SOURCES = \
     src/aligned_base.h \
     src/alignment_stats.cpp \
     src/alignment_stats.h \
+    src/buffer.h \
     src/cseq.cpp \
     src/cseq.h \
     src/cseq_impl.h \
