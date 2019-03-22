@@ -66,7 +66,7 @@ using std::map;
 using std::pair;
 
 #include <unordered_map>
-using std::unordered_map;
+#include <tbb/concurrent_unordered_map.h>
 
 #include <cstdio>
 
@@ -151,12 +151,10 @@ struct query_arb::priv_data {
 
     static GB_shell* the_arb_shell;
 
-    using sequence_cache_type = unordered_map<std::string, cseq>;
+    using sequence_cache_type = tbb::concurrent_unordered_map<std::string, cseq>;
+    using gbdata_cache_type = std::unordered_map<string, GBDATA*, boost::hash<string>>;
     using error_list_type = list<std::string>;
-    using gbdata_cache_type = std::unordered_map<string, GBDATA*,
-                                                 boost::hash<string>>;
 
-    std::mutex sequence_cache_access;
     sequence_cache_type sequence_cache;
     gbdata_cache_type gbdata_cache;
     error_list_type write_errors;
@@ -196,16 +194,15 @@ string
 query_arb::priv_data::getSequence(const char *name, const char *ali) {
     // if there is a preloaded cache, just hand out sequence
     if (have_cache) {
-        std::lock_guard<std::mutex> lock(sequence_cache_access);
         return sequence_cache[name].getAligned();
     }
-
-    std::lock_guard<std::mutex> lock(arb_db_access);
-    GB_transaction trans(gbmain);
 
     if (ali == nullptr) {
         ali = default_alignment;
     }
+
+    std::lock_guard<std::mutex> lock(arb_db_access);
+    GB_transaction trans(gbmain);
 
     // get sequence root entry ("species")
     GBDATA *gbdata;
@@ -527,14 +524,13 @@ query_arb::loadCache(std::vector<std::string>& keys) {
 
     const char *ali = data->default_alignment;
 
-    std::lock_guard<std::mutex> lock_cache(data->sequence_cache_access);
     std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
 
     logger->info("Loading {} sequences...", data->count);
     logger_progress p(logger, "Loading sequences", data->count);
 
-    data->sequence_cache.reserve(data->count);
+    // re-init sequence_cache with size data->count?
 
 #undef HAVE_TBB
 #ifndef HAVE_TBB // serial implementation
@@ -640,7 +636,6 @@ query_arb::loadCache(std::vector<std::string>& keys) {
 vector<cseq*>
 query_arb::getCacheContents() {
     vector<cseq*> tmp;
-    std::lock_guard<std::mutex> lock(data->sequence_cache_access);
     tmp.reserve(data->sequence_cache.size());
     for (auto & it : data->sequence_cache) {
         tmp.push_back(&it.second);
@@ -666,7 +661,6 @@ query_arb::getSequenceNames() {
 cseq&
 query_arb::getCseq(const string& name) { //, bool nocache) {
     // if there is a preloaded cache, just hand out sequence
-    std::lock_guard<std::mutex> lock(data->sequence_cache_access);
     if (data->have_cache) {
         return data->sequence_cache[name];
     }
