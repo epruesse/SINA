@@ -131,7 +131,7 @@ AX_ARG_ENABLE([debug], [disable optimizations and add debug symbols],
     AC_DEFINE([DEBUG])
   ])
   CXXFLAGS="$(echo $CXXFLAGS | sed 's/-O@<:@@<:@:alnum:@:>@@:>@*//g')"
-  CXXFLAGS="$CXXFLAGS -O0 -ggdb3"
+  CXXFLAGS="$CXXFLAGS -Og -ggdb3"
   AX_CHECK_COMPILE_FLAG([-fno-omit-frame-pointer],[
     CXXFLAGS="$CXXFLAGS -fno-omit-frame-pointer"
   ])
