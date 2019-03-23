@@ -34,6 +34,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "timer.h"
 #include "log.h"
 #include "progress.h"
+#include "cache.h"
 
 #include <vector>
 using std::vector;
@@ -53,7 +54,6 @@ namespace fs = boost::filesystem;
 
 #include <tbb/tbb.h>
 #include <tbb/cache_aligned_allocator.h>
-
 #include <cstdio>
 #include <sys/stat.h>
 
@@ -101,6 +101,9 @@ public:
 
     query_arb* arbdb;
     timer_mt timeit;
+
+    using rank_result_type = std::vector<std::pair<idset::inc_t::value_type, int>>;
+    fifo_cache<std::string, rank_result_type> cache{32};
 
     impl(query_arb* arbdb_, int k_, bool nofast_);
     ~impl() {
@@ -360,49 +363,52 @@ kmer_search::impl::find(const cseq& query, result_vector& results, unsigned int 
     if (max == 0) {
         return;
     }
-    timer& timing = timeit.get_timer();
-    timing.start();
-    const vector<aligned_base>& bases = query.const_getAlignedBases();
     idset::inc_t scores(n_sequences, 0);
-    timing.stop("load query");
-
-    std::unordered_set<unsigned int> seen(query.size()*2-1);
-
-    int offset = 0;
-    if (nofast) {
-        // for (unsigned int kmer: unique_kmers(bases, seen, k)) {
-        for (unsigned int kmer: all_kmers(bases, k, 1)) {
-            if (kmer_idx[kmer] != nullptr) {
-                offset += kmer_idx[kmer]->increment(scores);
-            }
-        }
-    } else { // fast
-        // for (unsigned int kmer: unique_prefix_kmers(bases, seen, k, 1, BASE_A)) {
-        for (unsigned int kmer: prefix_kmers(bases, k, 1, BASE_A)) {
-            if (kmer_idx[kmer] != nullptr) {
-                offset += kmer_idx[kmer]->increment(scores);
-            }
-        }
-    }
-    timing.stop("count kmers");
-
     using pair = std::pair<idset::inc_t::value_type, int>;
     std::vector<pair> ranks;
-    ranks.reserve(n_sequences);
-    int n = 0;
-    for (auto score: scores) {
-        ranks.emplace_back(score + offset, n++);
+
+    if (!cache.try_get(query.getName(), ranks)) {
+        timer& timing = timeit.get_timer();
+        timing.start();
+        const vector<aligned_base>& bases = query.const_getAlignedBases();
+
+        timing.stop("load query");
+
+        std::unordered_set<unsigned int> seen(query.size()*2-1);
+
+        int offset = 0;
+        if (nofast) {
+            // for (unsigned int kmer: unique_kmers(bases, seen, k)) {
+            for (unsigned int kmer: all_kmers(bases, k, 1)) {
+                if (kmer_idx[kmer] != nullptr) {
+                    offset += kmer_idx[kmer]->increment(scores);
+                }
+            }
+        } else { // fast
+            // for (unsigned int kmer: unique_prefix_kmers(bases, seen, k, 1, BASE_A)) {
+            for (unsigned int kmer: prefix_kmers(bases, k, 1, BASE_A)) {
+                if (kmer_idx[kmer] != nullptr) {
+                    offset += kmer_idx[kmer]->increment(scores);
+                }
+            }
+        }
+        timing.stop("count kmers");
+
+        ranks.reserve(n_sequences);
+        int n = 0;
+        for (auto score: scores) {
+            ranks.emplace_back(score + offset, n++);
+        }
+        timing.stop("store");
     }
-    std::partial_sort(ranks.begin(), ranks.begin()+max, ranks.end(),
-                      std::greater<pair>());
-    timing.stop("sort result");
+    std::partial_sort(ranks.begin(), ranks.begin()+max, ranks.end(),  std::greater<pair>());
 
     results.clear();
     results.reserve(max);
     for (unsigned int i=0; i<max; i++) {
         results.emplace_back(ranks[i].first, &arbdb->getCseq(sequence_names[ranks[i].second]));
     }
-    timing.stop("load result");
+    cache.store(query.getName(), std::move(ranks));
 }
 
 /*
