@@ -243,23 +243,29 @@ public:
 
     template<typename T>
     void set_attr(const std::string& key, T val) {
-        attributes[key]=val;
+        attributes.emplace(key, val);
     }
 
     template<typename T>
     T get_attr(const std::string& attr) const {
-        return boost::apply_visitor(lexical_cast_visitor<T>(), attributes.at(attr));
+        const auto it = attributes.find(attr);
+        if (it != attributes.end()) {
+            return boost::apply_visitor(lexical_cast_visitor<T>(), it->second);
+        } else {
+            return T();
+        }
     }
     template<typename T>
     T get_attr(const std::string& attr, T value) const {
-        if (attributes.find(attr) != attributes.end()) {
-            return boost::apply_visitor(lexical_cast_visitor<T>(), attributes.at(attr));
+        const auto it = attributes.find(attr);
+        if (it != attributes.end()) {
+            return boost::apply_visitor(lexical_cast_visitor<T>(), it->second);
         } else {
             return value;
         }
     }
 
-    const std::map<std::string,variant>& get_attrs() const { return attributes; }
+    const std::map<std::string, variant>& get_attrs() const { return attributes; }
 private:
     std::map<std::string,variant> attributes;
 };
