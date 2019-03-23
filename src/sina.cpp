@@ -52,6 +52,9 @@ namespace fs = boost::filesystem;
 #include <boost/algorithm/string/predicate.hpp>
 using boost::algorithm::iequals;
 
+#include <boost/core/demangle.hpp>
+using boost::core::demangle;
+
 using std::exception;
 using std::logic_error;
 
@@ -532,7 +535,9 @@ int main(int argc, char** argv) {
     try {
         return real_main(argc, argv);
     } catch (std::exception &e) {
-        logger->critical("Error during program execution: {}", e.what());
+        logger->critical("Error during program execution: {} {}",
+                         demangle(typeid(e).name()),
+                         e.what());
         return EXIT_FAILURE;
     }
 }
