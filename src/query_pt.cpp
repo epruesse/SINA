@@ -595,7 +595,7 @@ match_retry:
 }
 
 void
-query_pt::find(const cseq& query, search::result_vector& results, int max) {
+query_pt::find(const cseq& query, search::result_vector& results, unsigned int max) {
     data->timeit.start();
     char *error = nullptr;
     results.clear();
@@ -733,7 +733,7 @@ query_pt_pool::query_pt_pool(std::shared_ptr<query_pt_pool::pimpl> p)
 query_pt_pool::~query_pt_pool() {}
 
 void
-query_pt_pool::find(const cseq& query, result_vector& results, int max) {
+query_pt_pool::find(const cseq& query, result_vector& results, unsigned int max) {
     query_pt *pt = impl->borrow();
     pt->find(query, results, max);
     impl->giveback(pt);

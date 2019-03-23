@@ -100,7 +100,7 @@ public:
                          int range_cover,
                          bool leave_query_out) = 0;
 
-    virtual void find(const cseq& query, result_vector& results, int max) = 0;
+    virtual void find(const cseq& query, result_vector& results, unsigned int max) = 0;
 
     virtual unsigned int size() const = 0;
 };

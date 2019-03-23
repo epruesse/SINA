@@ -551,10 +551,10 @@ famfinder::impl::match(search::result_vector& results, const cseq& query) {
         return max_score <= 2 && cmp(query, *result.sequence) > max_score;
     };
 
-    auto min_reached = [&](const item_t& result) {
+    auto min_reached = [&](const item_t&) {
         return have >= min_match;
     };
-    auto max_reached = [&](const item_t& result) {
+    auto max_reached = [&](const item_t&) {
         return have >= max_match;
     };
     auto score_good = [&](const item_t& result) {

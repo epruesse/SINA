@@ -372,7 +372,7 @@ public:
         }
     }
 
-    void print_status_message(status_msg* msg) {
+    void print_status_message(status_msg*) override {
         if (not super::should_do_colors_) {
             return;
         }
@@ -412,7 +412,7 @@ class logger_progress final : public base_progress, status_msg {
 public:
     logger_progress(std::shared_ptr<spdlog::logger> logger,
                     std::string desc="", unsigned int total=0, bool ascii=false,
-                    unsigned int width=0,
+                    unsigned int /*width*/=0,
                     spdlog::level::level_enum level=spdlog::level::warn
         )
         : base_progress(desc, total, ascii),

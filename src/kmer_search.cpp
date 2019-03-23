@@ -106,7 +106,7 @@ public:
     ~impl() {
         logger->info("Timings for Kmer Search: {}", timeit);
     }
-    void find(const cseq& query, result_vector& results, int max);
+    void find(const cseq& query, result_vector& results, unsigned int max);
     void build();
     void store(const fs::path& filename);
     bool try_load(const fs::path& filename);
@@ -341,30 +341,19 @@ kmer_search::impl::try_load(const fs::path& filename) {
 }
 
 double
-kmer_search::match(result_vector& results,
-                   const cseq& query,
-                   int   min_match,
-                   int   max_match,
-                   float min_score,
-                   float max_score,
-                   query_arb*  /*arb*/,
-                   bool  noid,
-                   int   min_len,
-                   int   num_full,
-                   int   full_min_len,
-                   int   range_cover,
-                   bool  leave_query_out) {
+kmer_search::match(result_vector&, const cseq&, int, int, float, float, query_arb*,
+                   bool, int, int, int, int, bool) {
     throw std::runtime_error("Legacy family composition not implemented for internal search");
     return 0;
 }
 
 void
-kmer_search::find(const cseq& query, result_vector& results, int max) {
+kmer_search::find(const cseq& query, result_vector& results, unsigned int max) {
     pimpl->find(query, results, max);
 }
 
 void
-kmer_search::impl::find(const cseq& query, result_vector& results, int max) {
+kmer_search::impl::find(const cseq& query, result_vector& results, unsigned int max) {
     if (max > n_sequences) {
         max = n_sequences;
     }
@@ -410,7 +399,7 @@ kmer_search::impl::find(const cseq& query, result_vector& results, int max) {
 
     results.clear();
     results.reserve(max);
-    for (int i=0; i<max; i++) {
+    for (unsigned int i=0; i<max; i++) {
         results.emplace_back(ranks[i].first, &arbdb->getCseq(sequence_names[ranks[i].second]));
     }
     timing.stop("load result");

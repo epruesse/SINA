@@ -60,7 +60,7 @@ private:
     query_pt_pool(const query_pt_pool&) = delete;
 
 
-    void find(const cseq& query, result_vector& results, int max) override;
+    void find(const cseq& query, result_vector& results, unsigned int max) override;
 
     double match(result_vector &family,
                  const cseq& queryc,
@@ -96,7 +96,7 @@ public:
              bool norel=false);
     ~query_pt() override;
 
-    void find(const cseq& query, result_vector& results, int max) override;
+    void find(const cseq& query, result_vector& results, unsigned int max) override;
     unsigned int size() const override;
 
     /**

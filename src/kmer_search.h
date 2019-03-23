@@ -76,7 +76,7 @@ public:
                  int range_cover,
                  bool leave_query_out) override;
 
-    void find(const cseq& query, result_vector& results, int max) override;
+    void find(const cseq& query, result_vector& results, unsigned int max) override;
 
     unsigned int size() const override;
     /**
