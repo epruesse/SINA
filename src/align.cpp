@@ -307,10 +307,10 @@ aligner& aligner::operator=(const aligner&  /*a*/) = default;
 tray
 aligner::operator()(tray t) {
     // skip if requirements missing
-    // FIXME: add logging here
     if ((t.input_sequence == nullptr) ||
         (t.alignment_reference == nullptr) ||
         (t.astats == nullptr) ) {
+        logger->error("Internal error - incomplete data for alignment");
         return t;
     }
     // prepare variables
