@@ -38,45 +38,42 @@ namespace sina {
 
 class mseq;
 
-class mseq_node : public aligned_base 
-{
-  mseq_node() = delete;
+class mseq_node : public aligned_base {
+    mseq_node() = delete;
 public:
-  mseq_node(const aligned_base& b) 
-    : aligned_base(b), weight(1.f) 
-  {}
-  
-  mseq_node(int i, char c) 
-  : aligned_base(i,c), weight(1.f) 
-  {}
-  
-  float getWeight() const { 
-    return weight; 
-  }
+    mseq_node(const aligned_base& b)
+        : aligned_base(b), weight(1.f)
+    {}
 
+    mseq_node(int i, char c)
+        : aligned_base(i,c), weight(1.f)
+    {}
 
-  bool operator<(const mseq_node &rhs) const { 
-    return aligned_base::operator<(rhs); 
-  }
+    float getWeight() const {
+        return weight;
+    }
+
+    bool operator<(const mseq_node &rhs) const {
+        return aligned_base::operator<(rhs);
+    }
 private:
     float weight;
     friend class mseq;
 };
 
-class mseq : public dag<mseq_node>
-{
+class mseq : public dag<mseq_node> {
 public:
-  mseq(std::vector<cseq>::iterator seqs_begin,
-       std::vector<cseq>::iterator seqs_end,
-       float weight);
+    mseq(std::vector<const cseq*>::iterator seqs_begin,
+         std::vector<const cseq*>::iterator seqs_end,
+         float weight);
 
-  unsigned int getWidth() { 
-    return bases_width; 
-  }
+    unsigned int getWidth() {
+        return bases_width;
+    }
 
 private:
-  unsigned int num_seqs{0};
-  unsigned int bases_width{0};
+    unsigned int num_seqs{0};
+    unsigned int bases_width{0};
 };
 
 } // namespace sina

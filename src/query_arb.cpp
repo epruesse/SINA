@@ -428,10 +428,11 @@ loadKey(cseq& c, const string& key, GBDATA* gbspec) {
 }
 
 void
-query_arb::loadKey(cseq& c, const string& key) {
+query_arb::loadKey(const cseq& c, const string& key) {
     std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
-    ::loadKey(c, key, data->getGBDATA(c.getName()));
+    // FIXME: should we check if the cseq is actually ours?
+    ::loadKey(const_cast<cseq&>(c), key, data->getGBDATA(c.getName()));
 }
 
 struct query_arb::storeKey_visitor
@@ -548,7 +549,7 @@ query_arb::loadCache(std::vector<std::string>& keys) {
             if (not gb_data) continue;
             const char* ptr =  GB_read_char_pntr(gb_data);
             t.stop("arb load");
-            sequence = cseq(name.c_str(), 0.f, ptr);
+            sequence = cseq(name.c_str(), ptr);
             t.stop("cseq convert");
             GB_flush_cache(gb_data);
         } else {
@@ -658,7 +659,7 @@ query_arb::getSequenceNames() {
     return tmp;
 }
 
-cseq&
+const cseq&
 query_arb::getCseq(const string& name) { //, bool nocache) {
     // if there is a preloaded cache, just hand out sequence
     if (data->have_cache) {
@@ -672,9 +673,7 @@ query_arb::getCseq(const string& name) { //, bool nocache) {
     }
 
     // if all fails, fetch sequence from arb and cache
-    cseq tmp(name.c_str(), 0.f, 
-             data->getSequence(name.c_str(), data->default_alignment).c_str()
-        );
+    cseq tmp(name.c_str(), data->getSequence(name.c_str(), data->default_alignment).c_str());
     data->sequence_cache[name]=tmp;
 #if defined(DEBUG)
     int n_cached = data->sequence_cache.size();
@@ -693,8 +692,7 @@ query_arb::getCseq(const string& name) { //, bool nocache) {
 
 cseq
 query_arb::getCseqUncached(const string& name) { //, bool nocache) {
-    return {name.c_str(), 0.f,
-            data->getSequence(name.c_str(), data->default_alignment).c_str()};
+    return {name.c_str(), data->getSequence(name.c_str(), data->default_alignment).c_str()};
 }
 
 int

@@ -60,9 +60,9 @@ private:
     query_pt_pool(const query_pt_pool&) = delete;
 
 
-    void find(const cseq& query, std::vector<cseq>& results, int max) override;
+    void find(const cseq& query, result_vector& results, int max) override;
 
-    double match(std::vector<cseq> &family,
+    double match(result_vector &family,
                  const cseq& queryc,
                  int min_match,
                  int max_match,
@@ -96,7 +96,7 @@ public:
              bool norel=false);
     ~query_pt() override;
 
-    void find(const cseq& query, std::vector<cseq>& results, int max) override;
+    void find(const cseq& query, result_vector& results, int max) override;
     unsigned int size() const override;
 
     /**
@@ -117,19 +117,19 @@ public:
      *  range_cover: minimum sequences touching alignment edge
      *  leave_query_out: drop sequence with matching id
      */
-    double match(std::vector<cseq> &family,
-                         const cseq& queryc,
-                         int min_match,
-                         int max_match,
-                         float min_score,
-                         float max_score,
-                         query_arb *arb,
-                         bool noid,
-                         int min_len,
-                         int num_full,
-                         int full_min_len,
-                         int range_cover,
-                         bool leave_query_out) override;
+    double match(result_vector &family,
+                 const cseq& queryc,
+                 int min_match,
+                 int max_match,
+                 float min_score,
+                 float max_score,
+                 query_arb *arb,
+                 bool noid,
+                 int min_len,
+                 int num_full,
+                 int full_min_len,
+                 int range_cover,
+                 bool leave_query_out) override;
 
     void set_find_type_fast(bool fast);
     void set_probe_len(int len);

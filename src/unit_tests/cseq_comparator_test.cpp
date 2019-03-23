@@ -34,17 +34,17 @@ using std::string;
 BOOST_AUTO_TEST_SUITE(CSEQ_COMPARATOR_test);
 
 
-cseq c1 ("",0, "----AGCUAGCU-------");
-cseq c2 ("",0, "--------AGCUAGCU---");
-cseq c3 ("",0, "----AGCUAGCUAGCU---");
-cseq c4 ("",0, "--------AGCU-------");
-cseq c5 ("",0, "----AGAGAGAG-------");
-cseq c6 ("",0, "--------AGAGAGAG---");
-cseq c7 ("",0, "----agagAGAGagag---");
-cseq c8 ("",0, "----AG-CU-A-G-CU---");
-cseq c9 ("",0, "----MGCU-A-G-CU--");
-cseq c10("",0, "----NNCUBADG-CU----");
-cseq c11("",0, "---VVVCUAGCU-----");
+cseq c1 ("", "----AGCUAGCU-------");
+cseq c2 ("", "--------AGCUAGCU---");
+cseq c3 ("", "----AGCUAGCUAGCU---");
+cseq c4 ("", "--------AGCU-------");
+cseq c5 ("", "----AGAGAGAG-------");
+cseq c6 ("", "--------AGAGAGAG---");
+cseq c7 ("", "----agagAGAGagag---");
+cseq c8 ("", "----AG-CU-A-G-CU---");
+cseq c9 ("", "----MGCU-A-G-CU--");
+cseq c10("", "----NNCUBADG-CU----");
+cseq c11("", "---VVVCUAGCU-----");
 
 CASE(cover_basic) {
     cseq_comparator comp(CMP_IUPAC_OPTIMISTIC,

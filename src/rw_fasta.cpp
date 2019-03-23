@@ -337,7 +337,7 @@ struct rw_fasta::writer::priv_data {
         logger->info("wrote {} sequences ({} excluded, {} relatives)",
                      count, excluded, relatives_written.size());
     }
-    void write(cseq& c);
+    void write(const cseq& c);
 };
 
 rw_fasta::writer::writer(const fs::path& outfile,
@@ -402,26 +402,27 @@ rw_fasta::writer::operator()(tray t) {
         ++data->excluded;
         return t;
     }
-    auto idty = t.aligned_sequence->get_attr<float>(query_arb::fn_idty);
-    if (opts->min_idty > idty) {
-        logger->info("Not writing sequence {} (>{}): below identity threshold ({}<={})",
-                     t.seqno, t.input_sequence->getName(),
-                     idty, opts->min_idty);
-        ++data->excluded;
-        return t;
+    if (opts->min_idty > 0) {
+        auto idty = t.aligned_sequence->get_attr<float>(query_arb::fn_idty, 0);
+        if (opts->min_idty > idty) {
+            logger->info("Not writing sequence {} (>{}): below identity threshold ({}<={})",
+                         t.seqno, t.input_sequence->getName(),
+                         idty, opts->min_idty);
+            ++data->excluded;
+            return t;
+        }
     }
     cseq &c = *t.aligned_sequence;
 
     data->write(c);
 
     if (data->copy_relatives != 0u) {
-        std::vector<cseq> *relatives =
-            t.search_result != nullptr ? t.search_result : t.alignment_reference;
+        auto *relatives = t.search_result != nullptr ? t.search_result : t.alignment_reference;
         if (relatives != nullptr) {
             int i = data->copy_relatives;
-            for (auto& seq : *relatives) {
-                if (data->relatives_written.insert(seq.getName()).second) {
-                    data->write(seq);
+            for (auto& item : *relatives) {
+                if (data->relatives_written.insert( item.sequence->getName() ).second) {
+                    data->write(*item.sequence);
                 }
                 if (--i == 0) {
                     break;
@@ -434,11 +435,11 @@ rw_fasta::writer::operator()(tray t) {
 }
 
 void
-rw_fasta::writer::priv_data::write(cseq& c) {
+rw_fasta::writer::priv_data::write(const cseq& c) {
     const auto& attrs = c.get_attrs();
 
     out << ">" << c.getName();
-    string fname = c.get_attr<string>(query_arb::fn_fullname);
+    string fname = c.get_attr<string>(query_arb::fn_fullname, "");
     if (!fname.empty()) {
         out << " " << fname;
     }

@@ -128,11 +128,11 @@ class query_arb{
     int getSeqCount() const;
     std::vector<std::string> getSequenceNames();
 
-    cseq& getCseq(const std::string& name);
+    const cseq& getCseq(const std::string& name);
     cseq getCseqUncached(const std::string& name);
     void putCseq(const cseq& seq);
     void putSequence(const cseq& seq);//calls write
-    void loadKey(cseq& c, const std::string& key);
+    void loadKey(const cseq& c, const std::string& key);
     void storeKey(cseq& c, const std::string& key);
 
     long getAlignmentWidth();

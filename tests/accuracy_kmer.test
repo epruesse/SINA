@@ -35,7 +35,7 @@ capture_stdouterr "$SINA --select-step 250 --realign"
 assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.996"
-assert_output_value avg_cpm: "<0.00011"
+assert_output_value avg_cpm: "<0.0002"
 assert_output_value avg_idty: ">0.96"
 end_test
 
@@ -44,7 +44,7 @@ capture_stdouterr "$SINA --select-step 250 --realign --fs-leave-query-out"
 assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.996"
-assert_output_value avg_cpm: "<0.0001"
+assert_output_value avg_cpm: "<0.00025"
 assert_output_value avg_idty: ">0.96"
 end_test
 
@@ -53,7 +53,7 @@ capture_stdouterr "$SINA --select-step 250 --realign --fs-leave-query-out --fs-k
 assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.996"
-assert_output_value avg_cpm: "<0.00011"
+assert_output_value avg_cpm: "<0.0002"
 assert_output_value avg_idty: ">0.96"
 end_test
 
@@ -62,7 +62,7 @@ capture_stdouterr "$SINA --select-step 250 --realign --fs-leave-query-out --fs-k
 assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.996"
-assert_output_value avg_cpm: "<0.0001"
+assert_output_value avg_cpm: "<0.00015"
 assert_output_value avg_idty: ">0.96"
 end_test
 
@@ -72,8 +72,7 @@ assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.99"
 assert_output_value avg_cpm: "<0.001"
-assert_output_value avg_idty: "<0.9"
-assert_output_value avg_idty: ">0.88"
+assert_output_value avg_idty: ">0.88" "<0.9"
 end_test
 
 begin_test "realign msc 0.8"
@@ -82,8 +81,7 @@ assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.97"
 assert_output_value avg_cpm: "<0.002"
-assert_output_value avg_idty: "<0.8"
-assert_output_value avg_idty: ">0.78"
+assert_output_value avg_idty: ">0.78" "<0.8"
 end_test
 
 begin_test "realign msc 0.7"
@@ -92,8 +90,7 @@ assert_exit_success
 assert_output_contains "align 48 sequences"
 assert_output_value avg_sps: ">0.95"
 assert_output_value avg_cpm: "<0.01"
-assert_output_value avg_idty: "<0.7"
-assert_output_value avg_idty: ">0.68"
+assert_output_value avg_idty: ">0.68" "<0.7"
 end_test
 
 

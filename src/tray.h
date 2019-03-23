@@ -33,6 +33,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "alignment_stats.h"
 #include <boost/shared_ptr.hpp>
 #include <iostream>
+#include "search.h"
 
 namespace sina {
 
@@ -40,10 +41,11 @@ namespace sina {
 class tray {
 public:
     unsigned int seqno{0};
+    // FIXME: turn changes input sequence
     cseq *input_sequence{nullptr};
     cseq *aligned_sequence{nullptr};
-    std::vector<cseq> *alignment_reference{nullptr};
-    std::vector<cseq> *search_result{nullptr};
+    search::result_vector *alignment_reference{nullptr};
+    search::result_vector *search_result{nullptr};
     std::stringstream log;
     alignment_stats *astats{nullptr};
     

@@ -41,16 +41,19 @@ operator<<(std::ostream& out, const aligned_base_profile& ab)
 } // namespace sina
 
 using namespace sina;
-pseq::pseq(std::vector<cseq>::iterator seqs_it,
-           std::vector<cseq>::iterator seqs_end) {
-
-    width = seqs_it->getWidth();
+pseq::pseq(std::vector<const cseq*>::iterator seqs_it,
+           std::vector<const cseq*>::iterator seqs_end)
+    : width(0)
+{
+    if (seqs_it != seqs_end) {
+        width = (*seqs_it)->getWidth();
+    }
     int height = 0;
 
-    std::vector<cseq::iterator> base_iterators, base_ends;
+    std::vector<cseq::const_iterator> base_iterators, base_ends;
     for (; seqs_it != seqs_end; ++seqs_it) {
-        base_iterators.push_back(seqs_it->begin());
-        base_ends.push_back(seqs_it->end());
+        base_iterators.push_back((*seqs_it)->begin());
+        base_ends.push_back((*seqs_it)->end());
         ++height;
     }
 
@@ -67,7 +70,7 @@ pseq::pseq(std::vector<cseq>::iterator seqs_it,
         int A=0, G=0, C=0, T=0;
         int gapOpen=0, gapExtend=0;
         for (int row = 0; row < height; ++row) {
-            cseq::iterator it = base_iterators[row];
+            cseq::const_iterator it = base_iterators[row];
             if (it != base_ends[row] &&
                 it->getPosition() == current_column) {
                 if (it->ambig_order() > 0) {

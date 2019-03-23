@@ -413,7 +413,7 @@ query_pt::set_range(int startpos, int stoppos) {
 }
 
 double
-query_pt::match(std::vector<cseq> &family, const cseq& queryc,
+query_pt::match(search::result_vector &family, const cseq& queryc,
                 int min_match, int max_match, float min_score, float max_score,
                 query_arb *arb, bool noid, int min_len,
                 int num_full, int full_min_len, int range_cover, bool leave_query_out
@@ -502,22 +502,11 @@ match_retry:
         f_relscore = 1 - log(f_relscore + 1.0/bs.size)/log(1.0/bs.size);
 
         if (matches <= min_match || f_relscore >= min_score) {
-            if (arb != nullptr) {
-                bool sequence_broken=false;
-                cseq seq(f_name);
-                try {
-                    seq = arb->getCseq(f_name);
-                } catch (base_iupac::bad_character_exception& e) {
-                    logger->error("Sequence {} contains invalid character{}. Skipping",
-                                  f_name, e.character);
-                    sequence_broken=true;
-                }
-                seq.setScore(f_relscore);
+            try {
+                const cseq& seq = arb->getCseq(f_name);
+
                 if (max_score <= 2 && cmp(queryc, seq) > max_score) {
                     skipped_max_score ++;
-                } else
-                if (sequence_broken) {
-                    skipped_broken ++;
                 } else if ((long)seq.size() < min_len) {
                     skipped_min_len ++;
                 } else if (noid && boost::algorithm::icontains(seq.getBases(), query)) {
@@ -525,7 +514,7 @@ match_retry:
                 } else {
                     matches ++;
 
-                    family.push_back(seq);
+                    family.emplace_back(f_relscore, &seq);
 
                     if ((num_full != 0) && (long)seq.size() > full_min_len) {
                         num_full--;
@@ -539,11 +528,10 @@ match_retry:
                         range_cover_left--;
                     }
                 }
-            } else {
-                if (f_relscore <= max_score) {
-                    family.emplace_back(f_name, f_relscore);
-                    ++matches;
-                }
+            } catch (base_iupac::bad_character_exception& e) {
+                logger->error("Sequence {} contains invalid character{}. Skipping",
+                              f_name, e.character);
+                skipped_broken++;
             }
         }
 
@@ -553,48 +541,45 @@ match_retry:
              && f_list.exists());
 
     // get full length sequence
-    if (arb != nullptr) {
-        while (f_list.exists() && ((num_full + range_cover_right + range_cover_left) != 0)) {
-            err = aisc_get(data->link, PT_FAMILYLIST, f_list,
-                           FAMILYLIST_NAME, &f_name,
-                           FAMILYLIST_MATCHES, &f_relscore,
-                           FAMILYLIST_NEXT, f_list.as_result_param(),
-                           NULL);
+    while (f_list.exists() && ((num_full + range_cover_right + range_cover_left) != 0)) {
+        err = aisc_get(data->link, PT_FAMILYLIST, f_list,
+                       FAMILYLIST_NAME, &f_name,
+                       FAMILYLIST_MATCHES, &f_relscore,
+                       FAMILYLIST_NEXT, f_list.as_result_param(),
+                       NULL);
 
-            if (err != 0) {
-                logger->warn("Unable to get next item in family list");
-                break;
-            }
-            if (data->find_type_fast) {
-                f_relscore *= 4;
-            }
-
-            cseq seq = arb->getCseq(f_name);
-            seq.setScore(f_relscore);
-            if (max_score >= 2 || cmp(queryc, seq) <= max_score) {
-                bool keep = false;
-                if ((num_full != 0) && (long)seq.size() > full_min_len) {
-                    num_full--;
-                    keep = true;
-                }
-
-                if ((range_cover_right != 0) && (long)seq.size() > min_len &&
-                    seq.getById(seq.size()-1).getPosition() >= data->range_end) {
-                    range_cover_right--;
-                    keep = true;
-                }
-
-                if ((range_cover_left != 0) && (long)seq.size() > min_len &&
-                    seq.begin()->getPosition() <= data->range_begin) {
-                    range_cover_left--;
-                    keep = true;
-                } 
-                if (keep) {
-                    family.push_back(seq);
-                } 
-            }
-            free(f_name);
+        if (err != 0) {
+            logger->warn("Unable to get next item in family list");
+            break;
         }
+        if (data->find_type_fast) {
+            f_relscore *= 4;
+        }
+
+        const cseq& seq = arb->getCseq(f_name);
+        if (max_score >= 2 || cmp(queryc, seq) <= max_score) {
+            bool keep = false;
+            if ((num_full != 0) && (long)seq.size() > full_min_len) {
+                num_full--;
+                keep = true;
+            }
+
+            if ((range_cover_right != 0) && (long)seq.size() > min_len &&
+                seq.getById(seq.size()-1).getPosition() >= data->range_end) {
+                range_cover_right--;
+                keep = true;
+            }
+
+            if ((range_cover_left != 0) && (long)seq.size() > min_len &&
+                seq.begin()->getPosition() <= data->range_begin) {
+                range_cover_left--;
+                keep = true;
+            }
+            if (keep) {
+                family.emplace_back(f_relscore, &seq);
+            }
+        }
+        free(f_name);
     }
 
     if ((skipped_max_score != 0) || (skipped_broken != 0) || (skipped_min_len != 0) || (skipped_noid != 0)) {
@@ -610,7 +595,7 @@ match_retry:
 }
 
 void
-query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
+query_pt::find(const cseq& query, search::result_vector& results, int max) {
     data->timeit.start();
     char *error = nullptr;
     results.clear();
@@ -663,13 +648,10 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
     }
     data->timeit.stop("get all");
 
-    std::transform(scored_names.begin(), scored_names.end(),
-                   std::back_inserter(results),
-                   [&] (std::pair<float, string> hit) {
-                       cseq c = data->arbdb->getCseq(hit.second);
-                       c.setScore(hit.first);
-                       return c;
-                   });
+    for (auto& res : scored_names) {
+        results.emplace_back(res.first, &data->arbdb->getCseq(res.second));
+    }
+
     data->timeit.stop("load seqs");
 }
 
@@ -751,14 +733,14 @@ query_pt_pool::query_pt_pool(std::shared_ptr<query_pt_pool::pimpl> p)
 query_pt_pool::~query_pt_pool() {}
 
 void
-query_pt_pool::find(const cseq& query, std::vector<cseq>& results, int max) {
+query_pt_pool::find(const cseq& query, result_vector& results, int max) {
     query_pt *pt = impl->borrow();
     pt->find(query, results, max);
     impl->giveback(pt);
 }
 
 double
-query_pt_pool::match(std::vector<cseq> &family, const cseq& queryc, int min_match,
+query_pt_pool::match(result_vector& family, const cseq& queryc, int min_match,
                      int max_match, float min_score, float max_score, query_arb *arb,
                      bool noid, int min_len, int num_full, int full_min_len,
                      int range_cover, bool leave_query_out) {

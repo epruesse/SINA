@@ -306,9 +306,9 @@ rw_arb::writer::operator()(tray t) {
         auto* relatives = t.search_result != nullptr ? t.search_result : t.alignment_reference;
         if (relatives != nullptr) {
             int i = data->copy_relatives;
-            for (auto& seq : *relatives) {
-                if (data->relatives_written.insert(seq.getName()).second) {
-                    data->arb->putCseq(seq);
+            for (auto& item : *relatives) {
+                if (data->relatives_written.insert( item.sequence->getName() ).second) {
+                    data->arb->putCseq(*item.sequence);
                     data->count++;
                 }
                 if (--i == 0) {

@@ -53,6 +53,20 @@ protected:
     search() = default;
 public:
     virtual ~search() = default;
+    struct result_item {
+        result_item(float sc, const cseq* seq) : score(sc), sequence(seq) {}
+        float score;
+        const cseq* sequence;
+        bool operator<(const result_item& o) const {
+            if (score < o.score) return true;
+            if (score > o.score) return false;
+            return *sequence < *o.sequence;
+        }
+        bool operator>(const result_item& o) const {
+            return !operator<(o);
+        }
+    };
+    using result_vector = std::vector<result_item>;
 
     /**
      * match runs a word search using the PT server
@@ -72,7 +86,7 @@ public:
      *  range_cover: minimum sequences touching alignment edge
      *  leave_query_out: drop sequence with matching id
      */
-    virtual double match(std::vector<cseq> &family,
+    virtual double match(result_vector &family,
                          const cseq& query,
                          int min_match,
                          int max_match,
@@ -86,7 +100,7 @@ public:
                          int range_cover,
                          bool leave_query_out) = 0;
 
-    virtual void find(const cseq& query, std::vector<cseq>& results, int max) = 0;
+    virtual void find(const cseq& query, result_vector& results, int max) = 0;
 
     virtual unsigned int size() const = 0;
 };

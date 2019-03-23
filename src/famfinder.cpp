@@ -248,7 +248,7 @@ public:
     void do_turn_check(cseq& /*c*/);
     int turn_check(const cseq& /*query*/, bool /*all*/);
     void select_astats(tray &t);
-    void match(std::vector<cseq>& results, const cseq& query);
+    void match(search::result_vector& results, const cseq& query);
 
     impl();
     impl(const impl&);
@@ -337,30 +337,30 @@ famfinder::impl::do_turn_check(cseq &c) {
 
 int
 famfinder::impl::turn_check(const cseq& query, bool all) {
-    std::vector<cseq> matches;
+    search::result_vector matches;
     double score[4];
 
     index->find(query, matches, 1);
-    score[0] = matches.empty() ? 0 : matches[0].getScore();
+    score[0] = matches.empty() ? 0 : matches[0].score;
 
     cseq turn(query);
     turn.reverse();
     if (all) {
         index->find(turn, matches, 1);
-        score[1] = matches.empty() ? 0 : matches[0].getScore();
+        score[1] = matches.empty() ? 0 : matches[0].score;
 
         cseq comp(query);
         comp.complement();
 
         index->find(comp, matches, 1);
-        score[2] = matches.empty() ? 0 : matches[0].getScore();
+        score[2] = matches.empty() ? 0 : matches[0].score;
     } else {
         score[1] = score[2] = 0;
     }
 
     turn.complement();
     index->find(turn, matches, 1);
-    score[3] = matches.empty() ? 0 : matches[0].getScore();
+    score[3] = matches.empty() ? 0 : matches[0].score;
 
     double max = 0;
     int best = 0;
@@ -396,15 +396,15 @@ famfinder::impl::select_astats(tray& t) {
     // fixme: prefers higher level filters, should prefer most specific
     // filter, i.e. bacteria will always beat bacteria;proteobacteria
     if (opts.posvar_autofilter_field.length() > 0) {
-        vector<cseq> &vc = *t.alignment_reference;
+        auto &vc = *t.alignment_reference;
         int best_count = 0;
         using vastats_t = pair<string, alignment_stats>;
         alignment_stats *best = nullptr;
         for (alignment_stats& p: vastats) {
             string filter_name = p.getName();
             int n = 0;
-            for (cseq &r: vc) {
-                string f = opts.posvar_filter + ":" + r.get_attr<string>(opts.posvar_autofilter_field);
+            for (auto &r: vc) {
+                string f = opts.posvar_filter + ":" + r.sequence->get_attr<string>(opts.posvar_autofilter_field);
                 if (boost::algorithm::istarts_with(f, filter_name)) {
                     ++n;
                 }
@@ -430,21 +430,11 @@ famfinder::impl::select_astats(tray& t) {
     t.astats = astats;
 }
 
-/* tests if cseq has less than n gaps before last base */
-struct has_max_n_gaps {
-    using result_type = bool;
-    const unsigned int n_gaps;
-    explicit has_max_n_gaps(unsigned int _n_gaps) : n_gaps(_n_gaps) {}
-    bool operator()(const cseq& c) {
-        return 0 == c.size() // safety, must have bases
-            || c.rbegin()->getPosition() - c.size() +1 < n_gaps; 
-    }
-};
 
 tray
 famfinder::impl::operator()(tray t) {
-    t.alignment_reference = new vector<cseq>();
-    vector<cseq> &vc = *t.alignment_reference;
+    t.alignment_reference = new search::result_vector();
+    auto &vc = *t.alignment_reference;
     cseq &c = *t.input_sequence;
 
     do_turn_check(c);
@@ -461,24 +451,27 @@ famfinder::impl::operator()(tray t) {
 
     // prepare log string for alignment reference
     fmt::memory_buffer tmp;
-    for (cseq &r: vc) {
+    for (auto &r: vc) {
         if (opts.posvar_autofilter_field.length() > 0) {
-            arb->loadKey(r, opts.posvar_autofilter_field);
+            arb->loadKey(*r.sequence, opts.posvar_autofilter_field);
         }
-        arb->loadKey(r, query_arb::fn_acc);
-        arb->loadKey(r, query_arb::fn_start);
+        arb->loadKey(*r.sequence, query_arb::fn_acc);
+        arb->loadKey(*r.sequence, query_arb::fn_start);
         fmt::format_to(tmp, "{}.{}:{:.2f} ",
-                       r.get_attr<string>(query_arb::fn_acc),
-                       r.get_attr<string>(query_arb::fn_start),
-                       r.getScore());
+                       r.sequence->get_attr<string>(query_arb::fn_acc),
+                       r.sequence->get_attr<string>(query_arb::fn_start, "0"),
+                       r.score);
     }
     c.set_attr(query_arb::fn_family_str, string(tmp.data(), tmp.size()));
 
     // remove sequences having too few gaps
+    // FIXME: this should be done in match()
     if (opts.fs_req_gaps != 0) {
-        vc.erase(std::remove_if(vc.begin(), vc.end(), 
-                                has_max_n_gaps(opts.fs_req_gaps)),
-                 vc.end());
+        auto too_few_gaps = [&](search::result_item& i) {
+            return 0 == i.sequence->size()
+            || i.sequence->rbegin()->getPosition() - i.sequence->size() + 1 < opts.fs_req_gaps;
+        };
+        vc.erase(std::remove_if(vc.begin(), vc.end(), too_few_gaps), vc.end());
     }
 
     // load apropriate alignment statistics into tray
@@ -497,7 +490,7 @@ famfinder::impl::operator()(tray t) {
 
 
 void
-famfinder::impl::match(std::vector<cseq>& results, const cseq& query) {
+famfinder::impl::match(search::result_vector& results, const cseq& query) {
     unsigned int min_match = opts.fs_min;
     unsigned int max_match = opts.fs_max;
     float min_score = opts.fs_msc;
@@ -509,19 +502,21 @@ famfinder::impl::match(std::vector<cseq>& results, const cseq& query) {
     unsigned int range_cover = opts.fs_cover_gene;
     bool leave_query_out = opts.fs_leave_query_out;
 
+    using item_t = search::result_item;
+
     size_t range_begin = 0, range_end = 0;
-    auto is_full = [full_min_len](const cseq& result) {
-        return result.size() >= full_min_len;
+    auto is_full = [full_min_len](const item_t& result) {
+        return result.sequence->size() >= full_min_len;
     };
-    auto is_range_left = [range_begin](const cseq& result) {
-        return result.begin()->getPosition() <= range_begin;
+    auto is_range_left = [range_begin](const item_t& result) {
+        return result.sequence->begin()->getPosition() <= range_begin;
     };
-    auto is_range_right = [range_end](const cseq& result) {
-        return result.getById(result.size()-1).getPosition() >= range_end;
+    auto is_range_right = [range_end](const item_t& result) {
+        return result.sequence->getById(result.sequence->size()-1).getPosition() >= range_end;
     };
 
     size_t have = 0, have_full = 0, have_cover_left = 0, have_cover_right = 0;
-    auto count_good = [&](const cseq& result) {
+    auto count_good = [&](const item_t& result) {
         ++have;
         if (num_full && is_full(result)) {
             ++have_full;
@@ -536,46 +531,46 @@ famfinder::impl::match(std::vector<cseq>& results, const cseq& query) {
     };
 
     // matches results shorter than min_len
-    auto remove_short = [min_len](const cseq& result) {
-        return result.size() < min_len;
+    auto remove_short = [min_len](const item_t& result) {
+        return result.sequence->size() < min_len;
     };
 
     // matches results sharing name with query
-    auto remove_query = [&, leave_query_out](const cseq& result) {
-        return leave_query_out && query.getName() == result.getName();
+    auto remove_query = [&, leave_query_out](const item_t& result) {
+        return leave_query_out && query.getName() == result.sequence->getName();
     };
 
     // matches results containing query
-    auto remove_superstring = [&, noid](const cseq& result) {
-        return noid && boost::algorithm::icontains(result.getBases(), query.getBases());
+    auto remove_superstring = [&, noid](const item_t& result) {
+        return noid && boost::algorithm::icontains(result.sequence->getBases(), query.getBases());
     };
 
     // matches results too similar to query
     cseq_comparator cmp(CMP_IUPAC_OPTIMISTIC, CMP_DIST_NONE, CMP_COVER_QUERY, false);
-    auto remove_similar = [&, max_score](const cseq& result) {
-        return max_score <= 2 && cmp(query, result) > max_score;
+    auto remove_similar = [&, max_score](const item_t& result) {
+        return max_score <= 2 && cmp(query, *result.sequence) > max_score;
     };
 
-    auto min_reached = [&](const cseq& result) {
+    auto min_reached = [&](const item_t& result) {
         return have >= min_match;
     };
-    auto max_reached = [&](const cseq& result) {
+    auto max_reached = [&](const item_t& result) {
         return have >= max_match;
     };
-    auto score_good = [&](const cseq& result) {
-        return result.getScore() < min_score;
+    auto score_good = [&](const item_t& result) {
+        return result.score < min_score;
     };
-    auto adds_to_full = [&](const cseq& result) {
+    auto adds_to_full = [&](const item_t& result) {
         return num_full && have_full < num_full && is_full(result);
     };
-    auto adds_to_range = [&](const cseq& result) {
+    auto adds_to_range = [&](const item_t& result) {
         return
         (range_cover && have_cover_right < range_cover && is_range_right(result))
         || (range_cover && have_cover_left < range_cover && is_range_left(result))
         ;
     };
 
-    auto remove = [&](const cseq& result) {
+    auto remove = [&](const item_t& result) {
         return
         remove_short(result) ||
         remove_query(result) ||
@@ -589,7 +584,7 @@ famfinder::impl::match(std::vector<cseq>& results, const cseq& query) {
     };
 
     size_t max_results = max_match + 1;
-    std::vector<cseq>::iterator from;
+    search::result_vector::iterator from;
     while (have < max_match || have_full < num_full ||
            have_cover_left < range_cover || have_cover_right < range_cover) {
 

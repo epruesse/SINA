@@ -60,7 +60,7 @@ public:
 
     // Constructors / assignment operator
 
-    cseq_base(const char* _name, float _score = 0.f, const char* _data = nullptr);
+    cseq_base(const char* _name, const char* _data = nullptr);
     cseq_base() = default;
     cseq_base& operator=(const cseq_base& rhs) = default;
     cseq_base(const cseq_base& orig) = default;
@@ -119,12 +119,6 @@ public:
     /* set sequence name */
     void setName(std::string n) { name=std::move(n); }
 
-    /* get sequence score */
-    float getScore() const { return score; }
-
-    /* set sequence score */
-    void setScore(float f) { score = f; }
-
     void assignFromCompressed(const void *data, size_t len);
     void compressAligned(std::vector<unsigned char> &out);
 
@@ -142,12 +136,12 @@ public:
     iterator getIterator(cseq_base::vidx_type i);
     const_iterator getIterator(cseq_base::vidx_type i) const;
 
-    char operator [](vidx_type i);
+    char operator [](vidx_type i) const;
     const aligned_base& getById(idx_type i) const { return bases[i]; } 
 
 
     // io operations dealing with vector<*cseq_base>
-    static void write_alignment(std::ostream& ofs, std::vector<cseq_base*>& seqs,
+    static void write_alignment(std::ostream& ofs, std::vector<const cseq_base*>& seqs,
                                 cseq_base::idx_type from_pos, cseq_base::idx_type to_pos,
                                 bool colors = false);
 
@@ -165,15 +159,14 @@ public:
         //attributes != rhs.attributes;
             // || score != rhs.score;
     }
-    bool operator<(const cseq_base& rhs) const { return score < rhs.score; }
-    bool operator>(const cseq_base& rhs) const { return score > rhs.score; }
+    bool operator<(const cseq_base& rhs) const { return name < rhs.name; }
+    bool operator>(const cseq_base& rhs) const { return name > rhs.name; }
     std::vector<std::pair<unsigned int, unsigned int>> find_differing_parts(const cseq_base& right) const;
 
 private:
     std::string name;
     std::vector<aligned_base> bases;
     unsigned int alignment_width{0};
-    float score{0.f};
 
     template <typename FUNC>
     friend void traverse(const cseq_base& A, const cseq_base& B, FUNC F);
@@ -244,8 +237,8 @@ class annotated_cseq : public cseq_base {
 public:
     using variant = boost::variant<std::string, char, int, float>;
 
-    annotated_cseq(const char* _name, float _score = 0.f, const char* _data = nullptr)
-        : cseq_base(_name, _score, _data) {}
+    annotated_cseq(const char* _name, const char* _data = nullptr)
+        : cseq_base(_name, _data) {}
     annotated_cseq() : cseq_base() {}
 
     template<typename T>
@@ -254,8 +247,16 @@ public:
     }
 
     template<typename T>
-    T get_attr(const std::string& attr) {
-        return boost::apply_visitor(lexical_cast_visitor<T>(), attributes[attr]);
+    T get_attr(const std::string& attr) const {
+        return boost::apply_visitor(lexical_cast_visitor<T>(), attributes.at(attr));
+    }
+    template<typename T>
+    T get_attr(const std::string& attr, T value) const {
+        if (attributes.find(attr) != attributes.end()) {
+            return boost::apply_visitor(lexical_cast_visitor<T>(), attributes.at(attr));
+        } else {
+            return value;
+        }
     }
 
     const std::map<std::string,variant>& get_attrs() const { return attributes; }
@@ -265,8 +266,8 @@ private:
 
 /* specialization returning variant directly */
 template<> inline annotated_cseq::variant
-annotated_cseq::get_attr<annotated_cseq::variant>(const std::string& attr) {
-    return attributes[attr];
+annotated_cseq::get_attr<annotated_cseq::variant>(const std::string& attr) const {
+    return attributes.at(attr);
 }
 
 

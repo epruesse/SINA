@@ -106,7 +106,7 @@ public:
     ~impl() {
         logger->info("Timings for Kmer Search: {}", timeit);
     }
-    void find(const cseq& query, std::vector<cseq>& results, int max);
+    void find(const cseq& query, result_vector& results, int max);
     void build();
     void store(const fs::path& filename);
     bool try_load(const fs::path& filename);
@@ -341,7 +341,7 @@ kmer_search::impl::try_load(const fs::path& filename) {
 }
 
 double
-kmer_search::match(std::vector<cseq>& results,
+kmer_search::match(result_vector& results,
                    const cseq& query,
                    int   min_match,
                    int   max_match,
@@ -359,12 +359,12 @@ kmer_search::match(std::vector<cseq>& results,
 }
 
 void
-kmer_search::find(const cseq& query, std::vector<cseq>& results, int max) {
+kmer_search::find(const cseq& query, result_vector& results, int max) {
     pimpl->find(query, results, max);
 }
 
 void
-kmer_search::impl::find(const cseq& query, std::vector<cseq>& results, int max) {
+kmer_search::impl::find(const cseq& query, result_vector& results, int max) {
     if (max > n_sequences) {
         max = n_sequences;
     }
@@ -411,8 +411,7 @@ kmer_search::impl::find(const cseq& query, std::vector<cseq>& results, int max) 
     results.clear();
     results.reserve(max);
     for (int i=0; i<max; i++) {
-        results.emplace_back(arbdb->getCseq(sequence_names[ranks[i].second]));
-        results.back().setScore(ranks[i].first);
+        results.emplace_back(ranks[i].first, &arbdb->getCseq(sequence_names[ranks[i].second]));
     }
     timing.stop("load result");
 }

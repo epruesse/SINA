@@ -45,8 +45,8 @@ using namespace sina;
 
 static auto logger = Log::create_logger("cseq");
 
-cseq_base::cseq_base(const char *_name, float _score, const char *_data)
-    : name(_name), score(_score)
+cseq_base::cseq_base(const char *_name, const char *_data)
+    : name(_name)
 {
     if (_data != nullptr) {
         append(_data);
@@ -265,7 +265,7 @@ cseq_base::assignFromCompressed(const void* data, size_t len) {
 
 
 char
-cseq_base::operator[](cseq_base::vidx_type i) {
+cseq_base::operator[](cseq_base::vidx_type i) const {
     vector<aligned_base>::const_iterator it = getIterator(i);
     if (it != bases.end() && i == it->getPosition()) {
         return it->getBase();
@@ -359,7 +359,7 @@ string color_code(const string& in) {
 }
 
 void
-cseq_base::write_alignment(std::ostream& ofs, std::vector<cseq_base*>& seqs,
+cseq_base::write_alignment(std::ostream& ofs, std::vector<const cseq_base*>& seqs,
                       cseq_base::idx_type from_pos,
                       cseq_base::idx_type to_pos,
                       bool colors

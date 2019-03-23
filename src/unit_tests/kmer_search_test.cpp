@@ -97,7 +97,7 @@ BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture) {
     for (int run = 0; run < 2; ++run) {
         kmer_search::release_kmer_search(dbname);
         kmer_search *search_index = kmer_search::get_kmer_search(dbname);
-        std::vector<cseq> family;
+        search::result_vector family;
         for (unsigned int i = 0; i < N; i++) {
             if (i % (N/50) == 0) {
                 std::cerr << ".";
@@ -105,15 +105,14 @@ BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture) {
             cseq query = arbdb->getCseq(ids[i]);
             search_index->find(query, family, M);
             BOOST_TEST(family.size() == M);
-            float max_score = family[0].getScore();
-            std::vector<cseq>::iterator self;
-            self = std::find_if(family.begin(), family.end(),
-                                [&](const cseq &c) {
-                                    return c.getName() == query.getName();}
+            float max_score = family[0].score;
+            auto self = std::find_if(family.begin(), family.end(),
+                                     [&](const search::result_item &i) {
+                                         return i.sequence->getName() == query.getName();}
                 );
             BOOST_REQUIRE((self != family.end()));
             if (self != family.end()) {
-                BOOST_TEST(self->getScore() == max_score);
+                BOOST_TEST(self->score == max_score);
             }
         }
         std::cerr << std::endl;
@@ -124,7 +123,7 @@ BOOST_FIXTURE_TEST_CASE(kmer_simple1, Fixture) {
 
 BOOST_FIXTURE_TEST_CASE(pt_simple, Fixture, *boost::unit_test::tolerance(0.0001)) {
     search *search_index = query_pt::get_pt_search(arbdb->getFileName());
-    std::vector<cseq> family;
+    search::result_vector family;
     for (unsigned int i = 0; i < N; i++) {
         if (i % (N/50) == 0) {
             std::cerr << ".";
@@ -132,14 +131,14 @@ BOOST_FIXTURE_TEST_CASE(pt_simple, Fixture, *boost::unit_test::tolerance(0.0001)
         cseq query = arbdb->getCseq(ids[i]);
         search_index->find(query, family, M);
         BOOST_TEST(family.size() == M);
-        float max_score = family[0].getScore();
+        float max_score = family[0].score;
         auto self = std::find_if(family.begin(), family.end(),
-                            [&](const cseq &c) {
-                                return c.getName() == query.getName();}
+                                 [&](const search::result_item &i) {
+                                return i.sequence->getName() == query.getName();}
             );
         BOOST_TEST((self != family.end()));
         // PT server counts duplicate kmers twice, allow for some discrepancy
-        BOOST_TEST(self->getScore() > max_score - 5);
+        BOOST_TEST(self->score > max_score - 5); // FIXME: now relative?
     }
     std::cerr << std::endl;
     delete search_index;

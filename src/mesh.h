@@ -756,9 +756,7 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
         << ", aligned-bases=" << aligned_bases
         << ", score=" << rval/sum_weight <<"; ";
 
-    out.setScore(rval/sum_weight);
-
-    return rval;
+    return rval/sum_weight;
 }
 
 } // namespace sina

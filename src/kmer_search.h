@@ -62,21 +62,21 @@ public:
      *  range_cover: minimum sequences touching alignment edge
      *  leave_query_out: drop sequence with matching id
      */
-    double match(std::vector<cseq> &results,
-                         const cseq& query,
-                         int min_match,
-                         int max_match,
-                         float min_score,
-                         float max_score,
-                         query_arb *arb,
-                         bool noid,
-                         int minlen,
-                         int num_full,
-                         int minlen_full,
-                         int range_cover,
-                         bool leave_query_out) override;
+    double match(result_vector &results,
+                 const cseq& query,
+                 int min_match,
+                 int max_match,
+                 float min_score,
+                 float max_score,
+                 query_arb *arb,
+                 bool noid,
+                 int minlen,
+                 int num_full,
+                 int minlen_full,
+                 int range_cover,
+                 bool leave_query_out) override;
 
-    void find(const cseq& query, std::vector<cseq>& results, int max) override;
+    void find(const cseq& query, result_vector& results, int max) override;
 
     unsigned int size() const override;
     /**

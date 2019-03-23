@@ -59,6 +59,7 @@ using std::map;
 #include "query_arb.h"
 #include "query_arb.h"
 #include "progress.h"
+#include "search.h"
 
 using namespace sina;
 namespace po = boost::program_options;
@@ -241,7 +242,6 @@ struct Log::printer::priv_data {
     double total_cpm{0};
     double total_idty{0};
     double total_bps{0};
-    double total_score{0};
 
     std::ofstream out;
 
@@ -249,11 +249,11 @@ struct Log::printer::priv_data {
 
     std::vector<int> helix_pairs;
 
-    void show_dist(cseq& orig, cseq& aligned, std::vector<cseq>& ref);
+    void show_dist(cseq& orig, cseq& aligned, search::result_vector& ref);
 };
 
 
-void Log::printer::priv_data::show_dist(cseq& orig, cseq& aligned, std::vector<cseq>& ref) {
+void Log::printer::priv_data::show_dist(cseq& orig, cseq& aligned, search::result_vector& ref) {
     if (arb != nullptr) {  // we have a comparison db
         string name = orig.getName();
         orig = arb->getCseq(name);
@@ -281,18 +281,19 @@ void Log::printer::priv_data::show_dist(cseq& orig, cseq& aligned, std::vector<c
     cseq_comparator cmp_optimistic(CMP_IUPAC_OPTIMISTIC, CMP_DIST_NONE,
                                    CMP_COVER_QUERY, false);
 
-    for (auto& r : ref) {
-        r.setScore(cmp_optimistic(orig, r));
+    auto scored = ref; // copy
+    for (auto& item : scored) {
+        item.score = cmp_optimistic(orig, *item.sequence);
     }
 
-    std::sort(ref.begin(), ref.end());
-    cseq &closest = *ref.rbegin();
+    std::sort(scored.begin(), scored.end());
+    auto &closest = *scored.rbegin();
 
-    float orig_idty = closest.getScore();
+    float orig_idty = closest.score;
     total_idty += orig_idty;
     logger->info("orig_closest_idty: {:.6f}", orig_idty);
 
-    float aligned_idty = cmp_optimistic(aligned, closest);
+    float aligned_idty = cmp_optimistic(aligned, *closest.sequence);
     logger->info("closest_idty: {:.6f}", aligned_idty);
     float cpm = orig_idty - aligned_idty;
     logger->info("cpm: {:.6f}", cpm);
@@ -327,7 +328,6 @@ Log::printer& Log::printer::operator=(const printer& o) = default;
 Log::printer::~printer() = default;
 
 Log::printer::priv_data::~priv_data() {
-    logger->info("avg_score: {}", total_score / sequence_num);
     if (Log::opts->show_dist) {
         logger->warn("avg_sps: {:.6f}", total_sps / sequence_num);
         logger->warn("avg_cpm: {:.6f}", total_cpm / sequence_num);
@@ -387,20 +387,17 @@ Log::printer::operator()(tray t) {
         aligned.set_attr(query_arb::fn_astop, 0);
     }
 
-    logger->info("sequence_score: {}", aligned.getScore());
-    data->total_score += aligned.getScore();
-
     for (auto& ap: aligned.get_attrs()) {
         string val = boost::apply_visitor(lexical_cast_visitor<string>(),
                                           ap.second);
         logger->info("{}: {}", ap.first, val);
     }
 
-    std::vector<cseq> ref;
-    if (t.alignment_reference != nullptr) {
-        ref = *t.alignment_reference;
-    } else if (t.search_result != nullptr) {
+    search::result_vector ref;
+    if (t.search_result != nullptr) {
         ref = *t.search_result;
+    } else if (t.alignment_reference != nullptr) {
+        ref = *t.alignment_reference;
     }
 
     if (opts->show_dist) {
@@ -408,9 +405,9 @@ Log::printer::operator()(tray t) {
     }
 
     if (opts->show_diff) {
-        std::vector<cseq_base*> refptrs;
+        std::vector<const cseq_base*> refptrs;
         for (auto& i : ref) {
-            refptrs.push_back(&i);
+            refptrs.push_back(i.sequence);
         }
         refptrs.push_back(t.input_sequence);
         refptrs.push_back(t.aligned_sequence);
