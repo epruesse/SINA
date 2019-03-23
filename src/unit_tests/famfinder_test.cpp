@@ -90,18 +90,26 @@ BOOST_DATA_TEST_CASE_F(Fixture, turn, bdata::make({"internal", "pt-server"}), en
     configure({"--db", arbdb->getFileName().c_str(), "--fs-engine", engine});
 
     famfinder finder;
-    
+
     for (unsigned int i = 0; i < N; i++) {
         cseq query = arbdb->getCseq(ids[i]);
-        BOOST_TEST(finder.turn_check(query, false) == 0);
-        BOOST_TEST(finder.turn_check(query, true) == 0);
-        query.reverse();
-        BOOST_TEST(finder.turn_check(query, true) == 1);
-        query.complement();
-        BOOST_TEST(finder.turn_check(query, false) == 3);
-        BOOST_TEST(finder.turn_check(query, true) == 3);
-        query.reverse();
-        BOOST_TEST(finder.turn_check(query, true) == 2);
+        BOOST_TEST_CONTEXT("Test " << i << "(sequence " << query.getName() << ")") {
+            BOOST_TEST_INFO("Unturned; just revcomp");
+            BOOST_TEST(finder.turn_check(query, false) == 0);
+            BOOST_TEST_INFO("Unturned; all orientations");
+            BOOST_TEST(finder.turn_check(query, true) == 0);
+            query.reverse();
+            BOOST_TEST_INFO("Reversed; all orientations");
+            BOOST_TEST(finder.turn_check(query, true) == 1);
+            query.complement();
+            BOOST_TEST_INFO("Revcomp'ed; just revcomp");
+            BOOST_TEST(finder.turn_check(query, false) == 3);
+            BOOST_TEST_INFO("Revcomp'ed; all orientations");
+            BOOST_TEST(finder.turn_check(query, true) == 3);
+            query.reverse();
+            BOOST_TEST_INFO("Comp'ed; all orientations");
+            BOOST_TEST(finder.turn_check(query, true) == 2);
+        }
         std::cerr << ".";
     }
     std::cerr << std::endl;
