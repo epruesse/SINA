@@ -94,10 +94,10 @@ auto logger = sina::Log::create_logger("align");
 namespace sina {
 
 template<typename SCORING_SCHEME, typename MASTER>
-void choose_transition(cseq& c, cseq& orig, MASTER& m, SCORING_SCHEME& s, ostream& log);
+void choose_transition(cseq& c, const cseq& orig, MASTER& m, SCORING_SCHEME& s, ostream& log);
 
 template<typename transition, typename MASTER>
-void do_align(cseq& c, cseq& orig, MASTER& m, transition& tr, ostream& log);
+void do_align(cseq& c, const cseq& orig, MASTER& m, transition& tr, ostream& log);
 
 struct aligner::options {
     bool realign;
@@ -297,23 +297,6 @@ make_datetime() {
         return string(buf);
 }
 
-struct not_icontains {
-    using result_type = bool;
-    const string bases;
-    explicit not_icontains(string  _bases) : bases(std::move(_bases)) {}
-    bool operator()(const cseq& c) {
-        return !boost::algorithm::icontains(c.getBases(), bases);
-    }
-};
-
-struct iequals_cmp {
-    using result_type = bool;
-    const string bases;
-    explicit iequals_cmp(string  _bases) : bases(std::move(_bases)) {}
-    bool operator()(const cseq& c) {
-        return iequals(bases, c.getBases());
-    }
-};
 
 aligner::aligner() = default;
 aligner::~aligner() = default;
@@ -324,65 +307,72 @@ aligner& aligner::operator=(const aligner&  /*a*/) = default;
 tray
 aligner::operator()(tray t) {
     // skip if requirements missing
-    // FIXME: add logging here
     if ((t.input_sequence == nullptr) ||
         (t.alignment_reference == nullptr) ||
         (t.astats == nullptr) ) {
+        logger->error("Internal error - incomplete data for alignment");
         return t;
     }
     // prepare variables
     cseq &c = *(new cseq(*t.input_sequence)); // working copy
-    vector<cseq> &vc = *t.alignment_reference;
-    string bases = c.getBases(); // unaligned sequence
+    search::result_vector &vc = *t.alignment_reference;
+    const string bases = c.getBases(); // unaligned sequence
 
     if (opts->lowercase != LOWERCASE_ORIGINAL) {
         c.upperCaseAll();
     }
 
     // sort reference sequences containing candidate to end of family
-    auto it = partition(vc.begin(), vc.end(), not_icontains(bases));
+    auto not_contains_query = [&](search::result_item& item) {
+        // FIXME: we can do this w/o converting to string
+        return !boost::algorithm::icontains(item.sequence->getBases(), bases);
+    };
+    auto begin_containing = partition(vc.begin(), vc.end(), not_contains_query);
 
     // if there are such sequences...
-    if (it != vc.end()) {
-        if (opts->realign) { // ...either realign (throw them out)
+    if (begin_containing != vc.end()) {
+        if (opts->realign) { // realign means ignore those sequences
+            // FIXME: this should be done in famfinder to re-fill family
             t.log << "sequences ";
-            for (auto it2 = it; it2 != vc.end(); ++it2) {
-                t.log << it->get_attr<string>(query_arb::fn_acc) << " ";
+            for (auto it = begin_containing; it != vc.end(); ++it) {
+                t.log << it->sequence->get_attr<string>(query_arb::fn_acc) << " ";
             }
             t.log << "containing exact candidate removed from family;";
-            vc.erase(it, vc.end());
-            if (it == vc.begin()) {
+            vc.erase(begin_containing, vc.end());
+            if (vc.empty()) {
                 t.log << "that's ALL of them. skipping sequence;";
                 return t;
             }
-        } else { // ...or steal their alignment
-            auto exact_match = find_if(it, vc.end(), iequals_cmp(bases));
+        } else { // otherwise, we steal the alignment
+            auto same_as_query = [&](search::result_item& item) {
+                return iequals(bases, item.sequence->getBases());
+            };
+            auto exact_match = find_if(begin_containing, vc.end(), same_as_query);
             if (exact_match != vc.end()) {
-                c.setAlignedBases(exact_match->getAlignedBases());
+                c.setAlignedBases(exact_match->sequence->const_getAlignedBases());
                 t.log << "copied alignment from identical template sequence "
-                      << exact_match->get_attr<string>(query_arb::fn_acc) << ":"
-                      << exact_match->get_attr<string>(query_arb::fn_start)
+                      << exact_match->sequence->get_attr<string>(query_arb::fn_acc) << ":"
+                      << exact_match->sequence->get_attr<string>(query_arb::fn_start, "0")
                       << "; ";
             } else {
-                vector<aligned_base> subalignment, refalignment;
-                string refsequence = it->getBases();
-                boost::iterator_range<string::iterator> substr;
-                refalignment = it->getAlignedBases();
-
-                substr = boost::ifind_first(refsequence,bases);
+                vector<aligned_base> subalignment;
+                vector<aligned_base> refalignment = begin_containing->sequence->const_getAlignedBases();
+                string refsequence = begin_containing->sequence->getBases();
+                boost::iterator_range<string::iterator> substr =
+                    boost::ifind_first(refsequence, bases);
                 subalignment.reserve(substr.size());
-                std::copy( refalignment.begin() + std::distance(refsequence.begin(), substr.begin()),
-                           refalignment.begin() + std::distance(refsequence.begin(), substr.end()),
-                           std::back_inserter(subalignment) );
-
+                std::copy(refalignment.begin() + std::distance(refsequence.begin(), substr.begin()),
+                          refalignment.begin() + std::distance(refsequence.begin(), substr.end()),
+                          std::back_inserter(subalignment));
                 c.setAlignedBases(subalignment);
                 t.log << "copied alignment from (longer) template sequence "
-                      << it->get_attr<string>(query_arb::fn_acc) << ":"
-                      << it->get_attr<string>(query_arb::fn_start)
+                      << begin_containing->sequence->get_attr<string>(query_arb::fn_acc) << ":"
+                      << begin_containing->sequence->get_attr<string>(query_arb::fn_start, "0")
                       << "; ";
                 BOOST_ASSERT(bases == c.getBases());
-           }
-            c.setWidth(it->getWidth());
+            }
+
+            c.setWidth(begin_containing->sequence->getWidth());
             c.set_attr(query_arb::fn_date, make_datetime());
             c.set_attr(query_arb::fn_qual, 100);
             if (opts->calc_idty) {
@@ -396,9 +386,15 @@ aligner::operator()(tray t) {
         }
     }
 
+    std::vector<const cseq*> vcp;
+    vcp.reserve(vc.size());
+    for (auto& r : vc) {
+        vcp.push_back(r.sequence);
+    }
+
     if (!opts->fs_no_graph) {
         // prepare reference
-        mseq m(vc.begin(), vc.end(), opts->fs_weight);
+        mseq m(vcp.begin(), vcp.end(), opts->fs_weight);
         // (remove duplicate edges:)
         m.sort();
         m.reduce_edges();
@@ -416,11 +412,11 @@ aligner::operator()(tray t) {
                 choose_transition(c, *t.input_sequence, m, s, t.log);
             }
         } else {
-            vector<float> weights(vc.begin()->getWidth(), 1.f);
+            vector<float> weights(vc.begin()->sequence->getWidth(), 1.f);
             if (t.astats->getWidth() == 0) { // FIXME: this looks broken
                 weights = t.astats->getWeights();
             }
-            float dist = vc.begin()->getScore();
+            float dist = vc.begin()->score;
             t.log << "using dist: " << dist << endl;
             scoring_scheme_matrix<aligned_base::matrix_type>
                 s(opts->gap_penalty, opts->gap_ext_penalty, weights,
@@ -428,7 +424,7 @@ aligner::operator()(tray t) {
             choose_transition(c, *t.input_sequence, m, s, t.log);
         }
     } else {
-        pseq p(vc.begin(), vc.end());
+        pseq p(vcp.begin(), vcp.end());
         scoring_scheme_profile s(-opts->match_score, -opts->mismatch_score,
                                  opts->gap_penalty, opts->gap_ext_penalty);
         choose_transition(c, *t.input_sequence, p, s, t.log);
@@ -436,8 +432,8 @@ aligner::operator()(tray t) {
 
     if (opts->write_used_rels) {
         stringstream tmp;
-        for (const cseq &s: vc) {
-            tmp << s.getName() << " ";
+        for (auto &s: vc) {
+            tmp << s.sequence->getName() << " ";
         }
         c.set_attr(query_arb::fn_used_rels, tmp.str());
     }
@@ -448,8 +444,8 @@ aligner::operator()(tray t) {
                                 CMP_COVER_OVERLAP,
                                 false);
         float idty = 0;
-        for (const cseq &s: vc) {
-            idty = std::max(idty, calc_id(c, s));
+        for (auto &s: vc) {
+            idty = std::max(idty, calc_id(c, *s.sequence));
         }
         c.set_attr(query_arb::fn_idty, 100.f*idty);
     }
@@ -463,7 +459,7 @@ aligner::operator()(tray t) {
 
 template<typename SCORING_SCHEME, typename MASTER>
 void
-sina::choose_transition(cseq& c, cseq& orig, MASTER& m,
+sina::choose_transition(cseq& c, const cseq& orig, MASTER& m,
                   SCORING_SCHEME& s, ostream& log) {
     if (aligner::opts->insertion == INSERTION_FORBID) {
         transition_aspace_aware<SCORING_SCHEME, MASTER, cseq> tr(s);
@@ -476,7 +472,7 @@ sina::choose_transition(cseq& c, cseq& orig, MASTER& m,
 
 template<typename transition, typename MASTER>
 void
-sina::do_align(cseq& c, cseq& orig, MASTER &m,
+sina::do_align(cseq& c, const cseq& orig, MASTER &m,
                transition &tr, ostream& log) {
 
     using cnsts_type = compute_node_simple<transition>;
@@ -489,9 +485,6 @@ sina::do_align(cseq& c, cseq& orig, MASTER &m,
     mesh_t A(m, c);
 
     int oh_head, oh_tail;
-#ifdef DEBUG
-    log << "refsize: " << m.size() << "; ";
-#endif
 
     // compute values of mesh nodes
     compute(A, cns);
@@ -500,15 +493,15 @@ sina::do_align(cseq& c, cseq& orig, MASTER &m,
     c.clearSequence();
 
     // run backtracking on the mesh
-    backtrack(A, c, tr,
-              aligner::opts->overhang,
-              aligner::opts->lowercase,
-              aligner::opts->insertion,
-              oh_head, oh_tail, log);
+    float score = backtrack(A, c, tr,
+                            aligner::opts->overhang,
+                            aligner::opts->lowercase,
+                            aligner::opts->insertion,
+                            oh_head, oh_tail, log);
     // alignment done :-)
     c.set_attr(query_arb::fn_head, oh_head);
     c.set_attr(query_arb::fn_tail, oh_tail);
-    c.set_attr(query_arb::fn_qual, (int)std::min(100.f, std::max(0.f, 100.f * c.getScore())));
+    c.set_attr(query_arb::fn_qual, (int)std::min(100.f, std::max(0.f, 100.f * score)));
 
     if (aligner::opts->debug_graph) {
         ofstream out(fmt::format("mseq_{}.dot", c.getName()));

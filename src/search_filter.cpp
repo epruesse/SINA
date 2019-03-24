@@ -30,6 +30,8 @@ for the parts of ARB used as well as that of the covered work.
 #include "config.h"
 #include "log.h"
 #include "progress.h"
+#include "famfinder.h"
+#include "kmer_search.h"
 
 #include <string>
 using std::string;
@@ -65,6 +67,7 @@ static auto logger = Log::create_logger("search");
 
 struct search_filter::options {
     fs::path pt_database;
+    ENGINE_TYPE engine;
     string pt_port;
     bool search_all;
     string posvar_filter;
@@ -93,7 +96,10 @@ search_filter::get_options_description(po::options_description& main,
 
     po::options_description mid("Search & Classify");
     mid.add_options()
-        ("search-db", po::value<fs::path>(&opts->pt_database), "reference db")
+        ("search-db", po::value<fs::path>(&opts->pt_database),
+         "reference db if different from -r/--db")
+        ("search-engine", po::value<ENGINE_TYPE>(&opts->engine),
+         "engine if different from --fs-engine")
         ("search-min-sim", po::value<float>(&opts->min_sim)->default_value(.7, ""),
          "required sequence similarity (0.7)")
         ("search-max-result", po::value<int>(&opts->max_result)->default_value(10, ""),
@@ -149,6 +155,9 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
         }
     }
 
+    if (vm.count("search-engine") == 0u) {
+        opts->engine = famfinder::get_engine();
+    }
 
     opts->comparator = cseq_comparator::make_from_variables_map(vm, "search-");
 
@@ -162,7 +171,6 @@ search_filter::validate_vm(boost::program_options::variables_map& vm,
     if (opts->v_copy_fields.back().empty()) {
         opts->v_copy_fields.pop_back();
     }
-
 }
 
 } // namespace sina
@@ -172,7 +180,7 @@ using namespace sina;
 struct search_filter::priv_data {
     std::unique_ptr<search> index;
     query_arb *arb;
-    vector<cseq*> sequences;
+    vector<const cseq*> sequences;
 };
 
 search_filter::search_filter()
@@ -187,14 +195,25 @@ search_filter::search_filter()
             data->sequences.push_back(&data->arb->getCseq(name));
             ++p;
         }
-    } else {
+    } else if (opts->engine == ENGINE_ARB_PT) {
         data->index = std::unique_ptr<search>(
-            new query_pt(opts->pt_port.c_str(), opts->pt_database.c_str(),
-                         not opts->fs_no_fast,
-                         opts->fs_kmer_len,
-                         opts->fs_kmer_mm,
-                         opts->fs_kmer_norel)
-            );
+            query_pt_pool::get_pool(
+                opts->pt_database,
+                opts->fs_kmer_len,
+                not opts->fs_no_fast,
+                opts->fs_kmer_norel,
+                opts->fs_kmer_mm,
+                opts->pt_port
+                ));
+    } else if (opts->engine == ENGINE_SINA_KMER) {
+        data->index = std::unique_ptr<search>(
+            kmer_search::get_kmer_search(
+                opts->pt_database,
+                opts->fs_kmer_len,
+                opts->fs_no_fast
+                ));
+    } else {
+        throw std::runtime_error("Unknown engine");
     }
 }
 
@@ -221,21 +240,6 @@ struct dereference {
     F _f;
 };
 
-struct iupac_contains {
-    struct iupac_compare {
-        using result_type = bool;
-        bool operator()(const aligned_base& a, const aligned_base& b) const {
-            return a.comp(b);
-        }
-    };
-    using result_type = bool;
-    vector<aligned_base> ref;
-    explicit iupac_contains(cseq& c) : ref(c.getAlignedBases()) {}
-    bool operator()(cseq& c) {
-        return boost::algorithm::contains(c.getAlignedBases(), ref, iupac_compare());
-    }
-};
-
 tray
 search_filter::operator()(tray t) {
     cseq *c;
@@ -251,46 +255,63 @@ search_filter::operator()(tray t) {
         return t;
     }
 
-    t.search_result = new vector<cseq>();
-    vector<cseq>& vc = *t.search_result; 
+    t.search_result = new search::result_vector();
+    auto& vc = *t.search_result;
+
+
+    auto iupac_compare = [](const aligned_base& a, const aligned_base& b) {
+        return a.comp(b);
+    };
+    auto contains_query = [&](search::result_item& item) {
+        return boost::algorithm::contains(item.sequence->const_getAlignedBases(),
+                                          c->const_getAlignedBases(),
+                                          iupac_compare);
+    };
 
     string bases = c->getBases();
     if (opts->search_all) {
-        for (cseq *r: data->sequences) {
-            r->setScore(opts->comparator(*c, *r));
+        search::result_vector result;
+        result.reserve(data->sequences.size());
+        for (const cseq *r: data->sequences) {
+            result.emplace_back(opts->comparator(*c, *r), r);
         }
-        auto it = data->sequences.begin();
+        auto it = result.begin();
         auto middle = it + opts->max_result;
-        const vector<cseq*>::iterator end = data->sequences.end();
-
+        auto end = result.end();
         
         do {
-            partial_sort(it, middle, end, dereference<std::greater<cseq> >());
+            partial_sort(it, middle, end, std::greater<search::result_item>());
             if (opts->ignore_super) {
                 // sort sequences containing query to beginning
                 // reset "start" to beginnin of non-identical section
                 middle = it + opts->max_result;
-                it = partition(it, middle, dereference<iupac_contains>(iupac_contains(*c)));
+                it = partition(it, middle, contains_query);
             }
             // repeat if we removed some just above
         } while (middle != end && it + opts->max_result > middle); 
 
-        while (it != middle && (*it)->getScore() > opts->min_sim) {
-            vc.push_back(**it);
+        while (it != middle && it->score > opts->min_sim) {
+            vc.push_back(*it);
             ++it;
         }
     } else {
-        data->index->match(vc, *c, 1, opts->kmer_candidates, 0.3, 2.0, data->arb,
-                           false, 50, 0, 0, 0,false);
+        data->index->find(*c, vc, opts->kmer_candidates);
+        int i=0;
+        for (auto &r: vc) { //FIXME: remove bug tracing here
+            ++i;
+            if (r.sequence->const_getAlignedBases().data() == nullptr) {
+                logger->error("BUG {} {}", *c, i);
+                logger->error("  {}", *r.sequence);
+            }
+        }
+
         if (opts->ignore_super) {
-            iupac_contains contains(*c);
-            auto it = partition(vc.begin(), vc.end(),
-                                [&](cseq& c) {return not contains(c);});
+            auto it = partition(vc.begin(), vc.end(), contains_query);
             vc.erase(it, vc.end());
         }
 
-        for (cseq &r: vc) {
-            r.setScore(opts->comparator(*c,r));
+        for (auto& r: vc) {
+            r.score = opts->comparator(*c, *r.sequence);
         }
 
         auto it = vc.begin();
@@ -301,9 +322,9 @@ search_filter::operator()(tray t) {
             middle = end;
         }
 
-        partial_sort(it, middle, end, std::greater<cseq>());
+        partial_sort(it, middle, end, std::greater<search::result_item>());
 
-        while (it != middle && it->getScore() > opts->min_sim) {
+        while (it != middle && it->score > opts->min_sim) {
             ++it;
         }
 
@@ -312,7 +333,8 @@ search_filter::operator()(tray t) {
 
     fmt::memory_buffer nearest;
     map<string, vector<vector<string> > > group_names_map;
-    for (cseq &r: vc) {
+    for (auto &i: vc) {
+        const cseq& r = *i.sequence;
         data->arb->loadKey(r, "acc");
         data->arb->loadKey(r, "version");
         data->arb->loadKey(r, "start");
@@ -338,7 +360,7 @@ search_filter::operator()(tray t) {
                        r.get_attr<string>("version"),
                        r.get_attr<string>("start"),
                        r.get_attr<string>("stop"),
-                       r.getScore());
+                       i.score);
 
         string acc = r.get_attr<string>("acc");
         for (string& s: opts->v_copy_fields) {

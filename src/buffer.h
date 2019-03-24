@@ -26,54 +26,57 @@ non-source form of such a combination shall include the source code
 for the parts of ARB used as well as that of the covered work.
 */
 
-#ifndef _FAMFINDER_H_
-#define _FAMFINDER_H_
+#ifndef _BUFFER_H_
+#define _BUFFER_H_
 
-#include "tray.h"
-#include "search.h"
-
-#include <memory>
-#include <boost/program_options.hpp>
-
+#include <tbb/scalable_allocator.h>
 
 namespace sina {
 
-enum TURN_TYPE {
-    TURN_NONE=0,
-    TURN_REVCOMP=1,
-    TURN_ALL=2
-};
-std::ostream& operator<<(std::ostream& out, const sina::TURN_TYPE& t);
-void validate(boost::any& v, const std::vector<std::string>& values,
-              sina::TURN_TYPE* /*unused*/,int /*unused*/);
-
-
-class famfinder {
-private:
-    class impl;
-    std::shared_ptr<impl> pimpl;
+template<typename T>
+class buffer {
 public:
-    famfinder();
-    famfinder(const famfinder& o);
-    famfinder& operator=(const famfinder& o);
-    ~famfinder();
-    tray operator()(const tray& t);
-
-    int turn_check(const cseq& query, bool all);
-
-    static void get_options_description(boost::program_options::options_description& main,
-                                        boost::program_options::options_description& adv);
-    static void validate_vm(boost::program_options::variables_map& vm,
-                            boost::program_options::options_description& desc);
-    static ENGINE_TYPE get_engine();
+    using size_type = size_t;
+    buffer(size_type size) {
+        _start = (T*)scalable_malloc(sizeof(T) * size);
+    }
+    ~buffer() {
+        scalable_free(_start);
+    }
+    T& operator[](size_type idx) {
+        return _start[idx];
+    }
+private:
+    T* _start;
 };
 
+template<typename T, size_t ALIGN=64>
+class aligned_buffer {
+public:
+    using size_type = size_t;
+    aligned_buffer(size_type size) {
+        size_type alloc = sizeof(T) * size + sizeof(offset_t) + ALIGN - 1;
+        void *ptr = scalable_malloc(alloc);
+        if (!ptr) { throw std::bad_alloc(); }
+        size_t res = ((size_t)ptr + sizeof(offset_t) + ALIGN - 1) & ~(ALIGN -1);
+        *((offset_t*)res - 1) = (offset_t)((size_t)res - (size_t)ptr);
+        _start = (T*)res;
+    }
+    ~aligned_buffer() {
+        offset_t offset = *((offset_t*)_start - 1);
+        scalable_free((char*)_start - offset);
+    }
+    T& operator[](size_type idx) {
+        return _start[idx];
+    }
+private:
+    using offset_t = uint16_t;
+    T* _start;
+};
 
 } // namespace sina
 
-
-
-#endif // _FAMFINDER_H_
+#endif // _BUFFER_H_
 
 /*
   Local Variables:
@@ -85,3 +88,4 @@ public:
   End:
 */
 // vim: filetype=cpp:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:encoding=utf-8:textwidth=99 :
+

@@ -58,6 +58,8 @@ using std::map;
 #include "cseq_comparator.h"
 #include "query_arb.h"
 #include "query_arb.h"
+#include "progress.h"
+#include "search.h"
 
 using namespace sina;
 namespace po = boost::program_options;
@@ -189,7 +191,6 @@ Log::validate_vm(po::variables_map& vm,
     console_sink->set_level(opts->verbosity);
     console_sink->set_pattern("%T [%n] %^%v%$");
 
-
     if (vm.count("log-file") != 0u) {
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
             opts->logfile.native(), true);
@@ -221,7 +222,7 @@ Log::create_logger(std::string name) {
         return logger;
     }
     if (sinks.empty()) {
-        sinks.push_back(std::make_shared<spdlog::sinks::stderr_color_sink_mt>());
+        sinks.push_back(std::make_shared<terminal_stderr_sink_mt>());
     }
     logger = std::make_shared<spdlog::logger>(name, sinks.begin(), sinks.end());
     spdlog::register_logger(logger);
@@ -241,14 +242,64 @@ struct Log::printer::priv_data {
     double total_cpm{0};
     double total_idty{0};
     double total_bps{0};
-    double total_score{0};
 
     std::ofstream out;
 
     query_arb *arb{nullptr};
 
     std::vector<int> helix_pairs;
+
+    void show_dist(cseq& orig, cseq& aligned, search::result_vector& ref);
 };
+
+
+void Log::printer::priv_data::show_dist(cseq& orig, cseq& aligned, search::result_vector& ref) {
+    if (arb != nullptr) {  // we have a comparison db
+        string name = orig.getName();
+        orig = arb->getCseq(name);
+        logger->info("len-orig: {}", orig.size());
+        logger->info("len-alig: {}", aligned.size());
+    }
+    if (orig.getWidth() != aligned.getWidth()) {
+        logger->error("Cannot show dist - {} and {} have lengths {} and {}",
+                     orig.getName(), aligned.getName(), orig.getWidth(), aligned.getWidth());
+        return;
+    }
+
+    cseq_comparator cmp_exact(CMP_IUPAC_EXACT, CMP_DIST_NONE,
+                              CMP_COVER_QUERY, false);
+    float sps = cmp_exact(orig, aligned);
+
+    logger->info("orig_idty: {:.6f}", sps);
+    total_sps += sps;
+
+    if (ref.empty()) {
+        logger->info("reference / search result empty?");
+        return;
+    }
+
+    cseq_comparator cmp_optimistic(CMP_IUPAC_OPTIMISTIC, CMP_DIST_NONE,
+                                   CMP_COVER_QUERY, false);
+
+    auto scored = ref; // copy
+    for (auto& item : scored) {
+        item.score = cmp_optimistic(orig, *item.sequence);
+    }
+
+    std::sort(scored.begin(), scored.end());
+    auto &closest = *scored.rbegin();
+
+    float orig_idty = closest.score;
+    total_idty += orig_idty;
+    logger->info("orig_closest_idty: {:.6f}", orig_idty);
+
+    float aligned_idty = cmp_optimistic(aligned, *closest.sequence);
+    logger->info("closest_idty: {:.6f}", aligned_idty);
+    float cpm = orig_idty - aligned_idty;
+    logger->info("cpm: {:.6f}", cpm);
+
+    total_cpm += cpm;
+}
 
 
 Log::printer::printer()
@@ -277,12 +328,11 @@ Log::printer& Log::printer::operator=(const printer& o) = default;
 Log::printer::~printer() = default;
 
 Log::printer::priv_data::~priv_data() {
-    logger->info("avg_score: {}", total_score / sequence_num);
     if (Log::opts->show_dist) {
-        logger->warn("avg_sps: {}", total_sps / sequence_num);
-        logger->warn("avg_cpm: {}", total_cpm / sequence_num);
-        logger->warn("avg_idty: {}", total_idty / sequence_num);
-        logger->info("avg_bps: {}", total_bps / sequence_num);
+        logger->warn("avg_sps: {:.6f}", total_sps / sequence_num);
+        logger->warn("avg_cpm: {:.6f}", total_cpm / sequence_num);
+        logger->warn("avg_idty: {:.6f}", total_idty / sequence_num);
+        logger->warn("avg_bps: {:.6f}", total_bps / sequence_num);
     }
 }
 
@@ -306,7 +356,6 @@ static int calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c
 
 tray
 Log::printer::operator()(tray t) {
-    stringstream tmp;
     if (t.input_sequence == nullptr) {
         throw std::runtime_error("Received broken tray in " __FILE__);
     }
@@ -338,76 +387,38 @@ Log::printer::operator()(tray t) {
         aligned.set_attr(query_arb::fn_astop, 0);
     }
 
-    logger->info("sequence_score: {}", aligned.getScore());
-    data->total_score += aligned.getScore();
-
     for (auto& ap: aligned.get_attrs()) {
         string val = boost::apply_visitor(lexical_cast_visitor<string>(),
                                           ap.second);
         logger->info("{}: {}", ap.first, val);
     }
 
-    std::vector<cseq> ref;
-    if (t.alignment_reference != nullptr) {
-        ref = *t.alignment_reference;
-    } else if (t.search_result != nullptr) {
+    search::result_vector ref;
+    if (t.search_result != nullptr) {
         ref = *t.search_result;
+    } else if (t.alignment_reference != nullptr) {
+        ref = *t.alignment_reference;
     }
 
     if (opts->show_dist) {
-        cseq& orig = *t.input_sequence;
-        if (data->arb != nullptr) {  // we have a comparison db
-            string name = orig.getName();
-            orig = data->arb->getCseq(name);
-            logger->info("len-orig: {}", orig.size());
-            logger->info("len-alig: {}", aligned.size());
-        }
-        cseq_comparator cmp(CMP_IUPAC_EXACT, CMP_DIST_NONE,
-                            CMP_COVER_QUERY, false);
-        float sps = cmp(orig, aligned);
-
-        logger->log((sps > 0.9999) ? spdlog::level::info : spdlog::level::warn,
-                    "orig_idty: {}", sps);
-        data->total_sps += sps;
-
-        if (!ref.empty()) {
-            cseq_comparator cmp(CMP_IUPAC_OPTIMISTIC, CMP_DIST_NONE,
-                                CMP_COVER_QUERY, false);
-            for (auto& r : ref) {
-                r.setScore(cmp(orig, r));
-            }
-            std::sort(ref.begin(), ref.end());
-            cseq &closest = *ref.rbegin();
-
-            float orig_idty = closest.getScore();
-            data->total_idty += orig_idty;
-            logger->info("orig_closest_idty: {}", orig_idty);
-
-            float aligned_idty = cmp(aligned, closest);
-            logger->info("closest_idty: {}", aligned_idty);
-            float cpm = orig_idty - aligned_idty;
-            logger->info("cpm: {}", cpm);
-
-            data->total_cpm += cpm;
-        } else {
-            tmp << "reference / search result empty?" << endl;
-        }
+        data->show_dist(*t.input_sequence, aligned, ref);
     }
 
     if (opts->show_diff) {
-        std::vector<cseq_base*> refptrs;
+        std::vector<const cseq_base*> refptrs;
         for (auto& i : ref) {
-            refptrs.push_back(&i);
+            refptrs.push_back(i.sequence);
         }
         refptrs.push_back(t.input_sequence);
         refptrs.push_back(t.aligned_sequence);
+
+        stringstream tmp;
         for (auto part : t.input_sequence->find_differing_parts(aligned)) {
             cseq::write_alignment(tmp, refptrs, part.first, part.second, opts->colors);
         }
         tmp << endl << endl;
+        logger->info(tmp.str());
     }
-
-    logger->info(tmp.str());
 
     return t;
 }

@@ -80,6 +80,7 @@ src_libsina_la_SOURCES = \
     src/aligned_base.h \
     src/alignment_stats.cpp \
     src/alignment_stats.h \
+    src/buffer.h \
     src/cseq.cpp \
     src/cseq.h \
     src/cseq_impl.h \
@@ -109,6 +110,7 @@ src_libsina_la_SOURCES = \
     src/log.h \
     src/scoring_schemes.h \
     src/search.h \
+    src/search.cpp \
     src/search_filter.cpp \
     src/search_filter.h \
     src/timer.h \
@@ -253,7 +255,7 @@ test_libs = \
 LOG_COMPILER = $(top_srcdir)/tools/test_driver.sh
 
 TEST_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) \
-                  $(top_srcdir)/build-aux/tap-driver.sh
+                  $(top_srcdir)/build-aux/tap-driver.sh --comments
 
 check_PROGRAMS = \
     src/unit_tests/cseq_test \
@@ -283,7 +285,8 @@ test_scripts = \
     tests/align.test \
     tests/search.test \
     tests/infocommands.test \
-    tests/accuracy.test
+    tests/accuracy.test \
+    tests/accuracy_kmer.test
 
 
 check_DATA = test_data/ltp_reduced.arb

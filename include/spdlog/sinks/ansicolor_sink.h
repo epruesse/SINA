@@ -29,7 +29,7 @@ namespace sinks {
  * If no color terminal detected, omit the escape codes.
  */
 template<typename TargetStream, class ConsoleMutex>
-class ansicolor_sink final : public sink
+  class ansicolor_sink /*final*/ : public sink
 {
 public:
     using mutex_t = typename ConsoleMutex::mutex_t;
@@ -132,6 +132,10 @@ public:
         std::lock_guard<mutex_t> lock(mutex_);
         formatter_ = std::move(sink_formatter);
     }
+protected:
+    FILE *target_file_;
+    mutex_t &mutex_;
+    bool should_do_colors_;
 
 private:
     void print_ccode_(const std::string &color_code)
@@ -143,10 +147,7 @@ private:
         fwrite(formatted.data() + start, sizeof(char), end - start, target_file_);
     }
 
-    FILE *target_file_;
-    mutex_t &mutex_;
 
-    bool should_do_colors_;
     std::unordered_map<level::level_enum, std::string, level::level_hasher> colors_;
 };
 

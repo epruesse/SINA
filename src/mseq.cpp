@@ -44,30 +44,33 @@ using namespace sina;
 
 
 /* turns a number of sequences into a graph */
-mseq::mseq(std::vector<cseq>::iterator seqs_begin,
-           std::vector<cseq>::iterator seqs_end,
+mseq::mseq(std::vector<const cseq*>::iterator seqs_begin,
+           std::vector<const cseq*>::iterator seqs_end,
            float weight)
-    : num_seqs(seqs_end-seqs_begin), bases_width(seqs_begin->getWidth())
+    : num_seqs(seqs_end-seqs_begin), bases_width(0)
 {
+    if (seqs_begin != seqs_end) {
+        bases_width = (*seqs_begin)->getWidth();
+    }
     // Sanity check input
     for (auto it = seqs_begin; it != seqs_end; ++it) {
-        if (bases_width != it->getWidth()) {
+        if (bases_width != (*it)->getWidth()) {
             logger->critical("Sequence {} ({}/{}): length = {} expected {}",
-                             it->getName(), it-seqs_begin, seqs_end - seqs_begin,
-                             it->getWidth(), bases_width);
+                             (*it)->getName(), it-seqs_begin, seqs_end - seqs_begin,
+                             (*it)->getWidth(), bases_width);
             throw std::runtime_error(
                 "Aligned sequences to be stored in mseq of differ in length!"
                 );
         }
     }
 
-    vector<cseq::iterator> citv;
+    vector<cseq::const_iterator> citv;
     citv.reserve(num_seqs);
-    vector<cseq::iterator> citv_end;
+    vector<cseq::const_iterator> citv_end;
     citv_end.reserve(num_seqs);
     for (auto seq_it = seqs_begin; seq_it != seqs_end; ++seq_it) {
-        citv.push_back(seq_it->begin());
-        citv_end.push_back(seq_it->end());
+        citv.push_back((*seq_it)->begin());
+        citv_end.push_back((*seq_it)->end());
     }
     aligned_base::idx_type min_next=0;
     vector<iterator>::size_type nodes_size = std::numeric_limits<value_type::base_type>::max();

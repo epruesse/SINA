@@ -35,6 +35,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <iostream>
 #include <sstream>
 #include <cmath>
+#include <mutex>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -56,7 +57,6 @@ using std::vector;
 #include <arbdb.h>
 #include <PT_com.h>
 #include <client.h>
-#include <boost/thread/mutex.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/dll.hpp>
 #include <pstream.h>
@@ -85,6 +85,7 @@ public:
     ~managed_pt_server();
 };
 
+static std::mutex build_lock, launch_lock;
 
 managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
     : dbname(std::move(dbname_)), portname(std::move(portname_))
@@ -129,30 +130,34 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
         }
     }
 
-    // (Re)build index if missing or older than database
-    struct stat ptindex_stat;
-    string ptindex = dbname + ".index.arb.pt";
-    if ((stat(ptindex.c_str(), &ptindex_stat) != 0)
-        || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-        if (arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-            logger->info("PT server index missing for {}. Building:", dbname);
-        } else {
-            logger->info("PT server index out of date for {}. Rebuilding:", dbname);
-        }
+    {
+        std::lock_guard<std::mutex> lock(build_lock);
 
-        vector<string> cmds;
-        cmds.push_back(string("cp ") + dbname + " " + dbname + ".index.arb");
-        cmds.push_back(arb_pt_server_path.native() + " -build_clean -D" + dbname + ".index.arb");
-        cmds.push_back(arb_pt_server_path.native() + " -build -D" + dbname + ".index.arb");
-        for (auto& cmd :  cmds) {
-            logger->debug("Executing '{}'", cmd);
-            system(cmd.c_str());
-            logger->debug("Command finished");
-        }
-
+        // (Re)build index if missing or older than database
+        struct stat ptindex_stat;
+        string ptindex = dbname + ".index.arb.pt";
         if ((stat(ptindex.c_str(), &ptindex_stat) != 0)
             || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-            throw query_pt_exception("Failed to (re)build PT server index! (out of memory?)");
+            if (arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
+                logger->info("PT server index missing for {}. Building:", dbname);
+            } else {
+                logger->info("PT server index out of date for {}. Rebuilding:", dbname);
+            }
+
+            vector<string> cmds;
+            cmds.push_back(string("cp ") + dbname + " " + dbname + ".index.arb");
+            cmds.push_back(arb_pt_server_path.native() + " -build_clean -D" + dbname + ".index.arb");
+            cmds.push_back(arb_pt_server_path.native() + " -build -D" + dbname + ".index.arb");
+            for (auto& cmd :  cmds) {
+                logger->debug("Executing '{}'", cmd);
+                system(cmd.c_str());
+                logger->debug("Command finished");
+            }
+
+            if ((stat(ptindex.c_str(), &ptindex_stat) != 0)
+                || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
+                throw query_pt_exception("Failed to (re)build PT server index! (out of memory?)");
+            }
         }
     }
 
@@ -171,7 +176,11 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
     vector<string> cmd{arb_pt_server_path.native(), "-D"+dbname, "-T"+portname};
     logger->info("Launching background PT server for {} on {}", dbname, portname);
     logger->debug("Executing ['{}']", fmt::join(cmd, "', '"));
-    process = new redi::ipstream(cmd, redi::pstreams::pstdout|redi::pstreams::pstderr);
+    {
+        std::lock_guard<std::mutex> lock(launch_lock);
+        // something in here appears to not be thread safe
+        process = new redi::ipstream(cmd, redi::pstreams::pstdout|redi::pstreams::pstderr);
+    }
 
     // read the pt server output. once it says "ok"
     // we can be sure that it's ready for connections
@@ -223,7 +232,7 @@ struct query_pt::priv_data {
     T_PT_LOCS         locs;
     T_PT_FAMILYFINDER ffinder;
 
-    boost::mutex arb_pt_access;
+    std::mutex arb_pt_access;
 
     unsigned int  range_begin{0};
     unsigned int  range_end{INT_MAX};
@@ -246,7 +255,7 @@ struct query_pt::priv_data {
 
 bool
 query_pt::priv_data::connect_server(const string& portname) {
-    boost::mutex::scoped_lock lock(arb_pt_access);
+    std::lock_guard<std::mutex> lock(arb_pt_access);
     GB_ERROR error = nullptr;
     link = aisc_open(portname.c_str(), com, AISC_MAGIC_NUMBER, &error);
     if (error != nullptr) {
@@ -275,7 +284,7 @@ query_pt::priv_data::connect_server(const string& portname) {
 
 void
 query_pt::priv_data::disconnect_server() {
-    boost::mutex::scoped_lock lock(arb_pt_access);
+    std::lock_guard<std::mutex> lock(arb_pt_access);
     aisc_close(link, com);
 }
 
@@ -331,7 +340,7 @@ query_pt::~query_pt() {
 
 void
 query_pt::set_find_type_fast(bool fast) {
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_FIND_TYPE, fast?1L:0L,
@@ -345,7 +354,7 @@ query_pt::set_find_type_fast(bool fast) {
 
 void
 query_pt::set_probe_len(int len) {
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_PROBE_LEN, long(len),
@@ -359,7 +368,7 @@ query_pt::set_probe_len(int len) {
 
 void
 query_pt::set_mismatches(int len) {
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_MISMATCH_NUMBER, long(len),
@@ -374,7 +383,7 @@ query_pt::set_mismatches(int len) {
 
 void
 query_pt::set_sort_type(bool absolute) {
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
                        FAMILYFINDER_SORT_TYPE, absolute?0L:1L,
@@ -388,7 +397,7 @@ query_pt::set_sort_type(bool absolute) {
 
 void
 query_pt::set_range(int startpos, int stoppos) {
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
 
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
@@ -404,7 +413,7 @@ query_pt::set_range(int startpos, int stoppos) {
 }
 
 double
-query_pt::match(std::vector<cseq> &family, const cseq& queryc,
+query_pt::match(search::result_vector &family, const cseq& queryc,
                 int min_match, int max_match, float min_score, float max_score,
                 query_arb *arb, bool noid, int min_len,
                 int num_full, int full_min_len, int range_cover, bool leave_query_out
@@ -435,7 +444,7 @@ query_pt::match(std::vector<cseq> &family, const cseq& queryc,
 
 match_retry:
     family.reserve(max_match);
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     
     int err = aisc_put(data->link,
                        PT_FAMILYFINDER, data->ffinder,
@@ -493,22 +502,11 @@ match_retry:
         f_relscore = 1 - log(f_relscore + 1.0/bs.size)/log(1.0/bs.size);
 
         if (matches <= min_match || f_relscore >= min_score) {
-            if (arb != nullptr) {
-                bool sequence_broken=false;
-                cseq seq(f_name);
-                try {
-                    seq = arb->getCseq(f_name);
-                } catch (base_iupac::bad_character_exception& e) {
-                    logger->error("Sequence {} contains invalid character{}. Skipping",
-                                  f_name, e.character);
-                    sequence_broken=true;
-                }
-                seq.setScore(f_relscore);
+            try {
+                const cseq& seq = arb->getCseq(f_name);
+
                 if (max_score <= 2 && cmp(queryc, seq) > max_score) {
                     skipped_max_score ++;
-                } else
-                if (sequence_broken) {
-                    skipped_broken ++;
                 } else if ((long)seq.size() < min_len) {
                     skipped_min_len ++;
                 } else if (noid && boost::algorithm::icontains(seq.getBases(), query)) {
@@ -516,7 +514,7 @@ match_retry:
                 } else {
                     matches ++;
 
-                    family.push_back(seq);
+                    family.emplace_back(f_relscore, &seq);
 
                     if ((num_full != 0) && (long)seq.size() > full_min_len) {
                         num_full--;
@@ -530,11 +528,10 @@ match_retry:
                         range_cover_left--;
                     }
                 }
-            } else {
-                if (f_relscore <= max_score) {
-                    family.emplace_back(f_name, f_relscore);
-                    ++matches;
-                }
+            } catch (base_iupac::bad_character_exception& e) {
+                logger->error("Sequence {} contains invalid character{}. Skipping",
+                              f_name, e.character);
+                skipped_broken++;
             }
         }
 
@@ -544,48 +541,45 @@ match_retry:
              && f_list.exists());
 
     // get full length sequence
-    if (arb != nullptr) {
-        while (f_list.exists() && ((num_full + range_cover_right + range_cover_left) != 0)) {
-            err = aisc_get(data->link, PT_FAMILYLIST, f_list,
-                           FAMILYLIST_NAME, &f_name,
-                           FAMILYLIST_MATCHES, &f_relscore,
-                           FAMILYLIST_NEXT, f_list.as_result_param(),
-                           NULL);
+    while (f_list.exists() && ((num_full + range_cover_right + range_cover_left) != 0)) {
+        err = aisc_get(data->link, PT_FAMILYLIST, f_list,
+                       FAMILYLIST_NAME, &f_name,
+                       FAMILYLIST_MATCHES, &f_relscore,
+                       FAMILYLIST_NEXT, f_list.as_result_param(),
+                       NULL);
 
-            if (err != 0) {
-                logger->warn("Unable to get next item in family list");
-                break;
-            }
-            if (data->find_type_fast) {
-                f_relscore *= 4;
-            }
-
-            cseq seq = arb->getCseq(f_name);
-            seq.setScore(f_relscore);
-            if (max_score >= 2 || cmp(queryc, seq) <= max_score) {
-                bool keep = false;
-                if ((num_full != 0) && (long)seq.size() > full_min_len) {
-                    num_full--;
-                    keep = true;
-                }
-
-                if ((range_cover_right != 0) && (long)seq.size() > min_len &&
-                    seq.getById(seq.size()-1).getPosition() >= data->range_end) {
-                    range_cover_right--;
-                    keep = true;
-                }
-
-                if ((range_cover_left != 0) && (long)seq.size() > min_len &&
-                    seq.begin()->getPosition() <= data->range_begin) {
-                    range_cover_left--;
-                    keep = true;
-                } 
-                if (keep) {
-                    family.push_back(seq);
-                } 
-            }
-            free(f_name);
+        if (err != 0) {
+            logger->warn("Unable to get next item in family list");
+            break;
         }
+        if (data->find_type_fast) {
+            f_relscore *= 4;
+        }
+
+        const cseq& seq = arb->getCseq(f_name);
+        if (max_score >= 2 || cmp(queryc, seq) <= max_score) {
+            bool keep = false;
+            if ((num_full != 0) && (long)seq.size() > full_min_len) {
+                num_full--;
+                keep = true;
+            }
+
+            if ((range_cover_right != 0) && (long)seq.size() > min_len &&
+                seq.getById(seq.size()-1).getPosition() >= data->range_end) {
+                range_cover_right--;
+                keep = true;
+            }
+
+            if ((range_cover_left != 0) && (long)seq.size() > min_len &&
+                seq.begin()->getPosition() <= data->range_begin) {
+                range_cover_left--;
+                keep = true;
+            }
+            if (keep) {
+                family.emplace_back(f_relscore, &seq);
+            }
+        }
+        free(f_name);
     }
 
     if ((skipped_max_score != 0) || (skipped_broken != 0) || (skipped_min_len != 0) || (skipped_noid != 0)) {
@@ -601,13 +595,13 @@ match_retry:
 }
 
 void
-query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
+query_pt::find(const cseq& query, search::result_vector& results, unsigned int max) {
     data->timeit.start();
     char *error = nullptr;
     results.clear();
     results.reserve(max);
 
-    boost::mutex::scoped_lock lock(data->arb_pt_access);
+    std::lock_guard<std::mutex> lock(data->arb_pt_access);
     data->timeit.stop("acquire lock");
 
     bytestring bs;
@@ -638,8 +632,9 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
     char* f_name;
     double f_rel_matches = 0.f;
     long f_matches = 0;
+    int mult = (data->find_type_fast) ? 4:1;
 
-    std::vector<std::pair<int, string> > scored_names;
+    std::vector<std::pair<float, string> > scored_names;
     while (max-- && f_list.exists()) {
         aisc_get(data->link, PT_FAMILYLIST, f_list,
                  FAMILYLIST_NAME, &f_name,
@@ -647,19 +642,121 @@ query_pt::find(const cseq& query, std::vector<cseq>& results, int max) {
                  FAMILYLIST_MATCHES, &f_matches,
                  FAMILYLIST_NEXT, f_list.as_result_param(),
                  NULL);
-        scored_names.emplace_back(f_matches, f_name);
+        f_rel_matches = 1 - log((f_rel_matches*mult) + 1.0/bs.size)/log(1.0/bs.size);
+        scored_names.emplace_back(f_rel_matches, f_name);
         free(f_name);
     }
     data->timeit.stop("get all");
 
-    std::transform(scored_names.begin(), scored_names.end(),
-                   std::back_inserter(results),
-                   [&] (std::pair<int, string> hit) {
-                       cseq c = data->arbdb->getCseq(hit.second);
-                       c.setScore(hit.first);
-                       return c;
-                   });
+    for (auto& res : scored_names) {
+        results.emplace_back(res.first, &data->arbdb->getCseq(res.second));
+    }
+
     data->timeit.stop("load seqs");
+}
+
+unsigned int query_pt::size() const {
+    return data->arbdb->getSeqCount();
+}
+
+struct query_pt_pool::pimpl {
+    pimpl(fs::path& filename, int k, bool fast, bool norel, int km, string portname)
+        : _filename(filename), _k(k), _fast(fast), _norel(norel), _km(km), _portname(portname)
+    {}
+    ~pimpl() {
+        for (auto pt : _pts) {
+            delete pt;
+        }
+    }
+
+    using pool_map = std::map<fs::path, std::shared_ptr<query_pt_pool::pimpl>>;
+    static pool_map _pools;
+
+    // parameters for creating new query_pts
+    fs::path _filename;
+    int _k;
+    bool _fast;
+    bool _norel;
+    int _km;
+    string _portname;
+
+    std::mutex _access_pts;
+    std::list<query_pt*> _pts;
+    int _count{0};
+    query_pt* borrow() {
+        int n = 0;
+        {
+            std::lock_guard<std::mutex> lock(_access_pts);
+            if (!_pts.empty()) {
+                query_pt* pt = _pts.front();
+                _pts.pop_front();
+                return pt;
+            }
+            n = _count++;
+        }
+        std::string portname;
+        if (n > 0) {
+            // FIXME: manage the port better. This works for unix sockets, but not
+            // for TCP ports.
+            portname = fmt::format("{}_{}", _portname, n);
+        } else {
+            portname = _portname;
+        }
+        query_pt *pt = query_pt::get_pt_search(
+            _filename, _k, _fast, _norel, _km, portname
+            );
+        return pt;
+    }
+    void giveback(query_pt* pt) {
+        std::lock_guard<std::mutex> lock(_access_pts);
+        _pts.push_front(pt);
+    }
+};
+
+query_pt_pool::pimpl::pool_map query_pt_pool::pimpl::_pools;
+
+query_pt_pool* query_pt_pool::get_pool(fs::path filename,
+                                       int k, bool fast, bool norel, int mk,
+                                       std::string portname) {
+    if (query_pt_pool::pimpl::_pools.count(filename) == 0u) {
+        query_pt_pool::pimpl::_pools.emplace(
+            filename, std::make_shared<query_pt_pool::pimpl>(filename, k, fast, norel, mk, portname)
+            );
+    }
+    return new query_pt_pool(pimpl::_pools.at(filename));
+}
+
+query_pt_pool::query_pt_pool(std::shared_ptr<query_pt_pool::pimpl> p)
+    : impl(p) {
+}
+
+query_pt_pool::~query_pt_pool() {}
+
+void
+query_pt_pool::find(const cseq& query, result_vector& results, unsigned int max) {
+    query_pt *pt = impl->borrow();
+    pt->find(query, results, max);
+    impl->giveback(pt);
+}
+
+double
+query_pt_pool::match(result_vector& family, const cseq& queryc, int min_match,
+                     int max_match, float min_score, float max_score, query_arb *arb,
+                     bool noid, int min_len, int num_full, int full_min_len,
+                     int range_cover, bool leave_query_out) {
+    query_pt *pt = impl->borrow();
+    double res = pt->match(family, queryc, min_match, max_match, min_score, max_score, arb,
+                           noid, min_len, num_full, full_min_len, range_cover, leave_query_out);
+    impl->giveback(pt);
+    return res;
+}
+
+unsigned int
+query_pt_pool::size() const {
+    query_pt *pt = impl->borrow();
+    unsigned int res = pt->size();
+    impl->giveback(pt);
+    return res;
 }
 
 

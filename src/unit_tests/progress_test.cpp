@@ -88,10 +88,10 @@ BOOST_DATA_TEST_CASE(
     std::string result(buf.begin());
     BOOST_TEST_INFO("result: '" << result << "'");
     std::string beg = fmt::format("text:  {}% |", n);
-    std::string end = fmt::format("| {}/100 [00:00:00 / 00:00:00]\n", n);
+    std::string end = fmt::format("| {}/100 [00:00:00 / 00:00:00]\n\x1b[A", n);
     BOOST_TEST_INFO("expected begin: '" << beg << "'");
     BOOST_TEST_INFO("expected end: '" << end << "'");
-    BOOST_REQUIRE_LE(result.size(), width+1);
+    BOOST_REQUIRE_LE(result.size(), width+4);
     BOOST_REQUIRE_GE(result.size(), beg.size() + end.size());
     BOOST_CHECK_EQUAL(result.substr(0, beg.size()), beg);
     BOOST_CHECK_EQUAL(result.substr(result.size()-end.size(), end.size()), end);

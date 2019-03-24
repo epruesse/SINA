@@ -44,6 +44,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "align.h"
 #include "graph.h"
 #include "scoring_schemes.h"
+#include "buffer.h"
 
 namespace sina {
 
@@ -63,17 +64,16 @@ public:
     using slave_idx_type = typename slave_type::idx_type;
 
     using value_type = DATA;
-    using vector_type = std::vector<value_type, ALLOCATOR>;
-    using vector_iterator = typename vector_type::iterator;
+    using vector_type = aligned_buffer<value_type>;
     using size_type = typename vector_type::size_type;
 
     class iterator;
 
-    mesh() = default;
+    mesh() = delete;
     mesh(SEQ_MASTER &m, SEQ_SLAVE &s)
         : _master(m),
           _slave(s),
-          _A(m.size() * s.size()),
+          _data(m.size() * s.size()),
           _master_begin(_master.begin()),
           _slave_begin(_slave.begin())
     {}
@@ -93,12 +93,12 @@ public:
             std::cerr << "$$ mi=" << mi <<" si=" << si << std::endl;
         }
 #endif
-        return _A.at(mi * _slave.size() + si);
+        return _data[mi * _slave.size() + si];
     }
 
     value_type&
     operator()(size_type s) {
-        return _A.at(s);
+        return _data[s];
     }
 
     iterator
@@ -114,7 +114,7 @@ public:
     // private:
     SEQ_MASTER _master;
     SEQ_SLAVE _slave;
-    vector_type _A;
+    vector_type _data;
 
     master_iterator_type _master_begin;
     slave_iterator_type _slave_begin;
@@ -131,7 +131,7 @@ public:
     /* == missing in mseq
     bool
     operator==(const mesh& rhs) {
-        return ( (_A == rhs._A) && (_master == rhs._master) && (_slave == rhs._master) );
+        return ( (_data == rhs._data) && (_master == rhs._master) && (_slave == rhs._master) );
     }
     */
 
@@ -141,7 +141,7 @@ public:
         _master=m;
         _slave=s;
         unsigned int needed = m.size() * s.size();
-        if (_A.size() < needed) _A.resize(needed);
+        if (_data.size() < needed) _data.resize(needed);
         _master_begin=m.begin();
         _slave_begin=s.begin();
     }
@@ -170,17 +170,17 @@ public:
     iterator(mesh_type& _mesh,
              const miterator_type& _mit,
              const siterator_type& _sit)
-        : m(_mesh), mit(_mit), sit(_sit)
+        : mymesh(_mesh), mit(_mit), sit(_sit)
     {
-        sidx = get_node_id(m._slave,sit);
-        midx = get_node_id(m._master,mit);
+        sidx = get_node_id(mymesh._slave, sit);
+        midx = get_node_id(mymesh._master, mit);
     }
 
     iterator& setMaster(miterator_type& _mit) {
-        mit=_mit;
+        mit =_mit;
     }
     iterator& setSlave(siterator_type& _sit) {
-        sit=_sit;
+        sit = _sit;
     }
     miterator_type& getMaster() {
         return miterator_type(mit);
@@ -191,22 +191,22 @@ public:
 
     iterator&
     operator++() {
-       ++sit;
-        sidx = get_node_id(m._slave,sit);
+        ++sit;
+        sidx = get_node_id(mymesh._slave, sit);
 
-        if (sit != m._slave.end()) {
+        if (sit != mymesh._slave.end()) {
             return *this;
         }
 
         ++mit;
-        midx = get_node_id(m._master,mit);
+        midx = get_node_id(mymesh._master, mit);
 
-        if (mit == m._master.end()) {
+        if (mit == mymesh._master.end()) {
             return *this;
         }
 
-        sit=m._slave.begin();
-        sidx = get_node_id(m._slave,sit);
+        sit = mymesh._slave.begin();
+        sidx = get_node_id(mymesh._slave,sit);
         return *this;
     }
 
@@ -214,7 +214,7 @@ public:
     operator==(const iterator& rhs) {
         return (
 //  == missing in mseq and therefor in mesh
-//            (m == rhs.m) && ==
+//            (mymesh == rhs.mymesh) && ==
             (mit == rhs.mit) &&
             (sit == rhs.sit)
             );
@@ -224,17 +224,17 @@ public:
 
     value_type&
     operator*() {
-        return m(*this);
+        return mymesh(*this);
     }
 
     operator size_type() {
-        return (midx * m._slave.size() + sidx);
+        return (midx * mymesh._slave.size() + sidx);
     }
 
     midx_type getMidx() { return midx; }
     sidx_type getSidx() { return sidx; }
 
-    mesh_type      &m;
+    mesh_type      &mymesh;
     miterator_type mit;
     midx_type      midx;
     siterator_type sit;
@@ -474,7 +474,7 @@ struct compute_node_simple {
     calc(T& it)
     {
         using mesh_type = typename T::mesh_type;
-        mesh_type &mesh=it.m;
+        mesh_type &mesh = it.mymesh;
 
         typename master_type::iterator m = it.mit;
         typename slave_type::iterator s = it.sit;
@@ -756,9 +756,7 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
         << ", aligned-bases=" << aligned_bases
         << ", score=" << rval/sum_weight <<"; ";
 
-    out.setScore(rval/sum_weight);
-
-    return rval;
+    return rval/sum_weight;
 }
 
 } // namespace sina

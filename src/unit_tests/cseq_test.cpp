@@ -50,8 +50,6 @@ const string rna = "AGCURYKMSWBDHVN";
 const string rna_aligned = "--A-G---CUR-YKM-S---WBD-HVN---";
 const string rna_aligned_complemented = "--T-C---GAR-YKM-S---WBD-HVN---";
 const string rna_aligned_dots = "..A-G---CUR-YKM-S---WBD-HVN...";
-const float score = 15.f;
-
 
 #define test_empty(cs)                         \
     EQUAL((cs).size(), 0u);                    \
@@ -60,11 +58,10 @@ const float score = 15.f;
     EQUAL((cs).getAligned(true), string());    \
     EQUAL((cs).end() - c.begin(), 0);          \
     EQUAL((cs).rend() - c.rbegin(), 0);        \
-    EQUAL((cs).getName(), string());           \
-    EQUAL((cs).getScore(), 0.f);
+    EQUAL((cs).getName(), string());
 
 
-#define test_data(cs, name, score, _aligned)                        \
+#define test_data(cs, name, _aligned)                               \
     {                                                               \
         string aligned = (_aligned);                                \
         string unaligned = aligned;                                 \
@@ -76,8 +73,8 @@ const float score = 15.f;
         EQUAL((cs).end() - (cs).begin(), (long)unaligned.size());   \
         EQUAL((cs).rend() - (cs).rbegin(), (long)unaligned.size()); \
         EQUAL((cs).getName(), name);                                \
-        EQUAL((cs).getScore(), score);                              \
     }
+
 
 CASE(test_constructor_empty) {
     cseq c;
@@ -87,17 +84,16 @@ CASE(test_constructor_empty) {
 
 CASE(test_constructur_normal) {
     const string name("thename");
-    const float score=15.f;
-    cseq c(name.c_str(), score, rna.c_str());
+    cseq c(name.c_str(), rna.c_str());
 
-    test_data(c, name, score, rna);
+    test_data(c, name, rna);
 }
 
 CASE(test_constructor_copy) {
-    cseq c("", 0, rna.c_str());
+    cseq c("", rna.c_str());
     cseq d = c;
 
-    test_data(d, "", 0, rna);
+    test_data(d, "", rna);
 }
 
 CASE(test_append,
@@ -105,19 +101,19 @@ CASE(test_append,
     cseq c;
 
     c.append(rna);
-    test_data(c, "", 0, rna);
+    test_data(c, "", rna);
     c.append("");
-    test_data(c, "", 0, rna);
+    test_data(c, "", rna);
     c.append(rna);
-    test_data(c, "", 0, rna+rna);
+    test_data(c, "", rna+rna);
     c.clearSequence();
     test_empty(c);
     c.append(rna_aligned);
-    test_data(c, "", 0, rna_aligned);
+    test_data(c, "", rna_aligned);
     c.append(rna);
-    test_data(c, "", 0, rna_aligned+rna);
+    test_data(c, "", rna_aligned+rna);
     c.append(rna_aligned);
-    test_data(c, "", 0, rna_aligned+rna+rna_aligned);
+    test_data(c, "", rna_aligned+rna+rna_aligned);
 
 
     aligned_base b(0,'A');
@@ -129,7 +125,7 @@ CASE(test_append,
     std::cerr << "Triggering 1 error: "
               << "c.getWidth() == 75 and aligned.size() == 76"
               << std::endl;
-    test_data(c, "", 0, rna_aligned+rna+rna_aligned + "A");
+    test_data(c, "", rna_aligned+rna+rna_aligned + "A");
     std::cerr << "==================" << std::endl << std::endl;
 
 }
@@ -140,48 +136,48 @@ CASE(test_setWidth) {
     string twentygaps="--------------------";
 
     c.setWidth(20);
-    test_data(c, "", 0, twentygaps);
+    test_data(c, "", twentygaps);
     c.setWidth(40);
-    test_data(c, "", 0, twentygaps + twentygaps);
+    test_data(c, "", twentygaps + twentygaps);
     c.setWidth(20);
-    test_data(c, "", 0, twentygaps);
+    test_data(c, "", twentygaps);
 
     c.setWidth(0);
-    test_data(c, "", 0, "");
+    test_data(c, "", "");
 
     c.append(rna_aligned);
     c.setWidth(rna_aligned.size() + 20);
-    test_data(c, "", 0, rna_aligned + twentygaps);
+    test_data(c, "", rna_aligned + twentygaps);
     c.setWidth(rna_aligned.size());
-    test_data(c, "", 0, rna_aligned);
+    test_data(c, "", rna_aligned);
     c.setWidth(27);
-    test_data(c, "", 0, "--A-G---CUR-YKM-S---WBD-HVN");
+    test_data(c, "", "--A-G---CUR-YKM-S---WBD-HVN");
     c.setWidth(26);
-    test_data(c, "", 0, "--A-G---CUR-YKM-S---WBDHVN");
+    test_data(c, "", "--A-G---CUR-YKM-S---WBDHVN");
     c.setWidth(25);
-    test_data(c, "", 0, "--A-G---CUR-YKM-S--WBDHVN");
+    test_data(c, "", "--A-G---CUR-YKM-S--WBDHVN");
     c.setWidth(23);
-    test_data(c, "", 0, "--A-G---CUR-YKM-SWBDHVN");
+    test_data(c, "", "--A-G---CUR-YKM-SWBDHVN");
     c.setWidth(22);
-    test_data(c, "", 0, "--A-G---CUR-YKMSWBDHVN");
+    test_data(c, "", "--A-G---CUR-YKMSWBDHVN");
     c.setWidth(21);
-    test_data(c, "", 0, "--A-G---CURYKMSWBDHVN");
+    test_data(c, "", "--A-G---CURYKMSWBDHVN");
     c.setWidth(20);
-    test_data(c, "", 0, "--A-G--CURYKMSWBDHVN");
+    test_data(c, "", "--A-G--CURYKMSWBDHVN");
     c.setWidth(19);
-    test_data(c, "", 0, "--A-G-CURYKMSWBDHVN");
+    test_data(c, "", "--A-G-CURYKMSWBDHVN");
     c.setWidth(18);
-    test_data(c, "", 0, "--A-GCURYKMSWBDHVN");
+    test_data(c, "", "--A-GCURYKMSWBDHVN");
     c.setWidth(17);
-    test_data(c, "", 0, "--AGCURYKMSWBDHVN");
+    test_data(c, "", "--AGCURYKMSWBDHVN");
     c.setWidth(16);
-    test_data(c, "", 0, "-AGCURYKMSWBDHVN");
+    test_data(c, "", "-AGCURYKMSWBDHVN");
     c.setWidth(15);
-    test_data(c, "", 0, "AGCURYKMSWBDHVN");
+    test_data(c, "", "AGCURYKMSWBDHVN");
 }
 
 CASE(test_setWidth_throw) {
-    cseq c("", 0, rna_aligned.c_str());
+    cseq c("", rna_aligned.c_str());
     THROW(c.setWidth(14), std::runtime_error);
 }
 
@@ -190,8 +186,8 @@ CASE(test_dna) {
     string dna = boost::replace_all_copy(rna, "u", "t");
     string DNA = boost::replace_all_copy(rna_aligned, "U", "T");
     string RNA = rna_aligned;
-    cseq c("", 0, rna.c_str());
-    cseq d("", 0, dna.c_str());
+    cseq c("", rna.c_str());
+    cseq d("", dna.c_str());
     EQUAL(c.getAligned(true, true), dna);
     EQUAL(c.getAligned(true, false), rna);
     EQUAL(d.getAligned(true, true), dna);
@@ -205,7 +201,7 @@ CASE(test_dna) {
 }
 
 CASE(test_operator_access) {
-    cseq c("", 0, rna_aligned.c_str());
+    cseq c("", rna_aligned.c_str());
     for (unsigned int i = 0; i < c.size(); ++i) {
         EQUAL(rna_aligned[i], c[i]);
     }
@@ -213,28 +209,27 @@ CASE(test_operator_access) {
 
 CASE(test_reverse) {
     string name("testtt");
-    cseq c(name.c_str(), score, rna_aligned.c_str());
+    cseq c(name.c_str(), rna_aligned.c_str());
     string reversed = rna_aligned;
     std::reverse(reversed.begin(), reversed.end());
 
     c.reverse();
-    test_data(c, name, score, reversed);
+    test_data(c, name, reversed);
     c.reverse();
-    test_data(c, name, score, rna_aligned);
+    test_data(c, name, rna_aligned);
 }
 
 CASE(test_lowercase) {
     string rna_aligned_lower = boost::to_lower_copy(rna_aligned);
     string rna_lower = boost::to_lower_copy(rna);
-    cseq c("", 0, rna_lower.c_str());
+    cseq c("", rna_lower.c_str());
     EQUAL(c.getAligned(true), rna_lower);
 }
 
 CASE(test_uppercase){
-
     string rna_aligned_lower = boost::to_lower_copy(rna_aligned);
     string rna_lower = boost::to_lower_copy(rna);
-    cseq c("", 0, rna_lower.c_str());
+    cseq c("", rna_lower.c_str());
     c.upperCaseAll();
     EQUAL(c.getAligned(true), rna);
     c.append(rna_aligned_lower);
@@ -246,7 +241,7 @@ CASE(test_complement)
 {
     //reference for complements:
     //http://www.animalgenome.org/edu/gene/genetic-code.html
-    cseq c("",0,rna.c_str());
+    cseq c("", rna.c_str());
     c.complement();
     EQUAL(c.size(),rna.length());
     EQUAL(c.getBases(),"UCGAYRMKSWVHDBN");
@@ -260,8 +255,8 @@ public:
     static const unsigned char c_unalig_compr[];
 
     compression_data() 
-        : c_alig("", 0, rna_aligned.c_str()),
-          c_unalig("", 0, rna.c_str())
+        : c_alig("", rna_aligned.c_str()),
+          c_unalig("", rna.c_str())
     {
     }
 };
@@ -308,18 +303,18 @@ FIXTURE_CASE(test_compress_aligned, compression_data) {
 FIXTURE_CASE(test_decompress_unaligned, compression_data) {
     cseq c;
     c.assignFromCompressed(c_unalig_compr, sizeof(c_unalig_compr));
-    test_data(c, "", 0, rna);
+    test_data(c, "", rna);
 }
 
 FIXTURE_CASE(test_decompress_aligned, compression_data) {
     cseq c;
     c.assignFromCompressed(c_alig_compr, sizeof(c_alig_compr));
-    test_data(c, "", 0, rna_aligned);
+    test_data(c, "", rna_aligned);
 }
 
 
 CASE(test_dots) {
-    cseq c("",0,rna_aligned.c_str());
+    cseq c("", rna_aligned.c_str());
     EQUAL(c.getAligned(false),rna_aligned_dots);
 }
 
@@ -327,10 +322,10 @@ CASE(test_dots) {
 CASE(test_write_alignment) {
     std::stringstream out;
     std::vector<cseq> vs{
-        {"1", 0, rna_aligned.c_str()},
-        {"2", 0, rna_aligned.c_str()}
+        {"1", rna_aligned.c_str()},
+        {"2", rna_aligned.c_str()}
     };
-    std::vector<cseq_base*> vsp;
+    std::vector<const cseq_base*> vsp;
     for (auto& i : vs) {
         vsp.push_back(&i);
     }
@@ -357,7 +352,7 @@ CASE(test_write_alignment) {
     EQUAL(out.str(), "cseq::write_alignment(): range out of bounds!\n");
 
     out.str(std::string());
-    vs = std::vector<cseq>{{"1", 0, "ACGU"}};
+    vs = std::vector<cseq>{{"1", "ACGU"}};
     vsp.clear();
     vsp.push_back(&vs[0]);
     cseq::write_alignment(out, vsp, 0, 3, true);
@@ -373,7 +368,7 @@ CASE(test_write_alignment) {
 
 CASE(test_write_alignment_empty) {
     std::stringstream out;
-    std::vector<cseq_base*> vsp;
+    std::vector<const cseq_base*> vsp;
     cseq::write_alignment(out, vsp, 0, 0, false);
     EQUAL(out.str(), "cseq::write_alignment(): no sequences?\n");
 }

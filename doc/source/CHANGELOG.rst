@@ -3,6 +3,18 @@
 Changelog
 =========
 
+Version 1.6.0:
+--------------
+ - make internal kmer engine the default (:issue:`23`)
+ - add progress monitor
+ - :option:`--num-pts` defaults to number of cores available (previous: 1)
+ - always run internal engine on max threads
+ - run search stage in parallel (:issue:`32`)
+ - split num pt servers evently between search and align
+ - add :option:`--search-engine` setting search engine for search module
+ - rewrote family selection (use :option:`--fs-oldmatch` for old implementation)
+
+
 Version 1.5.0:
 --------------
  - update documentation (:issue:`20`)

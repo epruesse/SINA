@@ -53,7 +53,7 @@ struct console_stderr
 
 struct console_mutex
 {
-    using mutex_t = std::mutex;
+    using mutex_t = std::recursive_mutex;
     static mutex_t &mutex()
     {
         static mutex_t s_mutex;

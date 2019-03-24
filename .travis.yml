@@ -14,7 +14,6 @@ env:
   global:
     MINICONDA: $HOME/miniconda
     BASH_ENV: $HOME/.bashrc
-    MAKEFLAGS: -j2
 
 install:
   - ./ci_scripts/install_conda.sh

@@ -29,6 +29,8 @@ for the parts of ARB used as well as that of the covered work.
 #ifndef _CSEQ_IMPL_H_
 #define _CSEQ_IMPL_H_
 
+#include "cseq.h"
+
 namespace sina {
 
 inline cseq_base&

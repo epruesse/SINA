@@ -39,8 +39,10 @@ namespace sina {
 
 class kmer_search : public search {
 public:
-    static kmer_search* get_kmer_search(const boost::filesystem::path& filename, int k=10);
-    static void release_kmer_search(const boost::filesystem::path& filename, int k=10);
+    static kmer_search* get_kmer_search(const boost::filesystem::path& filename,
+                                        int k=10, bool fast=true);
+    static void release_kmer_search(const boost::filesystem::path& filename,
+                                    int k=10, bool fast=true);
 
     /**
      * match runs a word search using the PT server
@@ -60,22 +62,23 @@ public:
      *  range_cover: minimum sequences touching alignment edge
      *  leave_query_out: drop sequence with matching id
      */
-    double match(std::vector<cseq> &results,
-                         const cseq& query,
-                         int min_match,
-                         int max_match,
-                         float min_score,
-                         float max_score,
-                         query_arb *arb,
-                         bool noid,
-                         int minlen,
-                         int num_full,
-                         int minlen_full,
-                         int range_cover,
-                         bool leave_query_out) override;
+    double match(result_vector &results,
+                 const cseq& query,
+                 int min_match,
+                 int max_match,
+                 float min_score,
+                 float max_score,
+                 query_arb *arb,
+                 bool noid,
+                 int minlen,
+                 int num_full,
+                 int minlen_full,
+                 int range_cover,
+                 bool leave_query_out) override;
 
-    void find(const cseq& query, std::vector<cseq>& results, int max) override;
+    void find(const cseq& query, result_vector& results, unsigned int max) override;
 
+    unsigned int size() const override;
     /**
      * dtor - must remain public (super is public)
      */

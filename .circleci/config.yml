@@ -79,6 +79,7 @@ jobs:
             make code-coverage-capture
             bash <(curl -s https://codecov.io/bash) -X gcov -F unittest \
               -R ~/project -n Unit-Linux-CircleCI
+          no_output_timeout: 20m # kmer_search_test is slow
       - run:
           <<: *configure
           environment:

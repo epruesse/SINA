@@ -41,6 +41,7 @@ for the parts of ARB used as well as that of the covered work.
 #include <boost/algorithm/string.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filter/counter.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
 
 #include "query_arb.h"
@@ -162,16 +163,17 @@ rw_fasta::validate_vm(po::variables_map& /*vm*/,
 struct rw_fasta::reader::priv_data {
     bi::file_descriptor_source file;
     bi::filtering_istream in;
+    bi::counter *counter{0};
     fs::path filename;
-    int lineno;
-    int seqno;
+    size_t file_size{0};
+    int lineno{0};
+    int seqno{0};
+
     vector<string>& v_fields;
-    Progress* p{nullptr};
+    logger_progress* p{nullptr};
 
     priv_data(fs::path filename_, vector<string>& fields)
         : filename(std::move(filename_)),
-          lineno(0),
-          seqno(0),
           v_fields(fields)
     {}
     ~priv_data() {
@@ -186,6 +188,9 @@ rw_fasta::reader::reader(const fs::path& infile, vector<string>& fields)
         data->file.open(STDIN_FILENO, bi::never_close_handle);
     } else {
         data->file.open(infile.c_str(), std::ios_base::binary);
+        if (fs::is_regular_file(infile)) {
+            data->file_size = fs::file_size(infile);
+        }
     }
     if (!data->file.is_open()) {
         stringstream msg; 
@@ -195,8 +200,12 @@ rw_fasta::reader::reader(const fs::path& infile, vector<string>& fields)
     if (infile.extension() == ".gz") {
         data->in.push(bi::gzip_decompressor());
     }
+    if (data->file_size > 0) {
+        data->in.push(bi::counter());
+        data->counter = data->in.component<bi::counter>(data->in.size()-1);
+    }
     data->in.push(data->file);
-    
+
     // if fasta blocking enabled, seek to selected block
     if (opts->fasta_block > 0) {
         if (infile == "-") {
@@ -212,7 +221,7 @@ rw_fasta::reader& rw_fasta::reader::operator=(const reader& r) = default;
 rw_fasta::reader::~reader() = default;
 
 void
-rw_fasta::reader::set_progress(Progress& p) {
+rw_fasta::reader::set_progress(logger_progress& p) {
     data->p = &p;
 }
 
@@ -294,6 +303,13 @@ rw_fasta::reader::operator()(tray& t) {
         return (*this)(t); // FIXME: stack size?
     }
 
+    if (data->p && data->counter) {
+        auto bytes_read = data->counter->characters();
+        if (bytes_read) {
+            data->p->set_total(data->seqno * data->file_size / bytes_read);
+        }
+    }
+
     logger->debug("loaded sequence {}", t.input_sequence->getName());
     return true;
 }
@@ -321,7 +337,7 @@ struct rw_fasta::writer::priv_data {
         logger->info("wrote {} sequences ({} excluded, {} relatives)",
                      count, excluded, relatives_written.size());
     }
-    void write(cseq& c);
+    void write(const cseq& c);
 };
 
 rw_fasta::writer::writer(const fs::path& outfile,
@@ -386,26 +402,27 @@ rw_fasta::writer::operator()(tray t) {
         ++data->excluded;
         return t;
     }
-    auto idty = t.aligned_sequence->get_attr<float>(query_arb::fn_idty);
-    if (opts->min_idty > idty) {
-        logger->info("Not writing sequence {} (>{}): below identity threshold ({}<={})",
-                     t.seqno, t.input_sequence->getName(),
-                     idty, opts->min_idty);
-        ++data->excluded;
-        return t;
+    if (opts->min_idty > 0) {
+        auto idty = t.aligned_sequence->get_attr<float>(query_arb::fn_idty, 0);
+        if (opts->min_idty > idty) {
+            logger->info("Not writing sequence {} (>{}): below identity threshold ({}<={})",
+                         t.seqno, t.input_sequence->getName(),
+                         idty, opts->min_idty);
+            ++data->excluded;
+            return t;
+        }
     }
     cseq &c = *t.aligned_sequence;
 
     data->write(c);
 
     if (data->copy_relatives != 0u) {
-        std::vector<cseq> *relatives =
-            t.search_result != nullptr ? t.search_result : t.alignment_reference;
+        auto *relatives = t.search_result != nullptr ? t.search_result : t.alignment_reference;
         if (relatives != nullptr) {
             int i = data->copy_relatives;
-            for (auto& seq : *relatives) {
-                if (data->relatives_written.insert(seq.getName()).second) {
-                    data->write(seq);
+            for (auto& item : *relatives) {
+                if (data->relatives_written.insert( item.sequence->getName() ).second) {
+                    data->write(*item.sequence);
                 }
                 if (--i == 0) {
                     break;
@@ -418,11 +435,11 @@ rw_fasta::writer::operator()(tray t) {
 }
 
 void
-rw_fasta::writer::priv_data::write(cseq& c) {
+rw_fasta::writer::priv_data::write(const cseq& c) {
     const auto& attrs = c.get_attrs();
 
     out << ">" << c.getName();
-    string fname = c.get_attr<string>(query_arb::fn_fullname);
+    string fname = c.get_attr<string>(query_arb::fn_fullname, "");
     if (!fname.empty()) {
         out << " " << fname;
     }

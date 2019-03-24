@@ -52,6 +52,9 @@ namespace fs = boost::filesystem;
 #include <boost/algorithm/string/predicate.hpp>
 using boost::algorithm::iequals;
 
+#include <boost/core/demangle.hpp>
+using boost::core::demangle;
+
 using std::exception;
 using std::logic_error;
 
@@ -70,6 +73,7 @@ namespace tf = tbb::flow;
 #include "timer.h"
 #include "cseq_comparator.h"
 #include "progress.h"
+#include "search.h"
 
 using namespace sina;
 
@@ -115,7 +119,8 @@ void validate(boost::any& v,
 }
 
 // make known any<> types printable
-template <class T, typename = std::enable_if_t<std::is_same<T, boost::any>::value> >
+template <class T,
+          typename = typename std::enable_if<std::is_same<T, boost::any>::value>::type >
 std::ostream& operator<<(std::ostream& out,
                          const T& a) {
     using boost::any_cast;
@@ -149,6 +154,8 @@ std::ostream& operator<<(std::ostream& out,
         out << any_cast<CMP_DIST_TYPE>(a);
     } else if (any_cast<CMP_COVER_TYPE>(&a) != nullptr) {
         out << any_cast<CMP_COVER_TYPE>(a);
+    } else if (any_cast<ENGINE_TYPE>(&a) != nullptr) {
+        out << any_cast<ENGINE_TYPE>(a);
     } else if (any_cast<fs::path>(&a) != nullptr) {
         out << any_cast<fs::path>(a);
     } else {
@@ -229,8 +236,8 @@ void get_options_description(po::options_description& main,
         ("prealigned,P", po::bool_switch(&opts.skip_align), "skip alignment stage")
         ("threads,p", po::value<unsigned int>(&opts.threads)->default_value(tbb_automatic, ""),
          "limit number of threads (automatic)")
-        ("num-pts", po::value<unsigned int>(&opts.num_pt_servers)->default_value(1, ""),
-         "number of PT servers to start (1)")
+        ("num-pts", po::value<unsigned int>(&opts.num_pt_servers)->default_value(tbb_threads),
+         "number of PT servers to start")
         ("version,V", "show version")
         ;
 }
@@ -384,7 +391,7 @@ int real_main(int argc, char** argv) {
     tbb::task_scheduler_init init(vm["threads"].as<unsigned int>());
 
     tf::graph g;  // Main data flow graph (pipeline)
-    Progress p("Processing", 0);
+    logger_progress p(logger, "Processing", 0, false);
 
     vector<std::unique_ptr<tf::graph_node>> nodes; // Nodes (for cleanup)
     tf::sender<tray> *last_node; // Last tray producing node
@@ -421,6 +428,17 @@ int real_main(int argc, char** argv) {
     nodes.emplace_back(limiter);
     last_node = limiter;
 
+    // determine number of pt servers for search and align
+    if (not opts.skip_align && not opts.noalign && opts.do_search) {
+        opts.num_pt_servers /= 2;
+    }
+    if (opts.num_pt_servers < 1) {
+        opts.num_pt_servers = 1;
+    }
+    if (famfinder::get_engine() == ENGINE_SINA_KMER) {
+        opts.num_pt_servers = tf::unlimited;
+    }
+
     if (opts.skip_align || opts.noalign) {
         // Just copy alignment over
         node = new filter_node(g, tf::unlimited, [](tray t) -> tray {
@@ -431,54 +449,19 @@ int real_main(int argc, char** argv) {
         nodes.emplace_back(node);
         last_node = node;
     } else {
-        // Make node(s) finding reference set
-        using tray_and_finder = tuple<tray, famfinder>;
-        using finder_node = tf::multifunction_node<tray_and_finder, tray_and_finder>;
-        using finder_node_out = finder_node::output_ports_type;
-        using finder_buffer_node = tf::buffer_node<famfinder>;
-        using tray_and_finder_join_node = tf::join_node<tray_and_finder>;
-
-        auto *buffer = new finder_buffer_node(g);
-        auto *join = new tray_and_finder_join_node(g);
-
-        finder_node *family_find = new finder_node(
-            g, opts.num_pt_servers,
-            [&](const tray_and_finder &in, finder_node_out &out) -> void {
-                const tray& t = get<0>(in);
-                famfinder finder(get<1>(in));
-                tray t_out = finder(t);
-                get<0>(out).try_put(t_out);
-                get<1>(out).try_put(finder);
-            });
-
-
-        // ---tray--> join ---------> family_find --> tray
-        //            ^                         |
-        //            |                         |
-        //            +-finder- buffer <-finder-+
-        tf::make_edge(*buffer, tf::input_port<1>(*join));
-        tf::make_edge(tf::output_port<1>(*family_find), *buffer);
-        nodes.emplace_back(join);
-        nodes.emplace_back(buffer);
-
-        tf::make_edge(*last_node, tf::input_port<0>(*join));
-        tf::make_edge(*join, *family_find);
-        nodes.emplace_back(family_find);
-
-        buffer->try_put(famfinder(0));
-        tbb::parallel_for(1U, opts.num_pt_servers, [&](unsigned int i) {
-                logger->warn("Launching PT server no {}", i);
-                buffer->try_put(famfinder(i));
-            });
+        node = new filter_node(g, opts.num_pt_servers, famfinder());
+        tf::make_edge(*last_node, *node);
+        nodes.emplace_back(node);
+        last_node = node;
 
         node = new filter_node(g, tf::unlimited, aligner());
-        tf::make_edge(tf::output_port<0>(*family_find), *node);
+        tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
         last_node = node;
     }
 
     if (opts.do_search) {
-        node = new filter_node(g, 1, search_filter());
+        node = new filter_node(g, opts.num_pt_servers, search_filter());
         tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
         last_node = node;
@@ -552,7 +535,9 @@ int main(int argc, char** argv) {
     try {
         return real_main(argc, argv);
     } catch (std::exception &e) {
-        logger->critical("Error during program execution: {}", e.what());
+        logger->critical("Error during program execution: {} {}",
+                         demangle(typeid(e).name()),
+                         e.what());
         return EXIT_FAILURE;
     }
 }
