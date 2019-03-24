@@ -645,7 +645,7 @@ query_arb::getCacheContents() {
 }
 
 long
-query_arb::getAlignmentWidth() {
+query_arb::getAlignmentWidth() const {
     return data->alignment_length;
 }
 

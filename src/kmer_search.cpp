@@ -161,7 +161,7 @@ public:
         std::unordered_set<unsigned int> seen;
         for (size_t i = r.begin(); i < end; ++i) {
             const cseq& c = idx->arbdb->getCseqUncached(idx->sequence_names[i]);
-            const auto& bases = c.const_getAlignedBases();
+            const auto& bases = c.getAlignedBases();
             if (idx->nofast) {
                 for (const auto& kmer: unique_kmers(bases, seen, idx->k)) {
                     if (kmer_idx[kmer] == nullptr) {
@@ -371,7 +371,7 @@ kmer_search::impl::find(const cseq& query, result_vector& results, unsigned int 
     if (!cache.try_get(bases, ranks)) {
         timer& timing = timeit.get_timer();
         timing.start();
-        const vector<aligned_base>& bases = query.const_getAlignedBases();
+        const vector<aligned_base>& bases = query.getAlignedBases();
 
         timing.stop("load query");
 

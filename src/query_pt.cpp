@@ -760,7 +760,7 @@ query_pt_pool::size() const {
 }
 
 
-query_pt_exception::query_pt_exception(std::string  msg) noexcept
+query_pt_exception::query_pt_exception(std::string msg) noexcept
     : message(std::move(msg))
 {
 }

@@ -37,7 +37,7 @@ template<typename T>
 class buffer {
 public:
     using size_type = size_t;
-    buffer(size_type size) {
+    explicit buffer(size_type size) {
         _start = (T*)scalable_malloc(sizeof(T) * size);
     }
     ~buffer() {
@@ -54,7 +54,7 @@ template<typename T, size_t ALIGN=64>
 class aligned_buffer {
 public:
     using size_type = size_t;
-    aligned_buffer(size_type size) {
+    explicit aligned_buffer(size_type size) {
         size_type alloc = sizeof(T) * size + sizeof(offset_t) + ALIGN - 1;
         void *ptr = scalable_malloc(alloc);
         if (!ptr) { throw std::bad_alloc(); }

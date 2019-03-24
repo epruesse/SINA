@@ -62,7 +62,7 @@ public:
 
     class bad_character_exception : public std::exception {
     public:
-        bad_character_exception(value_type c) noexcept
+        explicit bad_character_exception(value_type c) noexcept
             : character(c)
         {
         }
@@ -102,9 +102,7 @@ public:
     }
 
     /* construct from base_type */
-    base_iupac(base_types b) {
-        _data = 1 << b;
-    }
+    base_iupac(base_types b) : _data(1<<b) {}
 
     /* explicit cast to base_type */
     base_types getBaseType() const {
@@ -217,7 +215,7 @@ public:
     }
 
 protected:
-    int count_bits(unsigned char c) const {
+    static int count_bits(unsigned char c) {
 #define HAVE_BUILTIN_POPCOUNT
 #ifdef HAVE_BUILTIN_POPCOUNT
         return __builtin_popcount(c);

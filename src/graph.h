@@ -96,7 +96,7 @@ public:
         return it->data;
     }
 
-    unsigned int size() { return _nodes_size; };
+    unsigned int size() const { return _nodes_size; };
 
     void print_graphviz(std::ostream& out, const char* name);
 
@@ -153,8 +153,7 @@ operator<<(std::ostream& out, dag_node<T> dag_node) {
 // Iterator
 
 template<typename T>
-class dag<T>::pn_iterator
-{
+class dag<T>::pn_iterator {
 public:
     using reference = T &;
     using value_type = T;
@@ -164,10 +163,10 @@ public:
 
     using node_ref_it = typename dag_node<T>::node_ref_container::iterator;
 
-    pn_iterator(const node_ref_it& nri) : _iter(nri) {}
+    explicit pn_iterator(const node_ref_it& nri) : _iter(nri) {}
 
-    bool operator!=(const pn_iterator& i) { return _iter != i._iter; }
-    bool operator==(const pn_iterator& i) { return !(*this != i); }
+    bool operator!=(const pn_iterator& i) const { return _iter != i._iter; }
+    bool operator==(const pn_iterator& i) const { return !(*this != i); }
 
     dag_node<T>& get_node() const { return *(*_iter); }
     _self& operator++() { ++_iter; return *this; }
@@ -182,8 +181,7 @@ private:
 
 
 template<typename T>
-class dag<T>::iterator
-{
+class dag<T>::iterator {
 public:
     using reference = T &;
     using value_type = T;
@@ -195,21 +193,20 @@ public:
     using dag_t = dag<T>;
     friend class dag<T>;
 
-    iterator(node_ref idx) : _idx(idx), _isNull(false) {}
+    explicit iterator(node_ref idx) : _idx(idx), _isNull(false) {}
     iterator(const iterator& orig) : _idx(orig._idx), _isNull(false) {}
     iterator() = default;
 
     dag_node<T>& get_node() const { return *_idx; }
     node_ref get_node_ref() const { return _idx; }
 
-
     iterator& operator++() { ++_idx; return *this; }
     iterator& operator--() { --_idx; return *this; }
 
-    bool operator!=(const iterator& i) { return _idx!=i._idx; }
-    bool operator==(const iterator& i) { return _idx==i._idx; }
-    bool operator<(const iterator& i) { return _idx<i._idx; }
-    bool isNull() { return _isNull; }
+    bool operator!=(const iterator& i) const { return _idx!=i._idx; }
+    bool operator==(const iterator& i) const { return _idx==i._idx; }
+    bool operator<(const iterator& i) const { return _idx<i._idx; }
+    bool isNull() const { return _isNull; }
 
     using pn_iterator = typename dag<T>::pn_iterator;
 
@@ -400,7 +397,7 @@ dag<T>::print_graphviz(std::ostream& out, const char* name)
 
 template<typename F>
 struct dereference {
-    dereference(F f) : _f(f){}
+    explicit dereference(F f) : _f(f){}
     dereference() : _f(){}
     using result_type = typename F::result_type;
 
@@ -415,7 +412,7 @@ struct dereference {
 // default ordering: use operator< on T
 template<typename T, typename F>
 struct by_data {
-    by_data(F f) : _f(f){}
+    explicit by_data(F f) : _f(f){}
     bool operator()(const dag_node<T>& a, const dag_node<T>& b) {
         return _f(a.data,b.data);
     }
@@ -426,7 +423,7 @@ struct by_data {
 // maps old idx to new idx using lookup vector
 template<typename node_ref>
 struct lookup {
-    lookup(std::vector<node_ref> &nrv) : _nrv(nrv) {}
+    explicit lookup(std::vector<node_ref> &nrv) : _nrv(nrv) {}
     node_ref operator()(node_ref nr) {
         return _nrv[nr];
     }
@@ -437,7 +434,7 @@ struct lookup {
 template<typename T>
 struct fix_idx {
     using node_ref = typename dag<T>::node_ref;
-    fix_idx(std::vector<node_ref> &nrv) : _nrv(nrv) {}
+    explicit fix_idx(std::vector<node_ref> &nrv) : _nrv(nrv) {}
     void operator()(dag_node<T>& dn) {
         // fix incoming edges
         std::transform(dn._previous.begin(),dn._previous.end(),

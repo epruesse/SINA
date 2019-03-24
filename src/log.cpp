@@ -336,22 +336,6 @@ Log::printer::priv_data::~priv_data() {
     }
 }
 
-static int calc_nuc_term(unsigned int term_begin, unsigned int term_end, cseq& c) {
-    int n = 0;
-    cseq::iterator it = c.begin();
-    cseq::iterator end = c.end();
-
-    while (it != end && it->getPosition() < term_begin) {
-        ++it;
-    }
-    while (it != end && it->getPosition() < term_end) {
-        ++it, ++n;
-    }
-
-    return n;
-}
-
-
 /// actual "filter" ///
 
 tray

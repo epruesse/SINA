@@ -77,10 +77,7 @@ public:
     vidx_type size() const { return bases.size(); }
 
     /* get aligned base vector */
-    std::vector<aligned_base> getAlignedBases() { return bases; }
-
-    /* get aligned base vector */
-    const std::vector<aligned_base>& const_getAlignedBases() const { return bases; }
+    const std::vector<aligned_base>& getAlignedBases() const { return bases; }
 
     /* get size in columns */
     vidx_type getWidth() const { return alignment_width; }
@@ -96,7 +93,7 @@ public:
     void fix_duplicate_positions(std::ostream& /*log*/, bool lowercase, bool remove);
 
     /* does nothing, cseq_base is always sorted by positions */
-    void sort() {}
+    static void sort() {}
 
     /* reverse the sequence */
     void reverse();
