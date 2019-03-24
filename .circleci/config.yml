@@ -100,7 +100,7 @@ jobs:
           name: Collecting binaries
           when: on_fail
           command: |
-            tar -C ~/projects/sina/build -czvf $ARTIFACT_PATH/build_src.tgz src
+            tar -C ~/build -czvf $ARTIFACT_PATH/build_src.tgz src
       - run:
           name: Copying logs
           when: always
