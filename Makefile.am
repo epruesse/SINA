@@ -81,6 +81,7 @@ src_libsina_la_SOURCES = \
     src/alignment_stats.cpp \
     src/alignment_stats.h \
     src/buffer.h \
+    src/cache.h \
     src/cseq.cpp \
     src/cseq.h \
     src/cseq_impl.h \
