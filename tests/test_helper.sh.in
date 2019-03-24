@@ -58,21 +58,21 @@ test_helper_cleanup_() {
 capture_stdout() {
     echo "Running \"$*"\"
     script_error_disable_=1
-    output=$(eval "$*" | @TEE@ /dev/fd/6)
+    output=$(eval "$SINA_TEST_WRAPPER $*" | @TEE@ /dev/fd/6)
     exit_code=$?
     script_error_disable_=
 }
 capture_stderr() {
     echo "Running \"$*"\"
     script_error_disable_=1
-    output=$(eval "$*" 2>&1 >&6 | @TEE@ /dev/fd/7)
+    output=$(eval "$SINA_TEST_WRAPPER $*" 2>&1 >&6 | @TEE@ /dev/fd/7)
     exit_code=$?
     script_error_disable_=
 }
 capture_stdouterr() {
     echo "Running \"$*"\"
     script_error_disable_=1
-    output=$(eval "$*" 2>&1 | @TEE@ /dev/fd/6)
+    output=$(eval "$SINA_TEST_WRAPPER $*" 2>&1 | @TEE@ /dev/fd/6)
     exit_code=$?
     script_error_disable_=
 }
