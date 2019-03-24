@@ -9,7 +9,7 @@ cp $TEST_ARB $T/ref.arb
 SINA="./src/sina"
 
 SINA="$SINA -i $T/ref.arb --db $T/ref.arb  --orig-db $T/ref.arb -o /dev/null --show-dist"
-SINA="$SINA --threads 10"
+SINA="$SINA --threads 10 --fs-engine pt-server"
 
 begin_test "prealigned"
 capture_stdouterr "$SINA --select-step 250 --prealigned"
