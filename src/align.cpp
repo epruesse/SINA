@@ -349,17 +349,16 @@ aligner::operator()(tray t) {
             };
             auto exact_match = find_if(begin_containing, vc.end(), same_as_query);
             if (exact_match != vc.end()) {
-                c.setAlignedBases(exact_match->sequence->const_getAlignedBases());
+                c.setAlignedBases(exact_match->sequence->getAlignedBases());
                 t.log << "copied alignment from identical template sequence "
                       << exact_match->sequence->get_attr<string>(query_arb::fn_acc) << ":"
                       << exact_match->sequence->get_attr<string>(query_arb::fn_start, "0")
                       << "; ";
             } else {
                 vector<aligned_base> subalignment;
-                vector<aligned_base> refalignment = begin_containing->sequence->const_getAlignedBases();
+                const vector<aligned_base>& refalignment = begin_containing->sequence->getAlignedBases();
                 string refsequence = begin_containing->sequence->getBases();
-                boost::iterator_range<string::iterator> substr =
-                    boost::ifind_first(refsequence, bases);
+                boost::iterator_range<string::iterator> substr = boost::ifind_first(refsequence, bases);
                 subalignment.reserve(substr.size());
                 std::copy(refalignment.begin() + std::distance(refsequence.begin(), substr.begin()),
                           refalignment.begin() + std::distance(refsequence.begin(), substr.end()),
@@ -474,7 +473,6 @@ template<typename transition, typename MASTER>
 void
 sina::do_align(cseq& c, const cseq& orig, MASTER &m,
                transition &tr, ostream& log) {
-
     using cnsts_type = compute_node_simple<transition>;
     using data_type = typename cnsts_type::data_type;
     cnsts_type cns(tr);

@@ -38,15 +38,15 @@ class scoring_scheme_profile {
 public:
     using value_type = float;
 
-    scoring_scheme_profile(value_type _m, value_type _mm,
-                           value_type _gp, value_type _gpe)
+    scoring_scheme_profile(const value_type& _m, const value_type& _mm,
+                           const value_type& _gp, const value_type& _gpe)
         : match_score(_m), mismatch_score(_mm),
           gap_penalty(_gp), gap_extension_penalty(_gpe)
     {}
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    insertion(value_type prev,
+    insertion(const value_type& prev,
               const base_type_a& /*b1*/,
               const base_type_b& /*b2*/) const
     {
@@ -55,7 +55,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    insertion_ext(value_type prev,
+    insertion_ext(const value_type& prev,
                   const base_type_a& /*b1*/,
                   const base_type_b& /*b2*/,
                   int /*offset*/) const
@@ -65,7 +65,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    deletion(value_type prev,
+    deletion(const value_type& prev,
              const base_type_a& /*b1*/,
              const base_type_b& /*b2*/) const
     {
@@ -74,7 +74,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    deletion_ext(value_type prev,
+    deletion_ext(const value_type& prev,
                  const base_type_a& /*b1*/,
                  const base_type_b& /*b2*/,
                  int /*offset*/) const
@@ -84,7 +84,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    match(value_type prev,
+    match(const value_type& prev,
           const base_type_a& b1,
           const base_type_b& b2) const
     {
@@ -103,15 +103,15 @@ class scoring_scheme_simple {
 public:
     using value_type = float;
 
-    scoring_scheme_simple(value_type _m, value_type _mm,
-                          value_type _gp, value_type _gpe)
+    scoring_scheme_simple(const value_type& _m, const value_type& _mm,
+                          const value_type& _gp, const value_type& _gpe)
         : match_score(_m), mismatch_score(_mm),
           gap_penalty(_gp), gap_extension_penalty(_gpe)
     {}
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    insertion(value_type prev,
+    insertion(const value_type& prev,
               const base_type_a& /*b1*/,
               const base_type_b& /*b2*/) const
     {
@@ -120,7 +120,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    insertion_ext(value_type prev,
+    insertion_ext(const value_type& prev,
                   const base_type_a& /*b1*/,
                   const base_type_b& /*b2*/,
                   int /*offset*/) const
@@ -130,7 +130,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    deletion(value_type prev,
+    deletion(const value_type& prev,
              const base_type_a& /*b1*/,
              const base_type_b& /*b2*/) const
     {
@@ -139,7 +139,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    deletion_ext(value_type prev,
+    deletion_ext(const value_type& prev,
                  const base_type_a& /*b1*/,
                  const base_type_b& /*b2*/,
                  int /*offset*/) const
@@ -149,7 +149,7 @@ public:
 
     template<typename base_type_a,typename base_type_b>
     value_type
-    match(value_type prev,
+    match(const value_type& prev,
           const base_type_a& b1,
           const base_type_b& b2) const
     {
@@ -167,8 +167,8 @@ class scoring_scheme_weighted {
 public:
     using value_type = float;
 
-    scoring_scheme_weighted(value_type _m, value_type _mm,
-                            value_type _gp, value_type _gpe,
+    scoring_scheme_weighted(const value_type& _m, const value_type& _mm,
+                            const value_type& _gp, const value_type& _gpe,
                             std::vector<value_type>& _weights)
         : match_score(_m), mismatch_score(_mm),
           gap_penalty(_gp), gap_extension_penalty(_gpe),
@@ -177,7 +177,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    insertion(value_type prev,
+    insertion(const value_type& prev,
               const base_type_a& b1,
               const base_type_b& /*b2*/) const
     {
@@ -189,7 +189,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    insertion_ext(value_type prev,
+    insertion_ext(const value_type& prev,
                   const base_type_a& b1,
                   const base_type_b& /*b2*/,
                   int offset) const
@@ -203,7 +203,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    deletion(value_type prev,
+    deletion(const value_type& prev,
              const base_type_a& b1,
              const base_type_b& /*b2*/) const
     {
@@ -213,7 +213,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    deletion_ext(value_type prev,
+    deletion_ext(const value_type& prev,
                  const base_type_a& b1,
                  const base_type_b& /*b2*/,
                  int /*offset*/) const
@@ -225,7 +225,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    match(value_type prev,
+    match(const value_type& prev,
           const base_type_a& b1,
           const base_type_b& b2) const
     {
@@ -247,7 +247,7 @@ public:
     using value_type = float;
     using matrix_type = MATRIX_TYPE;
 
-    scoring_scheme_matrix(value_type _gp, value_type _gpe,
+    scoring_scheme_matrix(const value_type& _gp, const value_type& _gpe,
                           std::vector<value_type>& _weights,
                           const matrix_type& _matrix)
         : gap_penalty(_gp),
@@ -258,7 +258,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    insertion(value_type prev,
+    insertion(const value_type& prev,
               const base_type_a& b1,
               const base_type_b& /*b2*/) const
     {
@@ -267,7 +267,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    insertion_ext(value_type prev,
+    insertion_ext(const value_type& prev,
                   const base_type_a& b1,
                   const base_type_b& /*b2*/,
                   int /*offset*/) const
@@ -277,7 +277,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    deletion(value_type prev,
+    deletion(const value_type& prev,
              const base_type_a& b1,
              const base_type_b& b2) const
     {
@@ -286,7 +286,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    deletion_ext(value_type prev,
+    deletion_ext(const value_type& prev,
                  const base_type_a& b1,
                  const base_type_b& b2,
                  int offset) const
@@ -296,7 +296,7 @@ public:
 
     template<typename base_type_a, typename base_type_b>
     value_type
-    match(value_type prev,
+    match(const value_type& prev,
           const base_type_a& b1,
           const base_type_b& b2) const
     {

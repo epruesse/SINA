@@ -26,63 +26,65 @@ non-source form of such a combination shall include the source code
 for the parts of ARB used as well as that of the covered work.
 */
 
-#ifndef _BUFFER_H_
-#define _BUFFER_H_
+#ifndef _CACHE_H_
+#define _CACHE_H_
 
-#include <tbb/scalable_allocator.h>
+#include <mutex>
+#include <list>
+#include <unordered_map>
 
 namespace sina {
 
-template<typename T>
-class buffer {
+template<typename KEY, typename VALUE>
+class fifo_cache {
 public:
-    using size_type = size_t;
-    explicit buffer(size_type size) {
-        _start = (T*)scalable_malloc(sizeof(T) * size);
+    explicit fifo_cache(size_t size) : _size(size) {}
+    void store(KEY&& key, VALUE&& value) {
+        std::lock_guard<std::mutex> lock(_mutex);
+        auto it = _keys.find(key);
+        if (it != _keys.end()) {
+            _items.erase(it->second);
+            _keys.erase(it);
+        }
+        _items.emplace_front(std::make_pair(KEY(key), value));
+        _keys.emplace(key, _items.begin());
+        if (_keys.size() > _size) {
+            _keys.erase(_items.back().first);
+            _items.pop_back();
+        }
     }
-    ~buffer() {
-        scalable_free(_start);
+
+    bool try_get(const KEY& key, VALUE& val) {
+        std::lock_guard<std::mutex> lock(_mutex);
+        auto it = _keys.find(key);
+        if (it == _keys.end()) {
+            return false;
+        }
+        val = std::move(it->second->second);
+        _items.erase(it->second);
+        _keys.erase(it);
+        return true;
     }
-    inline T& operator[](size_type idx) {
-        return _start[idx];
-    }
+
 private:
-    T* _start;
+    size_t _size;
+    using list_type = std::list<std::pair<KEY, VALUE>>;
+    list_type _items;
+    std::unordered_map<KEY, typename list_type::iterator> _keys;
+    std::mutex _mutex;
 };
 
-template<typename T, size_t ALIGN=64>
-class aligned_buffer {
-public:
-    using size_type = size_t;
-    explicit aligned_buffer(size_type size) {
-        size_type alloc = sizeof(T) * size + sizeof(offset_t) + ALIGN - 1;
-        void *ptr = scalable_malloc(alloc);
-        if (!ptr) { throw std::bad_alloc(); }
-        size_t res = ((size_t)ptr + sizeof(offset_t) + ALIGN - 1) & ~(ALIGN -1);
-        *((offset_t*)res - 1) = (offset_t)((size_t)res - (size_t)ptr);
-        _start = (T*)res;
-    }
-    ~aligned_buffer() {
-        offset_t offset = *((offset_t*)_start - 1);
-        scalable_free((char*)_start - offset);
-    }
-    inline T& operator[](size_type idx) {
-        return _start[idx];
-    }
-private:
-    using offset_t = uint16_t;
-    T* _start;
-};
 
-} // namespace sina
 
-#endif // _BUFFER_H_
+} // namespace SINA
+
+#endif
 
 /*
   Local Variables:
   mode:c++
   c-file-style:"stroustrup"
-  c-file-offsets:((innamespace . 0)(inline-open . 0)(case-label . 0))
+  c-file-offsets:((innamespace . 0)(inline-open . 0)(case-label . +))
   indent-tabs-mode:nil
   fill-column:99
   End:

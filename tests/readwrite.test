@@ -7,7 +7,7 @@ maketmpdir T
 
 cp $TEST_ARB $T/ref.arb
 
-SINA="./src/sina --prealigned"
+SINA="./src/sina --prealigned --preserve-order"
 
 
 begin_test "Copy ARB to FASTA (TEST_ARB->test.fasta)"

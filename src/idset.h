@@ -82,7 +82,7 @@ public:
     using block_type = typename data_t::value_type;
     const size_t bits_per_block = sizeof(block_type) * 8;
 
-    bitmap(value_type maxid) : idset() {
+    explicit bitmap(value_type maxid) : idset() {
         int blocks_needed = (maxid + bits_per_block - 1 )/ bits_per_block;
         data.resize(blocks_needed, 0);
     }
@@ -143,13 +143,13 @@ public:
  */
 class imap_abs : public idset {
 public:
-    imap_abs(int /*unused*/) : idset() {};
+    explicit imap_abs(int /*unused*/) : idset() {};
 
     /* once-forward iterator over contents */
     class const_iterator {
         data_t::const_iterator _it;
     public:
-        const_iterator(const data_t::const_iterator& it) : _it(it) {}
+        explicit const_iterator(const data_t::const_iterator& it) : _it(it) {}
         value_type operator*() {
             return *(value_type*)(&*_it);
         }
@@ -196,7 +196,7 @@ public:
  */
 class vlimap_abs : public idset {
 public:
-    vlimap_abs(int /*maxsize*/=0) : idset() {}
+    explicit vlimap_abs(int /*maxsize*/=0) : idset() {}
 
     /* once-forward iterator over contents */
     class const_iterator {
@@ -206,7 +206,7 @@ public:
             return _it;
         }
 
-        const_iterator(const data_t::const_iterator& it) : _it(it) {}
+        explicit const_iterator(const data_t::const_iterator& it) : _it(it) {}
         inline value_type operator*()  __attribute__((always_inline)) { // DO NOT CALL TWICE
             value_type val;
             // first byte
@@ -262,7 +262,7 @@ public:
 #endif // SINA_UNROLL
         }
         inline const_iterator& operator++()  __attribute__((always_inline))  {
-            _it++; // step to next encoded value
+            ++_it; // step to next encoded value
             return *this;
         }
         inline bool operator!=(const const_iterator& rhs) const  __attribute__((always_inline))  {
@@ -378,7 +378,7 @@ public:
             while (last < next) {
                 res.push_back(last++);
             }
-            last++;
+            ++last;
         }
         while (last < _maxsize) {
             res.push_back(last++);
@@ -393,7 +393,7 @@ public:
         uint32_t inc, last, bytesize, size;
     };
 
-    std::ostream& write(std::ostream& out) {
+    std::ostream& write(std::ostream& out) const override {
         file_header head;
         head.inc = _inc;
         head.last = _last;

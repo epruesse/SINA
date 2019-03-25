@@ -263,8 +263,8 @@ search_filter::operator()(tray t) {
         return a.comp(b);
     };
     auto contains_query = [&](search::result_item& item) {
-        return boost::algorithm::contains(item.sequence->const_getAlignedBases(),
-                                          c->const_getAlignedBases(),
+        return boost::algorithm::contains(item.sequence->getAlignedBases(),
+                                          c->getAlignedBases(),
                                           iupac_compare);
     };
 
@@ -299,7 +299,7 @@ search_filter::operator()(tray t) {
         int i=0;
         for (auto &r: vc) { //FIXME: remove bug tracing here
             ++i;
-            if (r.sequence->const_getAlignedBases().data() == nullptr) {
+            if (r.sequence->getAlignedBases().data() == nullptr) {
                 logger->error("BUG {} {}", *c, i);
                 logger->error("  {}", *r.sequence);
             }
