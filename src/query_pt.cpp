@@ -150,8 +150,11 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
             cmds.push_back(arb_pt_server_path.native() + " -build -D" + dbname + ".index.arb");
             for (auto& cmd :  cmds) {
                 logger->debug("Executing '{}'", cmd);
-                system(cmd.c_str());
+                int rval = system(cmd.c_str());
                 logger->debug("Command finished");
+                if (rval) {
+                    logger->error("Command {} failed with exit code {}", cmd, rval);
+                }
             }
 
             if ((stat(ptindex.c_str(), &ptindex_stat) != 0)
