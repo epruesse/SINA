@@ -596,7 +596,7 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
     if (cutoff_tail && overhang_pos != OVERHANG_REMOVE) {
         int pos;
         if (overhang_pos == OVERHANG_ATTACH) {
-            pos = alig_width - mesh._master.getById(m).getPosition() + 1;
+            pos = alig_width -1 - mesh._master.getById(m).getPosition() - cutoff_tail;
         } else { // OVERHANG_EDGE
             pos = 0;
         }
@@ -605,11 +605,11 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
 
         if (lowercase == LOWERCASE_UNALIGNED) {
             for (; it != end; ++it) {
-                out.append(aligned_base(pos++, it->getBase().setLowerCase()));
+                out.append(aligned_base(std::max(0, pos++), it->getBase().setLowerCase()));
             }
         } else {
             for (; it != end; ++it) {
-                out.append(aligned_base(pos++, it->getBase()));
+                out.append(aligned_base(std::max(0, pos++), it->getBase()));
             }
         }
     }
