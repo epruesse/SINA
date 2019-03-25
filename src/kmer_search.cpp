@@ -367,7 +367,7 @@ kmer_search::impl::find(const cseq& query, result_vector& results, unsigned int 
     using pair = std::pair<idset::inc_t::value_type, int>;
     std::vector<pair> ranks;
 
-    const std::string bases = query.getBases();
+    std::string bases = query.getBases();
     if (!cache.try_get(bases, ranks)) {
         timer& timing = timeit.get_timer();
         timing.start();
@@ -409,7 +409,7 @@ kmer_search::impl::find(const cseq& query, result_vector& results, unsigned int 
     for (unsigned int i=0; i<max; i++) {
         results.emplace_back(ranks[i].first, &arbdb->getCseq(sequence_names[ranks[i].second]));
     }
-    cache.store(bases, std::move(ranks));
+    cache.store(std::move(bases), std::move(ranks));
 }
 
 /*

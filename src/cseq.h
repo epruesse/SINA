@@ -243,6 +243,10 @@ public:
         attributes.emplace(key, val);
     }
 
+    bool has_attr(const std::string& key) const {
+        return attributes.find(key) != attributes.end();
+    }
+
     template<typename T>
     T get_attr(const std::string& attr) const {
         const auto it = attributes.find(attr);

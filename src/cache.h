@@ -39,7 +39,7 @@ template<typename KEY, typename VALUE>
 class fifo_cache {
 public:
     explicit fifo_cache(size_t size) : _size(size) {}
-    void store(KEY key, VALUE&& value) {
+    void store(KEY&& key, VALUE&& value) {
         std::lock_guard<std::mutex> lock(_mutex);
         auto it = _keys.find(key);
         if (it != _keys.end()) {

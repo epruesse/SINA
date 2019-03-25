@@ -43,7 +43,7 @@ public:
     ~buffer() {
         scalable_free(_start);
     }
-    T& operator[](size_type idx) {
+    inline T& operator[](size_type idx) {
         return _start[idx];
     }
 private:
@@ -66,7 +66,7 @@ public:
         offset_t offset = *((offset_t*)_start - 1);
         scalable_free((char*)_start - offset);
     }
-    T& operator[](size_type idx) {
+    inline T& operator[](size_type idx) {
         return _start[idx];
     }
 private:

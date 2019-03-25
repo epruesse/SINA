@@ -261,7 +261,7 @@ query_arb::query_arb(const fs::path& arbfile)
           gbspec != nullptr; gbspec = GBT_next_species(gbspec)) {
         spec_count++;
     }
-    data->count=spec_count;
+    data->count = spec_count;
 
     logger->info("Loading names map... (for {})", data->filename);
 
@@ -429,6 +429,7 @@ loadKey(cseq& c, const string& key, GBDATA* gbspec) {
 
 void
 query_arb::loadKey(const cseq& c, const string& key) {
+    if (c.has_attr(key)) return;
     std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
     // FIXME: should we check if the cseq is actually ours?
@@ -528,7 +529,6 @@ query_arb::loadCache(std::vector<std::string>& keys) {
     std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
 
-    logger->info("Loading {} sequences...", data->count);
     logger_progress p(logger, "Loading sequences", data->count);
 
     // re-init sequence_cache with size data->count?
