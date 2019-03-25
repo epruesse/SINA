@@ -129,7 +129,7 @@ mesh_to_svg(MESH& mesh, unsigned int from, unsigned int to, std::ostream& out) {
 	     mesh(midx,sidx).value_sidx).value << ")"
 	  << "</TD></TR><TR><TD>" << -mesh(midx,sidx).gapm_val
 	  << "/" << -mesh(midx,sidx).gaps_val
-	  << "|" << mesh(midx,sidx).gaps_max
+	//<< "|" << mesh(midx,sidx).gaps_max
 	  << "</TD></TR><TR><TD>" << *mit
 	  << "/" << *sit
 	  << "</TD></TR></TABLE>>];" << std:: endl;

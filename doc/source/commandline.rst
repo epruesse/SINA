@@ -65,7 +65,7 @@ General Options
 
    ``sina -i reference.fasta --prealigned -o reference.arb``
 
-.. option:: -t [all], --turn[=all]
+.. option:: -t [all], --turn [=all]
 
    Enables turn check stage: Sequences not oriented in accordance with
    the reference database will be reverse complemented as needed.

@@ -81,18 +81,13 @@ public:
 
     template<typename IT_M, typename IT_S>
     value_type&
-    operator()(IT_M& itm, IT_S& its) {
+    operator()(const IT_M& itm, const IT_S& its) {
         return (*this)(get_node_id(_master,itm),
                        get_node_id(_slave,its));
     }
 
     value_type&
-    operator()(master_idx_type mi, slave_idx_type si) {
-#if 0
-        if (mi+1<1 || si+1<1) {
-            std::cerr << "$$ mi=" << mi <<" si=" << si << std::endl;
-        }
-#endif
+    operator()(const master_idx_type& mi, const slave_idx_type& si) {
         return _data[mi * _slave.size() + si];
     }
 
@@ -176,19 +171,6 @@ public:
         midx = get_node_id(mymesh._master, mit);
     }
 
-    iterator& setMaster(miterator_type& _mit) {
-        mit =_mit;
-    }
-    iterator& setSlave(siterator_type& _sit) {
-        sit = _sit;
-    }
-    miterator_type& getMaster() {
-        return miterator_type(mit);
-    }
-    siterator_type& getSlave() {
-        return siterator_type(sit);
-    }
-
     iterator&
     operator++() {
         ++sit;
@@ -211,7 +193,7 @@ public:
     }
 
     bool
-    operator==(const iterator& rhs) {
+    operator==(const iterator& rhs) const {
         return (
 //  == missing in mseq and therefor in mesh
 //            (mymesh == rhs.mymesh) && ==
@@ -220,7 +202,7 @@ public:
             );
     }
 
-    bool operator!=(const iterator& rhs) { return !(*this == rhs); }
+    bool operator!=(const iterator& rhs) const { return !(*this == rhs); }
 
     value_type&
     operator*() {
@@ -231,8 +213,8 @@ public:
         return (midx * mymesh._slave.size() + sidx);
     }
 
-    midx_type getMidx() { return midx; }
-    sidx_type getSidx() { return sidx; }
+    midx_type getMidx() const { return midx; }
+    sidx_type getSidx() const { return sidx; }
 
     mesh_type      &mymesh;
     miterator_type mit;
@@ -292,7 +274,7 @@ public:
 
 public:
 
-    transition_simple(const SCORING_SCHEME& _s)
+    explicit transition_simple(const SCORING_SCHEME& _s)
         : s(_s)
     {
     }
@@ -302,7 +284,6 @@ public:
         typename slave_type::idx_type value_sidx;
         typename master_type::idx_type gapm_idx;
         typename slave_type::idx_type gaps_idx;
-        typename slave_type::idx_type gaps_max;
 
         value_type value;
         value_type gapm_val;
@@ -312,11 +293,11 @@ public:
 
         void init_edge() {
             value = gapm_val = gaps_val = 1,
-                value_midx = value_sidx = gapm_idx = gaps_idx = gaps_max = 0;
+                value_midx = value_sidx = gapm_idx = gaps_idx = 0;
         }
         void init() {
             value = gapm_val = gaps_val = 1000000,
-                value_midx = value_sidx = gapm_idx = gaps_idx = gaps_max = 0;
+                value_midx = value_sidx = gapm_idx = gaps_idx = 0;
         }
     };
 
@@ -401,7 +382,7 @@ class transition_aspace_aware
 public:
     typedef transition_simple<SCORING_SCHEME,
                               SEQ_MASTER_, SEQ_SLAVE_> transition;
-    transition_aspace_aware(const SCORING_SCHEME& _s)
+    explicit transition_aspace_aware(const SCORING_SCHEME& _s)
         : transition(_s)
     {
     }
@@ -467,7 +448,7 @@ struct compute_node_simple {
     using mpit_type = typename master_type::pn_iterator;
     using spit_type = typename slave_type::pn_iterator;
 
-    compute_node_simple(TRANSITION _t) : t(_t) {}
+    explicit compute_node_simple(TRANSITION _t) : t(_t) {}
 
     template<typename T>
     void
@@ -529,8 +510,6 @@ template<typename MESH_TYPE,
          typename NODE_COMPUTOR>
 void
 compute(MESH_TYPE& mesh, NODE_COMPUTOR& nc) {
-    using master_type = typename MESH_TYPE::master_type;
-    using slave_type = typename MESH_TYPE::slave_type;
     using master_iterator_type = typename MESH_TYPE::master_iterator_type;
     using slave_iterator_type = typename MESH_TYPE::slave_iterator_type;
 
@@ -617,7 +596,7 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
     if (cutoff_tail && overhang_pos != OVERHANG_REMOVE) {
         int pos;
         if (overhang_pos == OVERHANG_ATTACH) {
-            pos = alig_width - mesh._master.getById(m).getPosition() + 1;
+            pos = alig_width -1 - mesh._master.getById(m).getPosition() - cutoff_tail;
         } else { // OVERHANG_EDGE
             pos = 0;
         }
@@ -626,11 +605,11 @@ backtrack(MESH_TYPE& mesh, cseq& out, TRANSITION &tr,
 
         if (lowercase == LOWERCASE_UNALIGNED) {
             for (; it != end; ++it) {
-                out.append(aligned_base(pos++, it->getBase().setLowerCase()));
+                out.append(aligned_base(std::max(0, pos++), it->getBase().setLowerCase()));
             }
         } else {
             for (; it != end; ++it) {
-                out.append(aligned_base(pos++, it->getBase()));
+                out.append(aligned_base(std::max(0, pos++), it->getBase()));
             }
         }
     }

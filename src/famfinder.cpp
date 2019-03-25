@@ -339,7 +339,6 @@ int
 famfinder::impl::turn_check(const cseq& query, bool all) {
     search::result_vector matches;
     double score[4];
-
     index->find(query, matches, 1);
     score[0] = matches.empty() ? 0 : matches[0].score;
 

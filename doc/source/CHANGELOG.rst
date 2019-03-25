@@ -6,13 +6,26 @@ Changelog
 Version 1.6.0:
 --------------
  - make internal kmer engine the default (:issue:`23`)
- - add progress monitor
- - :option:`--num-pts` defaults to number of cores available (previous: 1)
- - always run internal engine on max threads
+ - add pretty progress monitor
  - run search stage in parallel (:issue:`32`)
+ - :option:`--num-pts` defaults to number of cores available
+   (previous: 1)
+ - add :option:`--search-engine` setting search engine for search
+   module
+ - always run internal engine without thread limit
  - split num pt servers evently between search and align
- - add :option:`--search-engine` setting search engine for search module
- - rewrote family selection (use :option:`--fs-oldmatch` for old implementation)
+ - use fixed point format for logging (instead of scientific format)
+ - rewrote family selection (use :option:`--fs-oldmatch` for old
+   implementation)
+ - replace boost::mutex with std::mutex (c++11)
+ - fix :option:`--show-dist` if alignment width don't match
+ - fix race starting pt servers (library code not threadsafe)
+ - fix engine type not shown in :option:`--show-conf`
+ - fix writing to ARB sequence cache not threadsafe
+ - use lock free map for ARB sequence cache (speedup)
+ - add pod buffer to replace std::vector (speedup)
+ - add FIFO cache for kmer search results (speedup for
+   :option:`--search` and :option:`--turn`)
 
 
 Version 1.5.0:
@@ -38,7 +51,8 @@ Version 1.5.0:
  - fix out-of-bounds access on iterator in NAST implementation
  - remove dependency on boost serialization library
  - build release binaries with GCC 7 and C++11 ABI
- - add integration tests watching for accuracy regressions (:issue:`25`)
+ - add integration tests watching for accuracy regressions
+   (:issue:`25`)
 
 
 Version 1.4.0:

@@ -97,6 +97,11 @@ jobs:
             bash <(curl -s https://codecov.io/bash) -X gcov -F integration \
               -R ~/project -n Integration-Linux-CircleCI
       - run:
+          name: Collecting binaries
+          when: on_fail
+          command: |
+            tar -C ~/build -czvf $ARTIFACT_PATH/build_src.tgz src
+      - run:
           name: Copying logs
           when: always
           command: |

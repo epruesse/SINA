@@ -135,7 +135,7 @@ class query_arb{
     void loadKey(const cseq& c, const std::string& key);
     void storeKey(cseq& c, const std::string& key);
 
-    long getAlignmentWidth();
+    long getAlignmentWidth() const;
 
     std::string getFilter(const std::string& name);
     std::vector<int> getPairs();
