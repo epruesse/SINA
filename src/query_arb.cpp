@@ -674,7 +674,7 @@ query_arb::getCseq(const string& name) { //, bool nocache) {
 
     // if all fails, fetch sequence from arb and cache
     cseq tmp(name.c_str(), data->getSequence(name.c_str(), data->default_alignment).c_str());
-    data->sequence_cache[name]=tmp;
+    data->sequence_cache.emplace(name, std::move(tmp));
 #if defined(DEBUG) && False
     int n_cached = data->sequence_cache.size();
     if (n_cached % 1000 == 0) {

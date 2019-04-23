@@ -150,7 +150,12 @@ struct Log::options {
 
 std::unique_ptr<Log::options> Log::opts;
 
-static std::vector<spdlog::sink_ptr> sinks;
+// Since this is modified from other compilation units before
+// this compilation unit is initialized, we must use a
+// pointer, lest the vector get initialized twice (i.e.
+// overwritten during program load). The pointer should
+// be initialized to 0 automagically.
+std::vector<spdlog::sink_ptr> *sinks;
 
 void
 Log::get_options_description(po::options_description& main,
@@ -187,7 +192,7 @@ Log::validate_vm(po::variables_map& vm,
         spdlog::level::off);
 
     // create logging sinks
-    auto console_sink = sinks[0];
+    auto console_sink = (*sinks)[0];
     console_sink->set_level(opts->verbosity);
     console_sink->set_pattern("%T [%n] %^%v%$");
 
@@ -195,12 +200,12 @@ Log::validate_vm(po::variables_map& vm,
         auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
             opts->logfile.native(), true);
         file_sink->set_level(std::min(spdlog::level::info, opts->verbosity));
-        sinks.push_back(file_sink);
+        sinks->push_back(file_sink);
     }
 
     // update sinks of pre-existing loggers
     spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) {
-            l->sinks() = sinks;
+            l->sinks() = *sinks;
             l->set_level(spdlog::level::trace);
         });
 
@@ -221,10 +226,11 @@ Log::create_logger(std::string name) {
     if (logger) {
         return logger;
     }
-    if (sinks.empty()) {
-        sinks.push_back(std::make_shared<terminal_stderr_sink_mt>());
+    if (sinks == nullptr) {
+        sinks = new std::vector<spdlog::sink_ptr>();
+        sinks->push_back(std::make_shared<terminal_stderr_sink_mt>());
     }
-    logger = std::make_shared<spdlog::logger>(name, sinks.begin(), sinks.end());
+    logger = std::make_shared<spdlog::logger>(name, sinks->begin(), sinks->end());
     spdlog::register_logger(logger);
     return logger;
 }

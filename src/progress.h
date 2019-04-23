@@ -30,8 +30,10 @@ for the parts of ARB used as well as that of the covered work.
 #define _PROGRESS_H_
 
 #include <mutex>
+#include <list>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <signal.h>
 
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/bundled/chrono.h"
@@ -327,20 +329,81 @@ inline int status_msg_sink::update_messages(fmt::memory_buffer &buf, unsigned in
     return _status_messages.size();
 }
 
+class sigwinch_mixin {
+protected:
+    sigwinch_mixin(bool install) {
+        if (install) {
+            install_handler();
+        }
+        instances().push_back(this);
+    }
+    virtual ~sigwinch_mixin() {
+        instances().remove(this);
+    }
+    inline bool check_got_sigwinch() {
+        if (got_sigwinch() != 0) {
+            got_sigwinch() = 0;
+            notify_instances();
+        }
+        if (_needs_update) {
+            _needs_update = 0;
+            return true;
+        }
+        return false;
+    }
+private:
+    static sig_atomic_t& got_sigwinch() {
+        static sig_atomic_t flag;
+        return flag;
+    }
+    static std::list<sigwinch_mixin*>& instances() {
+        static std::list<sigwinch_mixin*> list;
+        return list;
+    }
+    static void handle_sigwinch(int) {
+        got_sigwinch() = 1;
+    }
+    static void install_handler() {
+        struct sigaction sa;
+        memset(&sa, 0, sizeof(sa));
+        if (sigaction(SIGWINCH, nullptr, &sa)) {
+            return; // failed
+        }
+        if (sa.sa_handler == handle_sigwinch) {
+            return; // already installed
+        }
+        memset(&sa, 0, sizeof(sa));
+        sa.sa_handler = handle_sigwinch;
+        sigfillset(&sa.sa_mask); // block other signals during handler
+        if (sigaction(SIGWINCH, &sa, nullptr)) {
+            return; // failed
+        }
+    }
+    static void notify_instances() {
+        //std::lock_guard<mutex_t> lock(super::mutex_);
+        for (auto& instance : instances()) {
+            instance->_needs_update = true;
+        }
+    }
+
+    bool _needs_update{false};
+};
 
 
 template<typename TargetStream, class ConsoleMutex>
 class terminal_sink 
-    : public spdlog::sinks::ansicolor_sink<TargetStream, ConsoleMutex>, public status_msg_sink {
+    : public spdlog::sinks::ansicolor_sink<TargetStream, ConsoleMutex>,
+      public status_msg_sink, public sigwinch_mixin {
 public:
     using super = spdlog::sinks::ansicolor_sink<TargetStream, ConsoleMutex>;
     using mutex_t = typename ConsoleMutex::mutex_t;
 
-    terminal_sink() {
+    terminal_sink() : super(), sigwinch_mixin(super::should_do_colors_) {
         if (super::should_do_colors_) {
             update_term_width();
         }
     }
+    ~terminal_sink() override = default;
 
     void log(const spdlog::details::log_msg &msg) override {
         if (not super::should_do_colors_) {
@@ -352,6 +415,9 @@ public:
         }
         fmt::memory_buffer messages;
         int nlines = update_messages(messages, _ncols);
+        if (check_got_sigwinch()) {
+            update_term_width();
+        }
         std::lock_guard<mutex_t> lock(super::mutex_);
         for (int i=0; i < nlines; ++i) {
             fwrite(term_move_up.data(), 1, term_move_up.size(), super::target_file_);
@@ -378,6 +444,9 @@ public:
         }
         fmt::memory_buffer messages;
         int nlines = update_messages(messages, _ncols);
+        if (check_got_sigwinch()) {
+            update_term_width();
+        }
         std::lock_guard<mutex_t> lock(super::mutex_);
         for (int i=0; i < nlines; ++i) {
             fwrite(term_move_up.data(), 1, term_move_up.size(), super::target_file_);
