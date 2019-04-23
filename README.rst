@@ -33,7 +33,7 @@ Features
 - Speed. Aligning 100,000 full length rRNA against the SILVA NR takes 40 minutes on a mid-sized 2018 desktop computer. Aligning 1,000,000 V4 amplicons takes about 60 minutes.
 - Accuracy. SINA is used to build the SILVA_ SSU and LSU rRNA databases.
 - Classification. SINA includes an LCA based classification module.
-- ARB_. SINA is able to directly read and write ARB format files such as distributed by the SILVA_ project.
+- ARB. SINA is able to directly read and write ARB_ format files such as distributed by the SILVA_ project.
 
 .. _SILVA: https://www.arb-silva.de
 .. _ARB: https://www.arb-home.de
