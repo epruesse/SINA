@@ -51,7 +51,7 @@ additional sequences chosen using SINA's add-neighbors feature.
 Installing SINA
 ---------------
 
-The preferred way to install SINA locally is via `Bioconda <bioconda.github.io_>`_.
+The preferred way to install SINA locally is via `Bioconda <bioconda.github.io>`_.
 If you have a working Bioconda installation, just run::
 
     conda create -n sina sina
