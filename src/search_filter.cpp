@@ -369,7 +369,7 @@ search_filter::operator()(tray t) {
             c->set_attr<string>(string("copy_")+acc+string("_")+s, v);
         }
     }
-    c->set_attr<string>("nearest_slv", fmt::to_string(nearest));
+    c->set_attr<string>(query_arb::fn_nearest, fmt::to_string(nearest));
 
     for (string& s: opts->v_lca_fields) {
         stringstream result;

@@ -379,7 +379,7 @@ aligner::operator()(tray t) {
             }
             c.set_attr(query_arb::fn_head, 0);
             c.set_attr(query_arb::fn_tail, 0);
-            c.set_attr("align_filter_slv", "");
+            c.set_attr(query_arb::fn_filter, "");
             t.aligned_sequence = &c;
             return t;
         }
@@ -450,7 +450,7 @@ aligner::operator()(tray t) {
     }
 
     c.set_attr(query_arb::fn_date, make_datetime());
-    c.set_attr("align_filter_slv", t.astats->getName());
+    c.set_attr(query_arb::fn_filter, t.astats->getName());
     t.aligned_sequence = &c;
 
     return t;

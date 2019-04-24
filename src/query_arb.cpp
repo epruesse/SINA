@@ -122,11 +122,10 @@ const char* query_arb::fn_astop      = "align_stoppos_slv";
 const char* query_arb::fn_idty       = "align_ident_slv";
 const char* query_arb::fn_nuc_gene   = "nuc_gene_slv";
 const char* query_arb::fn_bpscore    = "align_bp_score_slv";
-const char* query_arb::fn_family_str = "align_family_slv";
-
-const char* query_arb::fn_family     = "NONE";
+const char* query_arb::fn_family     = "align_family_slv";
 const char* query_arb::fn_align_log  = "align_log_slv";
-
+const char* query_arb::fn_filter     = "align_filter_slv";
+const char* query_arb::fn_nearest    = "nearest_slv";
 
 // Global lock -- ARB database access is not thread safe! Not even between
 //                open datases.
