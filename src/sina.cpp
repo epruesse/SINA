@@ -343,8 +343,13 @@ parse_options(int argc, char** argv) {
     po::options_description all_od(od);
     all_od.add(adv_od);
 
+    po::positional_options_description no_positional;
     try {
-        po::store(po::parse_command_line(argc,argv,all_od),vm);
+        po::command_line_parser parser(argc, argv);
+        parser.options(all_od);
+        parser.positional(no_positional);
+        po::parsed_options parsed_options = parser.run();
+        po::store(parsed_options, vm);
 
         if (vm.count("help") != 0u) {
             show_help(&od);
