@@ -1,5 +1,5 @@
-Reference based multiple sequence alignment using SINA
-======================================================
+Reference based multiple sequence alignment
+===========================================
 
 SINA allows incorporating additional sequences into an existing
 multiple sequence alignment (MSA) without modifying the original
@@ -24,8 +24,7 @@ format reference databases released by the project `here
 An `online version of SINA <https://www.arb-silva.de/aligner/>`_ is provided
 by the SILVA_ project.
 
-Publication
-~~~~~~~~~~~
+.. rubric:: Publication
 
 If you use SINA in your work, please cite:
 
