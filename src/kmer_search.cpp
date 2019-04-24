@@ -84,8 +84,8 @@ union idx_flags {
 struct idx_header {
     uint64_t magic{idx_header_magic};
     uint16_t vers{idx_header_vers};
-    uint32_t n_sequences;
-    idx_flags flags;
+    uint32_t n_sequences{0};
+    idx_flags flags{0};
 };
 
 class kmer_search::impl {
@@ -272,7 +272,8 @@ kmer_search::impl::build() {
 
 void
 kmer_search::impl::store(const fs::path& filename) {
-    std::ofstream out(filename.native(), std::ofstream::binary);
+    std::string native = filename.native();
+    std::ofstream out(native, std::ofstream::binary);
     idx_header header;
     header.flags.k = k;
     header.flags.nofast = nofast;
@@ -298,7 +299,8 @@ kmer_search::impl::store(const fs::path& filename) {
 
 bool
 kmer_search::impl::try_load(const fs::path& filename) {
-    std::ifstream in(filename.native(), std::ifstream::binary);
+    std::string native = filename.native();
+    std::ifstream in(native, std::ifstream::binary);
     idx_header header;
     in.read((char*)&header, sizeof(idx_header));
     if (idx_header_magic != header.magic) {

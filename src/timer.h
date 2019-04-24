@@ -36,8 +36,9 @@
 #include <iostream>
 #include <sstream>
 #include <numeric>
-#include <unordered_map>
 #include <thread>
+
+#include <tbb/concurrent_unordered_map.h>
 
 #ifndef _TIMER_H_
 #define _TIMER_H_
@@ -178,7 +179,7 @@ public:
 };
 
 class timer_mt {
-    std::unordered_map<std::thread::id, timer> timers;
+    tbb::concurrent_unordered_map<std::thread::id, timer, std::hash<std::thread::id>> timers;
 public:
     timer& get_timer() {
         return timers[std::this_thread::get_id()];
