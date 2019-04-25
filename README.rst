@@ -18,14 +18,14 @@ SINA - reference based multiple sequence alignment
 .. |downloads| image:: https://img.shields.io/conda/dn/bioconda/sina.svg?style=flat
 
 
-SINA aligns nucleotide sequences to match a pre-existing MSA using 
+SINA aligns nucleotide sequences to match a pre-existing MSA using
 a graph based alignment algorithm similar to PoA. The graph approach
 allows SINA to incorporate information from many reference sequences
 building without blurring highly variable regions. While
-pure NAST implementations depend highly on finding a good match in 
-the reference database, SINA is able to align sequences relatively 
+pure NAST implementations depend highly on finding a good match in
+the reference database, SINA is able to align sequences relatively
 distant to references with good quality and will yield a robust result
-for query sequences with many close reference. 
+for query sequences with many close reference.
 
 Features
 --------
@@ -41,7 +41,7 @@ Features
 Online Version
 --------------
 
-An online version for submitting small batches of sequences is made 
+An online version for submitting small batches of sequences is made
 available by the SILVA_ project as part of their
 `ACT: Alignment, Classification and Tree Service <https://www.arb-silva.de/aligner>`_.
 In addition to SINA's alignment and classification stages, ACT allows directly building
@@ -56,15 +56,15 @@ If you have a working Bioconda installation, just run::
 
     conda create -n sina sina
     conda activate sina
-    
-Alternatively, self-contained images are available at 
+
+Alternatively, self-contained images are available at
 https://github.com/epruesse/SINA/releases. Choose the most recent ``tar.gz``
 appropriate for your operating system and unpack::
 
    tar xf sina-1.6.0-linux.tar.gz
    cd sina-1.6.0
    ./sina
- 
+
 
 Documentation
 -------------

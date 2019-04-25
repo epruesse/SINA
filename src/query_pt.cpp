@@ -77,95 +77,31 @@ static auto pt_logger = Log::create_logger("ARB_PT_SERVER");
 
 class managed_pt_server {
     redi::ipstream* process;
-    string dbname;
-    string portname;
+    const fs::path dbname;
+    const string portname;
 public:
-    managed_pt_server(string  dbname_, string  portname_);
+    managed_pt_server(fs::path dbname_, string portname_);
     managed_pt_server(const managed_pt_server&);
     ~managed_pt_server();
+    fs::path ensure_env_ARBHOME();
+    fs::path get_pt_server_path();
+    fs::path ensure_index_exists();
+    bool build_index(fs::path index_arb_file);
 };
 
 static std::mutex build_lock, launch_lock;
 
-managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
+managed_pt_server::managed_pt_server(fs::path dbname_, string  portname_)
     : dbname(std::move(dbname_)), portname(std::move(portname_))
 {
     // Check that database specified and file accessible
-    if (dbname.empty()) {
+    if (dbname.empty() or not fs::exists(dbname)) {
         throw query_pt_exception("Missing reference database");
     }
 
-    struct stat arbdb_stat;
-    if (stat(dbname.c_str(), &arbdb_stat) != 0) {
-        perror("Error accessing ARB database file");
-        throw query_pt_exception("Failed to launch PT server.");
-    }
-
-    // Make sure ARBHOME is set; guess if possible
-    fs::path ARBHOME;
-    if (const char* arbhome = std::getenv("ARBHOME")) {
-        ARBHOME = arbhome;
-        logger->info("Using ARBHOME={}", ARBHOME);
-    } else {
-        ARBHOME = boost::dll::symbol_location(GB_open).parent_path().parent_path();
-        logger->info("Setting ARBHOME={}", ARBHOME);
-        setenv("ARBHOME", ARBHOME.c_str(), 1);  // no setenv in C++/STL
-    }
-
-    // Locate PT server binary
-    fs::path arb_pt_server("arb_pt_server");
-    fs::path arb_pt_server_path = fs::system_complete(arb_pt_server);
-    if (!fs::exists(arb_pt_server_path)) { // not in PATH
-        logger->debug("{} not found in PATH", arb_pt_server);
-        arb_pt_server_path = ARBHOME / "bin" / arb_pt_server;
-        if (!fs::exists(arb_pt_server_path)) { // not in ARBHOME
-            logger->debug("{} not found in ARBHOME", arb_pt_server);
-            // 3. Next to us
-            fs::path self_dir = boost::dll::program_location().parent_path();
-            arb_pt_server_path = self_dir / arb_pt_server;
-            if (!fs::exists(arb_pt_server_path)) { // not next to us either?
-                logger->debug("{} not found in {}", arb_pt_server, self_dir);
-                throw query_pt_exception("Failed to locate 'arb_pt_server'");
-            }
-        }
-    }
-
-    {
-        std::lock_guard<std::mutex> lock(build_lock);
-
-        // (Re)build index if missing or older than database
-        struct stat ptindex_stat;
-        string ptindex = dbname + ".index.arb.pt";
-        if ((stat(ptindex.c_str(), &ptindex_stat) != 0)
-            || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-            if (arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-                logger->info("PT server index missing for {}. Building:", dbname);
-            } else {
-                logger->info("PT server index out of date for {}. Rebuilding:", dbname);
-            }
-
-            vector<string> cmds;
-            cmds.push_back(string("cp ") + dbname + " " + dbname + ".index.arb");
-            cmds.push_back(arb_pt_server_path.native() + " -build_clean -D" + dbname + ".index.arb");
-            cmds.push_back(arb_pt_server_path.native() + " -build -D" + dbname + ".index.arb");
-            for (auto& cmd :  cmds) {
-                logger->debug("Executing '{}'", cmd);
-                int rval = system(cmd.c_str());
-                logger->debug("Command finished");
-                if (rval) {
-                    logger->error("Command {} failed with exit code {}", cmd, rval);
-                }
-            }
-
-            if ((stat(ptindex.c_str(), &ptindex_stat) != 0)
-                || arbdb_stat.st_mtime > ptindex_stat.st_mtime) {
-                throw query_pt_exception("Failed to (re)build PT server index! (out of memory?)");
-            }
-        }
-    }
-
-    // Reset database name to the index version created during build
-    dbname = dbname + ".index.arb";
+    ensure_env_ARBHOME();
+    fs::path arb_pt_server = get_pt_server_path();
+    fs::path index_arb_file = ensure_index_exists();
 
     // Check portname: allowed are localhost:PORT, :PORT and :SOCKETFILE
     int split = portname.find(':');
@@ -176,7 +112,7 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
     }
 
     // Actually launch the server now:
-    vector<string> cmd{arb_pt_server_path.native(), "-D"+dbname, "-T"+portname};
+    vector<string> cmd{arb_pt_server.native(), "-D" + index_arb_file.native(), "-T" +portname};
     logger->info("Launching background PT server for {} on {}", dbname, portname);
     logger->debug("Executing ['{}']", fmt::join(cmd, "', '"));
     {
@@ -212,6 +148,97 @@ managed_pt_server::managed_pt_server(string  dbname_, string  portname_)
 managed_pt_server::~managed_pt_server() {
     logger->warn("Terminating PT server ({} on {})", dbname, portname);
     process->rdbuf()->kill();
+}
+
+fs::path
+managed_pt_server::ensure_index_exists() {
+    std::lock_guard<std::mutex> lock(build_lock);
+
+    fs::path index_arb_file = dbname;
+    index_arb_file += ".index.arb";
+    fs::path index_pt_file = index_arb_file;
+    index_pt_file += ".pt";
+
+
+    if (fs::exists(index_pt_file) && fs::exists(index_arb_file)) {
+        if (fs::last_write_time(index_arb_file) >= fs::last_write_time(dbname)
+            && fs::last_write_time(index_pt_file) >= fs::last_write_time(index_arb_file)) {
+            // some.arb older-than some.arb.index.arb older-than some.arb.index.arb.pt
+            // -> good index exists
+            return index_arb_file;
+        } else {
+            logger->info("PT server index out of date for {}. Rebuilding:", dbname);
+        }
+    } else {
+        logger->info("PT server index missing or incomplete for {}. Building:", dbname);
+    }
+
+    build_index(index_arb_file);
+
+    if (not fs::exists(index_pt_file) ||
+        fs::last_write_time(index_pt_file) < fs::last_write_time(dbname)) {
+        throw query_pt_exception("Failed to (re)build PT server index! (out of memory?)");
+    }
+    return index_arb_file;
+}
+
+bool managed_pt_server::build_index(fs::path index_arb_file) {
+    fs::path arb_pt_server = get_pt_server_path();
+    vector<string> cmds;
+    // copy database file
+    cmds.push_back(string("cp ") + dbname.native() + " " + index_arb_file.native());
+    // shrink database (convert to index db)
+    cmds.push_back(arb_pt_server.native() + " -build_clean -D" + index_arb_file.native());
+    // build index (build .arb.pt)
+    cmds.push_back(arb_pt_server.native() + " -build -D" + index_arb_file.native());
+    for (auto& cmd : cmds) {
+        logger->debug("Executing '{}'", cmd);
+        int rval = system(cmd.c_str());
+        logger->debug("Command finished");
+        if (rval) {
+            logger->error("Command {} failed with exit code {}", cmd, rval);
+            return false;
+        }
+    }
+    return true;
+}
+
+
+fs::path
+managed_pt_server::ensure_env_ARBHOME() {
+    fs::path ARBHOME;
+    // Make sure ARBHOME is set; guess if possible
+    if (const char* arbhome = std::getenv("ARBHOME")) {
+        ARBHOME = arbhome;
+        logger->info("Using ARBHOME={}", ARBHOME);
+    } else {
+        ARBHOME = boost::dll::symbol_location(GB_open).parent_path().parent_path();
+        logger->info("Setting ARBHOME={}", ARBHOME);
+        setenv("ARBHOME", ARBHOME.c_str(), 1);  // no setenv in C++/STL
+    }
+    return ARBHOME;
+}
+
+fs::path
+managed_pt_server::get_pt_server_path() {
+    // Locate PT server binary
+    fs::path arb_pt_server("arb_pt_server");
+    fs::path arb_pt_server_path = fs::system_complete(arb_pt_server);
+    if (!fs::exists(arb_pt_server_path)) { // not in PATH
+        logger->debug("{} not found in PATH", arb_pt_server);
+        arb_pt_server_path = ensure_env_ARBHOME() / "bin" / arb_pt_server;
+        if (!fs::exists(arb_pt_server_path)) { // not in ARBHOME
+            logger->debug("{} not found in ARBHOME", arb_pt_server);
+            // 3. Next to us
+            fs::path self_dir = boost::dll::program_location().parent_path();
+            arb_pt_server_path = self_dir / arb_pt_server;
+            if (!fs::exists(arb_pt_server_path)) { // not next to us either?
+                logger->debug("{} not found in {}", arb_pt_server, self_dir);
+                throw query_pt_exception("Failed to locate 'arb_pt_server'");
+            }
+        }
+    }
+    return arb_pt_server_path;
 }
 
 struct query_pt::options {

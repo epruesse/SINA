@@ -461,7 +461,7 @@ famfinder::impl::operator()(tray t) {
                        r.sequence->get_attr<string>(query_arb::fn_start, "0"),
                        r.score);
     }
-    c.set_attr(query_arb::fn_family_str, string(tmp.data(), tmp.size()));
+    c.set_attr(query_arb::fn_family, string(tmp.data(), tmp.size()));
 
     // remove sequences having too few gaps
     // FIXME: this should be done in match()

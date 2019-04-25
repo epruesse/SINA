@@ -85,14 +85,14 @@ class query_arb{
     static const char* fn_astop;
     static const char* fn_idty;
     static const char* fn_family;
-    static const char* fn_family_str;
     static const char* fn_nuc;
     static const char* fn_nuc_gene;
     static const char* fn_bpscore;
     static const char* fn_used_rels;
     static const char* fn_fullname;
     static const char* fn_align_log;
-
+    static const char* fn_filter;
+    static const char* fn_nearest;
 
     /**
      * Saves the database using the default filename in binary format.

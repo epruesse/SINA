@@ -5,9 +5,9 @@ Installing SINA
 
 You can install SINA
 
-- `using Bioconda`_ (simple, recommended)
-- from `pre-compiled tarballs`_ (alternative if conda is misbehaving for you)
-- or build SINA `from source`_ (for developers)
+1. `using Bioconda`_ (recommended)
+2. from `pre-compiled tarballs`_ (alternate)
+3. or build SINA `from source`_ (for developers)
 
 
 .. _`using Bioconda`:
