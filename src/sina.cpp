@@ -88,8 +88,7 @@ enum SEQUENCE_DB_TYPE {
 };
 
 // make above type printable
-std::ostream& operator<<(std::ostream& out,
-                         const SEQUENCE_DB_TYPE& db) {
+std::ostream& operator<<(std::ostream& out, const SEQUENCE_DB_TYPE& db) {
     switch(db) {
     case SEQUENCE_DB_NONE:  out << "NONE";  break;
     case SEQUENCE_DB_AUTO:  out << "AUTO";  break;
@@ -100,11 +99,25 @@ std::ostream& operator<<(std::ostream& out,
     return out;
 }
 
+template<typename T>
+std::ostream& operator<<(std::ostream& out, const std::vector<T>& vs) {
+    bool first = true;
+    for (auto& v : vs) {
+        if (first) {
+            first = false;
+        } else {
+            out << " ";
+        }
+        out << v;
+    }
+    return out;
+}
+
 // make above type parseable by boost::program_options
 void validate(boost::any& v,
               const vector<string>& values,
               SEQUENCE_DB_TYPE* /*db*/, int /*unused*/) {
-    po::validators::check_first_occurrence(v);
+    //po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
     if (iequals(s, "NONE")) {
         v = SEQUENCE_DB_NONE;
@@ -114,9 +127,11 @@ void validate(boost::any& v,
         v = SEQUENCE_DB_ARB;
     } else if (iequals (s, "FASTA")) {
         v = SEQUENCE_DB_FASTA;
-    } else { throw po::invalid_option_value(s);
+    } else {
+        throw po::invalid_option_value(s);
+    }
 }
-}
+
 
 // make known any<> types printable
 template <class T,
@@ -148,6 +163,8 @@ std::ostream& operator<<(std::ostream& out,
         out << any_cast<FASTA_META_TYPE>(a);
     } else if (any_cast<SEQUENCE_DB_TYPE>(&a) != nullptr) {
         out << any_cast<SEQUENCE_DB_TYPE>(a);
+    } else if (any_cast<std::vector<SEQUENCE_DB_TYPE>>(&a) != nullptr) {
+        out << any_cast<std::vector<SEQUENCE_DB_TYPE>>(a);
     } else if (any_cast<CMP_IUPAC_TYPE>(&a) != nullptr) {
         out << any_cast<CMP_IUPAC_TYPE>(a);
     } else if (any_cast<CMP_DIST_TYPE>(&a) != nullptr) {
@@ -158,6 +175,8 @@ std::ostream& operator<<(std::ostream& out,
         out << any_cast<ENGINE_TYPE>(a);
     } else if (any_cast<fs::path>(&a) != nullptr) {
         out << any_cast<fs::path>(a);
+    } else if (any_cast<std::vector<fs::path>>(&a) != nullptr) {
+        out << any_cast<std::vector<fs::path>>(a);
     } else {
         out << "UNKNOWN TYPE: '" << a.type().name()<<"'";
     }
@@ -179,9 +198,10 @@ void show_conf(po::variables_map& vm) {
 
 struct options {
     SEQUENCE_DB_TYPE intype;
-    SEQUENCE_DB_TYPE outtype;
     fs::path in;
-    fs::path out;
+    std::vector<SEQUENCE_DB_TYPE> outtype;
+    std::vector<fs::path> out;
+    std::vector<std::pair<SEQUENCE_DB_TYPE, fs::path>> out_merged;
     unsigned int copy_relatives;
     bool noalign;
     bool skip_align;
@@ -209,7 +229,7 @@ void get_options_description(po::options_description& main,
          po::value<SEQUENCE_DB_TYPE>(&opts.intype)->default_value(SEQUENCE_DB_AUTO),
          "override input file type")
         ("outtype",
-         po::value<SEQUENCE_DB_TYPE>(&opts.outtype)->default_value(SEQUENCE_DB_AUTO),
+         po::value<std::vector<SEQUENCE_DB_TYPE>>(&opts.outtype),
          "override output file type")
         ("preserve-order", po::bool_switch(&opts.inorder),
          "maintain order of sequences")
@@ -228,7 +248,7 @@ void get_options_description(po::options_description& main,
         ("help-all,H", "show full help (long)")
         ("in,i", po::value<fs::path>(&opts.in)->default_value("-"),
          "input file (arb or fasta)")
-        ("out,o", po::value<fs::path>(&opts.out)->default_value(""),
+        ("out,o", po::value<std::vector<fs::path>>(&opts.out)->multitoken(),
          "output file (arb or fasta)")
         ("add-relatives", po::value<unsigned int>(&opts.copy_relatives)->default_value(0, ""),
          "add the ARG nearest relatives for each sequence to output")
@@ -242,7 +262,8 @@ void get_options_description(po::options_description& main,
         ;
 }
 
-void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od*/) {
+void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od*/,
+                 po::parsed_options& parsed_options) {
     if (vm.count("has-cli-vers") != 0u) {
         std::cerr << "** SINA (SILVA Incremental Aligner) " << PACKAGE_VERSION
                   << " present" << std::endl;
@@ -279,23 +300,37 @@ void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od
         throw logic_error("Input type NONE invalid - need something to process");
     }
 
-    // Output default is infile if that is ARB, else "-"
-    if (opts.out == "") {
-        if (opts.intype == SEQUENCE_DB_ARB) {
-            opts.out = opts.in;
-        } else {
-            opts.out = "-";
+    SEQUENCE_DB_TYPE type_val = SEQUENCE_DB_AUTO;
+    int type_idx = 0, out_idx = 0;
+    for (auto &opt : parsed_options.options) {
+        if (opt.string_key == "outtype") {
+            type_val = opts.outtype[type_idx++];
+        } else if (opt.string_key == "out") {
+            for (size_t i = 0; i < opt.value.size(); i++) {
+                fs::path out = opts.out[out_idx++];
+                SEQUENCE_DB_TYPE outtype = type_val;
+                if (outtype == SEQUENCE_DB_AUTO) {
+                    if (out.extension() == ".arb" || out.native() == ":") {
+                        outtype = SEQUENCE_DB_ARB;
+                    } else if (out == "/dev/null") {
+                        continue;
+                    } else {
+                        outtype = SEQUENCE_DB_FASTA;
+                    }
+                }
+                opts.out_merged.emplace_back(outtype, out);
+            }
+            type_val = SEQUENCE_DB_AUTO;
         }
     }
 
-    // Autodetect / validate outtype selection
-    if (opts.outtype == SEQUENCE_DB_AUTO) {
-        if (opts.out.extension() == ".arb" || opts.out.native() == ":") {
-            opts.outtype = SEQUENCE_DB_ARB;
-        } else if (opts.out == "/dev/null") {
-            opts.outtype = SEQUENCE_DB_NONE;
-        } else {
-            opts.outtype = SEQUENCE_DB_FASTA;
+    if (out_idx == 0) { // no --out specified
+        if (opts.intype == SEQUENCE_DB_ARB) {
+            opts.out_merged.push_back(std::make_pair(SEQUENCE_DB_ARB, opts.in));
+            logger->warn("No explicit output file provided. "
+                         "Reading and writing to same ARB database.");
+        } else if (type_val != SEQUENCE_DB_NONE) {
+            opts.out_merged.push_back(std::make_pair(SEQUENCE_DB_FASTA, "-"));
         }
     }
 
@@ -360,7 +395,7 @@ parse_options(int argc, char** argv) {
 
         po::notify(vm);
 
-        validate_vm(vm, all_od);
+        validate_vm(vm, all_od, parsed_options);
         Log::validate_vm(vm, all_od);
         rw_arb::validate_vm(vm, all_od);
         rw_fasta::validate_vm(vm, all_od);
@@ -484,24 +519,21 @@ int real_main(int argc, char** argv) {
     }
 
     // Make node writing sequences
-    switch(opts.outtype) {
-    case SEQUENCE_DB_ARB:
-        node = new filter_node(g, 1, rw_arb::writer(opts.out,
-                                                    opts.copy_relatives,
-                                                    opts.v_fields));
-        break;
-    case SEQUENCE_DB_FASTA:
-        node = new filter_node(g, 1, rw_fasta::writer(opts.out,
-                                                      opts.copy_relatives,
-                                                      opts.v_fields));
-        break;
-    case SEQUENCE_DB_NONE:
-        node = nullptr;
-        break;
-    default:
-        throw logic_error("output type undefined");
-    }
-    if (node != nullptr) {
+    for (auto& out : opts.out_merged) {
+        switch(out.first) {
+        case SEQUENCE_DB_ARB:
+            node = new filter_node(g, 1, rw_arb::writer(out.second,
+                                                        opts.copy_relatives,
+                                                        opts.v_fields));
+            break;
+        case SEQUENCE_DB_FASTA:
+            node = new filter_node(g, 1, rw_fasta::writer(out.second,
+                                                          opts.copy_relatives,
+                                                          opts.v_fields));
+            break;
+        default:
+            throw logic_error("output type undefined");
+        }
         tf::make_edge(*last_node, *node);
         nodes.emplace_back(node);
         last_node = node;

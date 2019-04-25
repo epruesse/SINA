@@ -45,25 +45,37 @@ General Options
 .. option:: -i filename, --in=filename (-)
 
    Specifies the file containing the input sequences. Allowable file
-   formats are ARB and FASTA. Using "**-**" will read sequences from
-   standard input. Using "**:**" *when running from within an ARB
-   terminal** will read sequences from the current ARB database.
+   formats are ARB and FASTA (optionally gzipped). Using "**-**" will
+   read sequences from standard input. Using "**:**" *when running
+   from within an ARB terminal** will read sequences from the current
+   ARB database.
 
-.. option:: -o filename, --out=filename (-)
+.. option:: -o filename [filename [...]], --out=filename (-)
 
-   Specifies the file to which the aligned sequences will be
-   written. Allowable file formats are ARB and FASTA. Using "**-**"
-   will write sequences to standard output. Using "**:**" *when
-   running from within an ARB terminal** will read sequences from the
-   current ARB database.
+   Specifies the output file(s) to which the aligned sequences and
+   meta data will be written. Specifying multiple names or specifying
+   the option multiple times will output all data to each file.
+
+   Allowable file formats are ARB and FASTA, which will be detected by
+   their extensions **.arb** and **.fasta** or **.fasta.gz**. You can
+   override this using the :option:`--outtype` if necessary.
+
+   - Using "**-**" will write sequences to standard output.
+   - Using "**/dev/null**" will disable output.
+   - Using "**:**" **when running from within an ARB terminal** will
+     read sequences from the current ARB database.
+   - Not specifying this option at all will write sequences to
+     **stdout** if the input is FASTA format, or, when reading
+     from an ARB database, write to that same database.
+
 
 .. option:: -r filename, --db=filename
 
    Specifies the file containing the reference alignment. This file
    must be in ARB format. To convert a reference alignment from FASTA
-   to ARB format, run:
+   to ARB format, run::
 
-   ``sina -i reference.fasta --prealigned -o reference.arb``
+       sina -i reference.fasta --prealigned -o reference.arb
 
 .. option:: -t [all], --turn [=all]
 
@@ -315,10 +327,13 @@ Advanced Options
    Set the file format for :option:`--in`. If set to *auto* (default),
    the type is selected based on the file extension.
 	     
-.. option::  --outtype=[auto|arb|fasta] (auto)
+.. option::  --outtype=[auto|arb|fasta|none] (auto)
 
    Set the file format for :option:`--out`. If set to *auto* (default),
-   the type is selected based on the file extension.
+   the type is selected based on the file extension. The option can
+   be specified multiple times. It applies to all files list in the
+   next :option:`--out` option. If no output files are specified
+   and this option is set to **none**, no output is produced at all. 
 	     
 .. option::  --preserve-order
 
