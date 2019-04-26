@@ -71,16 +71,16 @@ are available on the `SINA releases`_ page at Github. Head on over
 there and download the Linux or Macos one. Inside the folder created
 by unpacking the archive, you should find a `sina` executable::
 
-  tar xf ~/Downloads/sina-1.6.0-rc.1-linux.tar.gz
-  ~/Downloads/sina-1.6.0-rc.1-linux/sina --help
+  tar xf ~/Downloads/sina-1.6.0-linux.tar.gz
+  ~/Downloads/sina-1.6.0-linux/sina --help
 
 To install SINA system wide, place the contents of the archive in
 `/opt` and create symlinks into `/usr/local/bin`::
 
-  wget https://github.com/epruesse/SINA/releases/download/v1.6.0-rc.1/sina-1.5.0-linux.tar.gz
-  sudo tar xf sina-1.6.0-rc.1-linux.tar.gz -C /opt
-  rm sina-1.6.0-rc.1-linux.tar.gz
-  sudo ln -s /opt/sina-1.6.0-rc.1-linux /opt/sina
+  wget https://github.com/epruesse/SINA/releases/download/v1.6.0/sina-1.5.0-linux.tar.gz
+  sudo tar xf sina-1.6.0-linux.tar.gz -C /opt
+  rm sina-1.6.0-linux.tar.gz
+  sudo ln -s /opt/sina-1.6.0-linux /opt/sina
   sudo ln -s /opt/sina/bin/sina /usr/local/bin/sina
 
 .. _`SINA releases`: https://github.com/epruesse/SINA/releases
