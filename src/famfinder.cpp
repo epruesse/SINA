@@ -224,8 +224,12 @@ void famfinder::validate_vm(po::variables_map& vm,
         throw logic_error("Family Finder: please use only new --db option");
     }
     if (not fs::exists(opts.database)) {
-        throw logic_error(fmt::format("Reference database file {} does not exist",
-                                      opts.database));
+        if (opts.database.compare(":") == 0) {
+            logger->warn("Loading reference database from running ARB DB server");
+        } else {
+            throw logic_error(fmt::format("Reference database file {} does not exist",
+                                          opts.database));
+        }
     }
     if (vm["fs-req"].as<unsigned int>() < 1) {
         throw logic_error("Family Finder: fs-req must be >= 1");

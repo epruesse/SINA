@@ -3,6 +3,10 @@
 Changelog
 =========
 
+Version 1.6.1:
+ - fix loading reference database from running ARB (:issue:`76`)
+
+
 Version 1.6.0:
 --------------
  - make internal kmer engine the default (:issue:`23`)
