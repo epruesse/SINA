@@ -68,6 +68,7 @@ namespace tf = tbb::flow;
 #include "align.h"
 #include "rw_arb.h"
 #include "rw_fasta.h"
+#include "rw_csv.h"
 #include "log.h"
 #include "search_filter.h"
 #include "timer.h"
@@ -85,6 +86,7 @@ enum SEQUENCE_DB_TYPE {
     SEQUENCE_DB_AUTO,
     SEQUENCE_DB_ARB,
     SEQUENCE_DB_FASTA,
+    SEQUENCE_DB_CSV,
 };
 
 // make above type printable
@@ -94,6 +96,7 @@ std::ostream& operator<<(std::ostream& out, const SEQUENCE_DB_TYPE& db) {
     case SEQUENCE_DB_AUTO:  out << "AUTO";  break;
     case SEQUENCE_DB_ARB:   out << "ARB";   break;
     case SEQUENCE_DB_FASTA: out << "FASTA"; break;
+    case SEQUENCE_DB_CSV:   out << "CSV"; break;
     default:                out << "Undef!";
     }
     return out;
@@ -127,6 +130,8 @@ void validate(boost::any& v,
         v = SEQUENCE_DB_ARB;
     } else if (iequals (s, "FASTA")) {
         v = SEQUENCE_DB_FASTA;
+    } else if (iequals (s, "CSV")) {
+        v = SEQUENCE_DB_CSV;
     } else {
         throw po::invalid_option_value(s);
     }
@@ -291,6 +296,8 @@ void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od
     if (opts.intype == SEQUENCE_DB_AUTO) {
         if (opts.in.extension() == ".arb" || opts.in.native() == ":") {
             opts.intype = SEQUENCE_DB_ARB;
+        } else if (opts.in.extension() == ".csv") {
+            opts.intype = SEQUENCE_DB_CSV;
         } else {
             opts.intype = SEQUENCE_DB_FASTA;
         }
@@ -298,6 +305,9 @@ void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od
 
     if (opts.intype == SEQUENCE_DB_NONE) {
         throw logic_error("Input type NONE invalid - need something to process");
+    }
+    if (opts.intype == SEQUENCE_DB_CSV) {
+        throw logic_error("Input type CSV invalid - can't parse sequences from that");
     }
 
     SEQUENCE_DB_TYPE type_val = SEQUENCE_DB_AUTO;
@@ -314,6 +324,8 @@ void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od
                         outtype = SEQUENCE_DB_ARB;
                     } else if (out == "/dev/null") {
                         continue;
+                    } else if (out.extension() == ".csv") {
+                        outtype = SEQUENCE_DB_CSV;
                     } else {
                         outtype = SEQUENCE_DB_FASTA;
                     }
@@ -370,6 +382,7 @@ parse_options(int argc, char** argv) {
     Log::get_options_description(od, adv_od);
     rw_arb::get_options_description(od, adv_od);
     rw_fasta::get_options_description(od, adv_od);
+    rw_csv::get_options_description(od, adv_od);
     aligner::get_options_description(od, adv_od);
     famfinder::get_options_description(od, adv_od);
     search_filter::get_options_description(od, adv_od);
@@ -399,6 +412,7 @@ parse_options(int argc, char** argv) {
         Log::validate_vm(vm, all_od);
         rw_arb::validate_vm(vm, all_od);
         rw_fasta::validate_vm(vm, all_od);
+        rw_csv::validate_vm(vm, all_od);
         if (!opts.skip_align && !opts.noalign) {
             famfinder::validate_vm(vm, all_od);
             aligner::validate_vm(vm, all_od);
@@ -530,6 +544,11 @@ int real_main(int argc, char** argv) {
             node = new filter_node(g, 1, rw_fasta::writer(out.second,
                                                           opts.copy_relatives,
                                                           opts.v_fields));
+            break;
+        case SEQUENCE_DB_CSV:
+            node = new filter_node(g, 1, rw_csv::writer(out.second,
+                                                        opts.copy_relatives,
+                                                        opts.v_fields));
             break;
         default:
             throw logic_error("output type undefined");

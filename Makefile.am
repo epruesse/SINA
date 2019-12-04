@@ -107,6 +107,8 @@ src_libsina_la_SOURCES = \
     src/rw_fasta.h \
     src/rw_arb.cpp \
     src/rw_arb.h \
+    src/rw_csv.cpp \
+    src/rw_csv.h \
     src/log.cpp \
     src/log.h \
     src/scoring_schemes.h \
