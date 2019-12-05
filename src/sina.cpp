@@ -232,10 +232,10 @@ void get_options_description(po::options_description& main,
         ("show-conf", "show effective configuration")
         ("intype",
          po::value<SEQUENCE_DB_TYPE>(&opts.intype)->default_value(SEQUENCE_DB_AUTO),
-         "override input file type")
+         "override input file type [*auto*|none|arb|fasta|csv]")
         ("outtype",
          po::value<std::vector<SEQUENCE_DB_TYPE>>(&opts.outtype),
-         "override output file type")
+         "override output file type for next output file [*auto*|none|arb|fasta|csv]")
         ("preserve-order", po::bool_switch(&opts.inorder),
          "maintain order of sequences")
         ("max-in-flight", po::value<unsigned int>(&opts.max_trays)
@@ -254,7 +254,7 @@ void get_options_description(po::options_description& main,
         ("in,i", po::value<fs::path>(&opts.in)->default_value("-"),
          "input file (arb or fasta)")
         ("out,o", po::value<std::vector<fs::path>>(&opts.out)->multitoken(),
-         "output file (arb or fasta)")
+         "output file (arb, fasta or csv; may be specified multiple times)")
         ("add-relatives", po::value<unsigned int>(&opts.copy_relatives)->default_value(0, ""),
          "add the ARG nearest relatives for each sequence to output")
         ("search,S", po::bool_switch(&opts.do_search), "enable search stage")
