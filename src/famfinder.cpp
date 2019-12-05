@@ -283,12 +283,14 @@ famfinder::impl::impl()
             opts.fs_kmer_norel,
             opts.fs_kmer_mm,
             opts.pt_port);
+        logger->warn("Using ARB PT server for reference search");
         break;
     case ENGINE_SINA_KMER:
         index = kmer_search::get_kmer_search(
             opts.database,
             opts.fs_kmer_len,
             opts.fs_no_fast);
+        logger->warn("Using internal engine for reference search");
         break;
     default:
         throw std::runtime_error("Unknown sequence search engine type");
