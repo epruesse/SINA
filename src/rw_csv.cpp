@@ -121,21 +121,21 @@ tray writer::operator()(tray t) {
     if (data->headers.empty()) {
         auto attrs = t.aligned_sequence->get_attrs();
         data->headers.reserve(attrs.size()+1);
-        buf.append(id, id + sizeof(id));
+        buf.append(id, id + sizeof(id)-1);
         for (auto& ap : attrs) {
             data->headers.push_back(ap.first);
-            buf.append(sep, sep + sizeof(sep));
+            buf.append(sep, sep + sizeof(sep)-1);
             append(buf, ap.first);
         }
-        buf.append(crlf, crlf+sizeof(crlf));
+        buf.append(crlf, crlf+sizeof(crlf)-1);
     }
     const std::string& name = t.aligned_sequence->getName();
     append(buf, name);
     for (auto& key : data->headers) {
-        buf.append(sep, sep + sizeof(sep));
+        buf.append(sep, sep + sizeof(sep)-1);
         append(buf, t.aligned_sequence->get_attr<std::string>(key));
     }
-    buf.append(crlf, crlf+sizeof(crlf));
+    buf.append(crlf, crlf + sizeof(crlf)-1);
 
     fmt::internal::write(data->out, buf);
 
