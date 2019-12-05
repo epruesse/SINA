@@ -490,18 +490,13 @@ for input and output sequences.
 
 .. option:: --fasta-idx=n
 
-   Only process sequences starting withing the *n*\th block of bytes
-   within the input FASTA file.
-
-   .. deprecated:: 1.4
-      This feature was superseded by the built-in parallelization.
+   Only process sequences *starting* withing the *n*\th block of bytes
+   within the input FASTA file. The first block has index 0.
 
 .. option:: --fasta-block=size
 
    Sets the size in bytes for the blocks used by :option:`--fasta-idx`.
 
-   .. deprecated:: 1.4
-      This feature was superseded by the built-in parallelization.
 
 Alignment Options
 -----------------
