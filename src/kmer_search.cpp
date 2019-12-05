@@ -219,6 +219,12 @@ kmer_search::impl::impl(query_arb* arbdb_, int k_, bool nofast_)
       arbdb(arbdb_)
 {
     fs::path dbpath = arbdb->getFileName();
+    if (dbpath.compare(":") == 0) {
+        logger->warn("Remote database found. Building in memory index.");
+        build();
+        return;
+    }
+
     fs::path idxpath = fs::path(dbpath).replace_extension("sidx");
     if (fs::exists(idxpath) && fs::exists(dbpath)) {
         if (fs::last_write_time(idxpath) >= fs::last_write_time(dbpath)) {
