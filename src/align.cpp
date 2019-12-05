@@ -310,7 +310,10 @@ aligner::operator()(tray t) {
     if ((t.input_sequence == nullptr) ||
         (t.alignment_reference == nullptr) ||
         (t.astats == nullptr) ) {
-        logger->error("Internal error - incomplete data for alignment");
+        logger->error("Internal error - incomplete data for alignment ({}-{}-{})",
+                      t.input_sequence == nullptr,
+                      t.alignment_reference == nullptr,
+                      t.astats == nullptr);
         return t;
     }
     // prepare variables
