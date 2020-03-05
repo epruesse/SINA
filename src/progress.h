@@ -320,7 +320,7 @@ public:
         return _level;
     }
 
-    void logx(fmt::memory_buffer &buf) {
+    void send_log_msg(fmt::memory_buffer &buf) {
         using spdlog::details::fmt_helper::to_string_view;
         spdlog::source_loc loc;
         loc.filename = magic_filename();
@@ -517,7 +517,7 @@ public:
 
             fmt::memory_buffer buf;
             base_progress::render_progress(now, 60, buf);
-            status_line::logx(buf);
+            status_line::send_log_msg(buf);
         }
     }
 
