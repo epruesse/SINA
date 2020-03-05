@@ -189,7 +189,7 @@ search_filter::search_filter()
     data->arb = query_arb::getARBDB(opts->pt_database);
 
     if (opts->search_all) {
-        Progress p("Caching Sequences", data->arb->getSeqCount());
+        logger_progress p(logger, "Caching Sequences", data->arb->getSeqCount());
         vector<string> names = data->arb->getSequenceNames();
         for (string& name: names) {
             data->sequences.push_back(&data->arb->getCseq(name));
