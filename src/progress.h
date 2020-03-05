@@ -334,7 +334,7 @@ public:
 
 private:
     std::shared_ptr<spdlog::logger> _logger;
-    spdlog::level::level_enum _level;
+    spdlog::level::level_enum _level{spdlog::level::off};
 };
 
 
@@ -440,8 +440,10 @@ public:
         fmt::memory_buffer status_text;
         int nlines = 0;
         for (auto line : get_status_lines()) {
-            line->render_status_line(status_text, _ncols);
-            ++nlines;
+            if (this->should_log(line->get_level())) {
+                line->render_status_line(status_text, _ncols);
+                ++ nlines;
+            }
         }
 
         // move back up to last log line
@@ -509,7 +511,10 @@ public:
     }
 
     void show_progress(timepoint_t now=clock_t::now()) override final {
-        if (!should_log()) return;
+        if (!should_log()) {
+            // early quit if our logger has loglevel below ourselves
+            return;
+        }
         duration_t delta_time = now - _last_update;
         status_line::trigger_print_status_lines();
         if (delta_time > _mininterval) {
