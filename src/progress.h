@@ -298,9 +298,11 @@ public:
     /* trigger (re)print of this status line */
     void trigger_print_status_lines() {
         for (auto &sink : _logger->sinks()) {
-            auto ptr = dynamic_cast<status_line_registry*>(sink.get());
-            if (ptr) {
-                ptr->print_status_line_registry();
+            if (sink->should_log(get_level())) {
+                auto ptr = dynamic_cast<status_line_registry*>(sink.get());
+                if (ptr) {
+                    ptr->print_status_line_registry();
+                }
             }
         }
     }
@@ -314,6 +316,9 @@ public:
     bool should_log() {
         return _logger->should_log(_level);
     }
+    spdlog::level::level_enum get_level() {
+        return _level;
+    }
 
     void logx(fmt::memory_buffer &buf) {
         using spdlog::details::fmt_helper::to_string_view;
@@ -321,7 +326,7 @@ public:
         loc.filename = magic_filename();
         spdlog::details::log_msg msg{loc, &_logger->name(), _level, to_string_view(buf)};
         for (auto &sink : _logger->sinks()) {
-            if (sink->should_log(_level)) {
+            if (sink->should_log(get_level())) {
                 sink->log(msg);
             }
         }
