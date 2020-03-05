@@ -252,22 +252,14 @@ public:
 
     void add_status_line(status_line *msg) {
         _status_lines.push_back(msg);
-        ++_change_since_last_print;
     }
     void remove_status_line(status_line *msg) {
         _status_lines.erase(
             std::remove(_status_lines.begin(), _status_lines.end(), msg),
             _status_lines.end());
-        --_change_since_last_print;
     }
     const std::vector<status_line*>& get_status_lines() {
         return _status_lines;
-    }
-    int get_change_since_last_print() {
-        return _change_since_last_print;
-    }
-    void clear_change_since_last_print() {
-        _change_since_last_print = 0;
     }
 
     virtual void print_status_line_registry() = 0;
@@ -441,17 +433,18 @@ public:
 
         // render status lines
         fmt::memory_buffer status_text;
+        int nlines = 0;
         for (auto line : get_status_lines()) {
             line->render_status_line(status_text, _ncols);
+            ++nlines;
         }
-        int nlines = get_status_lines().size() - get_change_since_last_print();
-        clear_change_since_last_print();
 
         // move back up to last log line
         std::lock_guard<mutex_t> lock(super::mutex_);
-        for (int i=0; i < nlines; ++i) {
+        for (int i=0; i < _last_status_lines; ++i) {
             fwrite(term_move_up.data(), 1, term_move_up.size(), super::target_file_);
         }
+        _last_status_lines = nlines;
 
         // print message if we have one and it's not an update for other sinks
         if (msg != nullptr && msg->source.filename != status_line::magic_filename()) {
@@ -475,7 +468,8 @@ public:
     const std::string term_move_up = "\x1B[A";
     const std::string term_clear_line = "\x1B[K";
 private:
-    unsigned int _ncols;
+    unsigned int _ncols{60};
+    unsigned int _last_status_lines{0};
 };
 
 using terminal_stdout_sink_mt = terminal_sink<spdlog::details::console_stdout, spdlog::details::console_mutex>;
