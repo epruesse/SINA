@@ -73,18 +73,21 @@ public:
     };
 
     /* construct from char */
-    base_iupac(unsigned char c) : _data(iupac_char_to_bmask[c]) {
-        if (_data == 0 && c != '-' && c != '.') {
+    base_iupac(unsigned char c) {
+        value_type data = iupac_char_to_bmask[c];
+        if (data == 0 && c != '-' && c != '.') {
             throw bad_character_exception(c);
         }
+        _data = data;
     }
 
     /* assign from char */
     base_iupac& operator=(unsigned char c) {
-        _data = iupac_char_to_bmask[c];
-        if (_data == 0 && c != '-' && c != '.') {
+        value_type data = iupac_char_to_bmask[c];
+        if (data == 0 && c != '-' && c != '.') {
             throw bad_character_exception(c);
         }
+        _data = data;
         return *this;
     }
 
@@ -102,7 +105,9 @@ public:
     }
 
     /* construct from base_type */
-    base_iupac(base_types b) : _data(1<<b) {}
+    base_iupac(base_types b) {
+        _data = 1 << b;
+    }
 
     /* explicit cast to base_type */
     base_types getBaseType() const {
@@ -215,6 +220,8 @@ public:
     }
 
 protected:
+    value_type getData() const { return _data; }
+
     static int count_bits(unsigned char c) {
 #define HAVE_BUILTIN_POPCOUNT
 #ifdef HAVE_BUILTIN_POPCOUNT
@@ -271,15 +278,21 @@ private:
  * hacky. It casts around happily assuming that the byte order is
  * little endian that and sizeof(T)==1
  */
+
+class position {
+protected:
+    unsigned char data[3]{0,0,0};
+};
+
 template<typename T>
-class aligned_compact : public T
+class aligned_compact : public position, public T
 {
 public:
     using idx_type = uint32_t;
     using base_type = T;
 
-    aligned_compact(idx_type pos=0, base_type base='-')
-        : T(base)
+    aligned_compact(idx_type pos=0, unsigned char value='-')
+        : T(value)
     {
         setPosition(pos);
     }
@@ -288,13 +301,11 @@ public:
     void setBase(const T& b) { T::operator=(b); }
 
     idx_type getPosition() const {
-        return  (*(uint32_t*)this & 0xFFFFFF00) >> 8;
+        return  (*(uint32_t*)this & 0xFFFFFF);
     }
 
     void setPosition(idx_type pos) {
-        unsigned int cur = (*(uint32_t*)this);
-        cur = (cur & 0xFF) | pos << 8;
-        *(uint32_t*)this = cur;
+        *(uint32_t*)&data = pos & 0xFFFFFF | T::getData() << 24 ;
     }
 
     bool operator<(const aligned_compact<T> &rhs) const {
@@ -304,7 +315,6 @@ public:
     float getWeight() const { return 1; }
 
 private:
-    unsigned char data[3]{0,0,0};
     friend struct aligned_base_reverse_position;
 };
 
