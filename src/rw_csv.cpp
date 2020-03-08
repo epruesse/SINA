@@ -61,6 +61,7 @@ struct writer::priv_data {
     unsigned long copy_relatives;
     std::vector<std::string> v_fields;
     std::vector<std::string> headers;
+    bool header_printed{false};
 };
 
 writer::writer(const fs::path& outfile, unsigned int copy_relatives,
@@ -118,7 +119,7 @@ tray writer::operator()(tray t) {
     if (t.aligned_sequence == nullptr) {
         return t;
     }
-    if (data->headers.empty()) {
+    if (!data->header_printed) {
         auto attrs = t.aligned_sequence->get_attrs();
         data->headers.reserve(attrs.size()+1);
         buf.append(id, id + sizeof(id)-1);
@@ -128,6 +129,7 @@ tray writer::operator()(tray t) {
             append(buf, ap.first);
         }
         buf.append(crlf, crlf+sizeof(crlf)-1);
+        data->header_printed = true;
     }
     const std::string& name = t.aligned_sequence->getName();
     append(buf, name);
