@@ -267,7 +267,8 @@ check_PROGRAMS = \
     src/unit_tests/kmer_test \
     src/unit_tests/kmer_search_test \
     src/unit_tests/famfinder_test \
-    src/unit_tests/progress_test
+    src/unit_tests/progress_test \
+    src/unit_tests/rw_csv_test
 
 src_unit_tests_cseq_test_LDADD = $(test_libs)
 src_unit_tests_cseq_test_LDFLAGS = $(ARB_LDFLAGS)
@@ -281,6 +282,8 @@ src_unit_tests_kmer_search_test_LDADD = $(test_libs)
 src_unit_tests_kmer_search_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_famfinder_test_LDADD = $(test_libs)
 src_unit_tests_famfinder_test_LDFLAGS = $(ARB_LDFLAGS)
+src_unit_tests_rw_csv_test_LDADD = $(test_libs)
+src_unit_tests_rw_csv_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_progress_test_LDADD = $(BOOST_UNIT_TEST_FRAMEWORK_LIB)
 
 test_scripts = \
