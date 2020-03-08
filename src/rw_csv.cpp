@@ -90,23 +90,21 @@ writer& writer::operator=(const writer&) = default;
 writer::~writer() = default;
 
 
-std::string escape_string(const std::string& in) {
-    if (in.find_first_of("\",\r\n") == std::string::npos) {
-        return in;
-    }
-    std::stringstream tmp;
-    tmp << "\"";
-    size_t j = 0;
-    for (size_t i = in.find('"'); i != std::string::npos;
-         j=i+1, i = in.find('"',i+1)) {
-        tmp << in.substr(j, i-j) << "\"\"";
-    }
-    tmp << in.substr(j) << "\"";
-    return tmp.str();
-}
-
 static inline void append(fmt::memory_buffer& buf, const std::string& str) {
-    buf.append(str.data(), str.data() + str.size());
+    if (str.find_first_of("\",\r\n") == std::string::npos) {
+        buf.append(str.data(), str.data() + str.size());
+    } else {
+        const char quote[] = "\"";
+        buf.append(quote, quote + sizeof(quote) - 1);
+        size_t j = 0;
+        for (auto i = str.find('"'); i != std::string::npos; i = str.find('"', i+1)) {
+            buf.append(str.data() + j, str.data() + i);
+            buf.append(quote, quote + sizeof(quote) - 1);
+            j = i;
+        }
+        buf.append(str.data() + j, str.data() + str.size());
+        buf.append(quote, quote + sizeof(quote) - 1);
+    }
 }
 
 
