@@ -44,11 +44,11 @@ using namespace sina;
 
 class TempFile : boost::noncopyable {
 public:
-    TempFile(const fs::path model = "sina-%%%%-%%%%-%%%%") : _path() {
-        _path = fs::temp_directory_path() / fs::unique_path(model);
-    }
+    TempFile(const fs::path model = "sina-%%%%-%%%%-%%%%")
+        : _path(fs::temp_directory_path() / fs::unique_path(model))
+    {}
     ~TempFile() {
-        //fs::remove(_path);
+        fs::remove(_path);
     }
     operator const fs::path() const {
         return _path;
@@ -79,7 +79,7 @@ public:
 private:
     fs::path _path;
 };
-std::ostream& operator<<(std::ostream& out, const TempFile& t) { return out << (fs::path)t; }
+std::ostream& operator<<(std::ostream& out, const TempFile& t) { return out << t.path(); }
 
 
 struct F {

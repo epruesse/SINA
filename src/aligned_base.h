@@ -251,14 +251,14 @@ public:
     using idx_type = unsigned int;
     using base_type = T;
 
-    aligned(idx_type pos=0, base_type base='-')
+    aligned(const idx_type& pos=0, const base_type& base='-')
         : T(base), _idx(pos) {}
 
     base_type getBase() const { return *this;}
     void setBase(const T& b) { T::operator=(b); }
 
     idx_type getPosition() const { return _idx;}
-    void setPosition(idx_type i) { _idx=i; }
+    void setPosition(const idx_type& i) { _idx=i; }
 
     bool operator<(const aligned<T> &rhs) const {
       return _idx < rhs._idx;
@@ -305,7 +305,7 @@ public:
     }
 
     void setPosition(idx_type pos) {
-        *(uint32_t*)&data = pos & 0xFFFFFF | T::getData() << 24 ;
+        *(uint32_t*)&data = (pos & 0xFFFFFF) | (T::getData() << 24) ;
     }
 
     bool operator<(const aligned_compact<T> &rhs) const {
