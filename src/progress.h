@@ -51,6 +51,8 @@ static const char* bar_syms_ascii[] = {
 };
 
 
+/* abstract base rendering progress bar
+ * needs show_progress() filled in */
 class base_progress {
 public:
     using clock_t = std::chrono::steady_clock;
@@ -63,9 +65,7 @@ public:
           _bar_syms(ascii?bar_syms_ascii:bar_syms_unicode),
           _nsyms(ascii?std::extent<decltype(bar_syms_ascii)>::value
                  :std::extent<decltype(bar_syms_unicode)>::value)
-    {
-        //show_progress();
-    }
+    {}
 
     void restart(std::string desc="", unsigned int total=0) {
         _n = 0;
@@ -204,6 +204,7 @@ private:
     const std::string nototal_fmt = "{desc}: {n} [{elapsed:%T}]{eol}";
 };
 
+/* Progress monitor writing directly to a file */
 class Progress final : public base_progress {
 public:
     Progress(std::string desc="", unsigned int total=0, bool ascii=false,
@@ -227,6 +228,8 @@ public:
     }
 
     void show_progress(timepoint_t now=clock_t::now()) override final {
+        // called from base_progress when it decided the progress bar needs
+        // to be printed again
         fmt::memory_buffer buf;
         render_progress(now, _width, buf);
         std::copy(term_move_up.begin(), term_move_up.end(), std::back_inserter(buf));
@@ -239,63 +242,72 @@ private:
     FILE* _file;
 };
 
-class status_msg;
+/******  spdlog integration ****/
 
-class status_msg_sink {
+class status_line;
+
+class status_line_registry {
 public:
-    virtual ~status_msg_sink() {}
+    virtual ~status_line_registry() {}
 
-    void add_status(status_msg *msg) {
-        _status_messages.push_back(msg);
+    void add_status_line(status_line *msg) {
+        _status_lines.push_back(msg);
     }
-    void remove_status(status_msg *msg) {
-        _status_messages.erase(
-            std::remove(_status_messages.begin(), _status_messages.end(), msg),
-            _status_messages.end());
+    void remove_status_line(status_line *msg) {
+        _status_lines.erase(
+            std::remove(_status_lines.begin(), _status_lines.end(), msg),
+            _status_lines.end());
     }
-    virtual void print_status_message(status_msg* msg) = 0;
+    const std::vector<status_line*>& get_status_lines() {
+        return _status_lines;
+    }
 
-    int update_messages(fmt::memory_buffer& buf, unsigned int width);
-
+    virtual void print_status_line_registry() = 0;
 
 private:
-    std::vector<status_msg*> _status_messages;
+    std::vector<status_line*> _status_lines;
+    int _change_since_last_print{0};
 };
 
 
-class status_msg {
+class status_line {
 public:
-    status_msg(std::shared_ptr<spdlog::logger> logger,
+    status_line(std::shared_ptr<spdlog::logger> logger,
                spdlog::level::level_enum level)
         : _logger(logger), _level(level)
     {
+        /* on creation, register it with all sinks that understand about us */
         for (auto &sink : _logger->sinks()) {
-            auto ptr = dynamic_cast<status_msg_sink*>(sink.get());
+            auto ptr = dynamic_cast<status_line_registry*>(sink.get());
             if (ptr) {
-                ptr->add_status(this);
+                ptr->add_status_line(this);
             }
         }
     }
 
-    ~status_msg() {
+    ~status_line() {
+        /* on deletion, deregister from all sinks */
         for (auto &sink : _logger->sinks()) {
-            auto ptr = dynamic_cast<status_msg_sink*>(sink.get());
+            auto ptr = dynamic_cast<status_line_registry*>(sink.get());
             if (ptr) {
-                ptr->remove_status(this);
+                ptr->remove_status_line(this);
             }
         }
     }
 
-    void trigger_message_print() {
+    /* trigger (re)print of this status line */
+    void trigger_print_status_lines() {
         for (auto &sink : _logger->sinks()) {
-            auto ptr = dynamic_cast<status_msg_sink*>(sink.get());
-            if (ptr) {
-                ptr->print_status_message(this);
+            if (sink->should_log(get_level())) {
+                auto ptr = dynamic_cast<status_line_registry*>(sink.get());
+                if (ptr) {
+                    ptr->print_status_line_registry();
+                }
             }
         }
     }
 
-    virtual void update_message(fmt::memory_buffer &buf, unsigned int width) = 0;
+    virtual void render_status_line(fmt::memory_buffer &buf, unsigned int width) = 0;
 
     static const char* magic_filename() {
         static const char* file = "PROGRESS MONITOR";
@@ -304,14 +316,17 @@ public:
     bool should_log() {
         return _logger->should_log(_level);
     }
+    spdlog::level::level_enum get_level() {
+        return _level;
+    }
 
-    void log(fmt::memory_buffer &buf) {
+    void send_log_msg(fmt::memory_buffer &buf) {
         using spdlog::details::fmt_helper::to_string_view;
         spdlog::source_loc loc;
         loc.filename = magic_filename();
         spdlog::details::log_msg msg{loc, &_logger->name(), _level, to_string_view(buf)};
         for (auto &sink : _logger->sinks()) {
-            if (sink->should_log(_level)) {
+            if (sink->should_log(get_level())) {
                 sink->log(msg);
             }
         }
@@ -319,15 +334,9 @@ public:
 
 private:
     std::shared_ptr<spdlog::logger> _logger;
-    spdlog::level::level_enum _level;
+    spdlog::level::level_enum _level{spdlog::level::off};
 };
 
-inline int status_msg_sink::update_messages(fmt::memory_buffer &buf, unsigned int width) {
-    for (auto msg : _status_messages) {
-        msg->update_message(buf, width);
-    }
-    return _status_messages.size();
-}
 
 class sigwinch_mixin {
 protected:
@@ -391,9 +400,9 @@ private:
 
 
 template<typename TargetStream, class ConsoleMutex>
-class terminal_sink 
+class terminal_sink final
     : public spdlog::sinks::ansicolor_sink<TargetStream, ConsoleMutex>,
-      public status_msg_sink, public sigwinch_mixin {
+      public status_line_registry, public sigwinch_mixin {
 public:
     using super = spdlog::sinks::ansicolor_sink<TargetStream, ConsoleMutex>;
     using mutex_t = typename ConsoleMutex::mutex_t;
@@ -405,27 +414,52 @@ public:
     }
     ~terminal_sink() override = default;
 
-    void log(const spdlog::details::log_msg &msg) override {
-        if (not super::should_do_colors_) {
-            super::log(msg);
+    // normal log message coming in
+    void log(const spdlog::details::log_msg &msg) override final {
+        _print(&msg);
+    }
+
+    // update to status coming in
+    void print_status_line_registry() override final {
+        _print(nullptr);
+    }
+
+    void _print(const spdlog::details::log_msg *msg) {
+        if (not super::should_do_colors_) { // not a tty
+            if (msg != nullptr) { // got a msg
+                super::log(*msg); // pass it upstream
+            }
             return;
         }
-        if (msg.source.filename == status_msg::magic_filename()) {
-            return; // special messages handled elsewhere
-        }
-        fmt::memory_buffer messages;
-        int nlines = update_messages(messages, _ncols);
+
         if (check_got_sigwinch()) {
             update_term_width();
         }
-        std::lock_guard<mutex_t> lock(super::mutex_);
-        for (int i=0; i < nlines; ++i) {
-            fwrite(term_move_up.data(), 1, term_move_up.size(), super::target_file_);
+
+        // render status lines
+        fmt::memory_buffer status_text;
+        int nlines = 0;
+        for (auto line : get_status_lines()) {
+            if (this->should_log(line->get_level())) {
+                line->render_status_line(status_text, _ncols);
+                ++ nlines;
+            }
         }
 
-        fwrite(term_clear_line.data(), 1, term_clear_line.size(), super::target_file_);
-        super::log(msg);
-        fwrite(messages.data(), 1, messages.size(), super::target_file_);
+        // move back up to last log line
+        std::lock_guard<mutex_t> lock(super::mutex_);
+        for (int i=0; i < _last_status_lines; ++i) {
+            fwrite(term_move_up.data(), 1, term_move_up.size(), super::target_file_);
+        }
+        _last_status_lines = nlines;
+
+        // print message if we have one and it's not an update for other sinks
+        if (msg != nullptr && msg->source.filename != status_line::magic_filename()) {
+            fwrite(term_clear_line.data(), 1, term_clear_line.size(), super::target_file_);
+            super::log(*msg);
+        }
+
+        fwrite(status_text.data(), 1, status_text.size(), super::target_file_);
         fflush(super::target_file_);
     }
 
@@ -438,26 +472,11 @@ public:
         }
     }
 
-    void print_status_message(status_msg*) override {
-        if (not super::should_do_colors_) {
-            return;
-        }
-        fmt::memory_buffer messages;
-        int nlines = update_messages(messages, _ncols);
-        if (check_got_sigwinch()) {
-            update_term_width();
-        }
-        std::lock_guard<mutex_t> lock(super::mutex_);
-        for (int i=0; i < nlines; ++i) {
-            fwrite(term_move_up.data(), 1, term_move_up.size(), super::target_file_);
-        }
-        fwrite(messages.data(), 1, messages.size(), super::target_file_);
-        fflush(super::target_file_);
-    }
     const std::string term_move_up = "\x1B[A";
     const std::string term_clear_line = "\x1B[K";
 private:
-    unsigned int _ncols;
+    unsigned int _ncols{60};
+    unsigned int _last_status_lines{0};
 };
 
 using terminal_stdout_sink_mt = terminal_sink<spdlog::details::console_stdout, spdlog::details::console_mutex>;
@@ -477,7 +496,7 @@ inline std::shared_ptr<spdlog::logger> stderr_terminal_mt(const std::string &log
 }
 
 
-class logger_progress final : public base_progress, status_msg {
+class logger_progress final : public  base_progress, status_line {
 public:
     logger_progress(std::shared_ptr<spdlog::logger> logger,
                     std::string desc="", unsigned int total=0, bool ascii=false,
@@ -485,28 +504,30 @@ public:
                     spdlog::level::level_enum level=spdlog::level::warn
         )
         : base_progress(desc, total, ascii),
-          status_msg(logger, level)
+          status_line(logger, level)
     {
     }
     ~logger_progress() {
     }
 
     void show_progress(timepoint_t now=clock_t::now()) override final {
-        if (!should_log()) return;
-        duration_t delta_time = now - _last_update;
-        if (delta_time < _mininterval) {
-            trigger_message_print();
+        if (!should_log()) {
+            // early quit if our logger has loglevel below ourselves
             return;
         }
-        _last_update = now;
+        duration_t delta_time = now - _last_update;
+        status_line::trigger_print_status_lines();
+        if (delta_time > _mininterval) {
+            _last_update = now;
 
-        fmt::memory_buffer buf;
-        render_progress(now, 60, buf);
-        log(buf);
+            fmt::memory_buffer buf;
+            base_progress::render_progress(now, 60, buf);
+            status_line::send_log_msg(buf);
+        }
     }
 
-    void update_message(fmt::memory_buffer &buf, unsigned int width) override final {
-        render_progress(clock_t::now(), width, buf);
+    void render_status_line(fmt::memory_buffer &buf, unsigned int width) override final {
+        base_progress::render_progress(clock_t::now(), width, buf);
     }
 
 private:

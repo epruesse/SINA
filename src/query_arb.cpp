@@ -265,9 +265,7 @@ query_arb::query_arb(const fs::path& arbfile)
 
     logger->info("Loading names map... (for {})", data->filename);
 
-    logger_progress q(logger, "Scanning", spec_count);
-
-    Progress p("Scanning", spec_count);
+    logger_progress p(logger, "Scanning", spec_count);
     for ( GBDATA* gbspec = GBT_first_species(data->gbmain);
           gbspec != nullptr; gbspec = GBT_next_species(gbspec)) {
         data->gbdata_cache[GBT_read_name(gbspec)] = gbspec;

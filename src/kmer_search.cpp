@@ -152,7 +152,7 @@ unsigned int kmer_search::size() const { return pimpl->n_sequences; }
 
 class IndexBuilder {
     kmer_search::impl *idx;
-    Progress *p;
+    logger_progress *p;
 public:
     std::vector<vlimap*> kmer_idx;
 
@@ -205,7 +205,7 @@ public:
     {
     }
 
-    IndexBuilder(kmer_search::impl *idx_, Progress *p_)
+    IndexBuilder(kmer_search::impl *idx_, logger_progress *p_)
         : idx(idx_), p(p_), kmer_idx(idx->n_kmers, nullptr)
     {
     }
@@ -249,7 +249,7 @@ kmer_search::impl::build() {
     sequence_names = arbdb->getSequenceNames();
     n_sequences = sequence_names.size();
 
-    Progress p("Building Index", n_sequences);
+    logger_progress p(logger, "Building Index", n_sequences);
 
     IndexBuilder bi(this, &p);
     tbb::parallel_reduce(tbb::blocked_range<size_t>(0, n_sequences), bi);

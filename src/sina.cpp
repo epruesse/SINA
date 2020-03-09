@@ -445,7 +445,7 @@ int real_main(int argc, char** argv) {
     tbb::task_scheduler_init init(vm["threads"].as<unsigned int>());
 
     tf::graph g;  // Main data flow graph (pipeline)
-    logger_progress p(logger, "Processing", 0, false);
+    logger_progress p(logger, "Processing");
 
     vector<std::unique_ptr<tf::graph_node>> nodes; // Nodes (for cleanup)
     tf::sender<tray> *last_node; // Last tray producing node
