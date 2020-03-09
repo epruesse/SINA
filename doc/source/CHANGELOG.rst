@@ -4,8 +4,10 @@ Changelog
 =========
 
 Version 1.6.1:
+--------------
  - fix loading reference database from running ARB (:issue:`76`)
  - allow multiple output types at once
+ - add dedicated CSV output
 
 
 Version 1.6.0:

@@ -28,6 +28,7 @@ for the parts of ARB used as well as that of the covered work.
 
 #include "rw_csv.h"
 #include "log.h"
+#include "query_arb.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -37,6 +38,8 @@ namespace fs = boost::filesystem;
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
 namespace bi = boost::iostreams;
+#include <boost/algorithm/string.hpp>
+using boost::algorithm::equals;
 
 namespace sina {
 namespace rw_csv {
@@ -118,20 +121,33 @@ tray writer::operator()(tray t) {
         return t;
     }
     if (!data->header_printed) {
-        auto attrs = t.aligned_sequence->get_attrs();
-        data->headers.reserve(attrs.size()+1);
+        if (data->v_fields.empty() ||
+            (data->v_fields.size() == 1 &&
+             equals(data->v_fields[0], query_arb::fn_fullname))
+            ) {
+            auto attrs = t.aligned_sequence->get_attrs();
+            data->headers.reserve(attrs.size());
+            for (auto& ap : attrs) {
+                data->headers.push_back(ap.first);
+            }
+        } else {
+            data->headers.reserve(data->v_fields.size());
+            for (const auto& f: data->v_fields) {
+                data->headers.push_back(f);
+            }
+        }
         buf.append(id, id + sizeof(id)-1);
-        for (auto& ap : attrs) {
-            data->headers.push_back(ap.first);
+        for (const auto& header : data->headers) {
             buf.append(sep, sep + sizeof(sep)-1);
-            append(buf, ap.first);
+            append(buf, header);
         }
         buf.append(crlf, crlf+sizeof(crlf)-1);
         data->header_printed = true;
     }
+
     const std::string& name = t.aligned_sequence->getName();
     append(buf, name);
-    for (auto& key : data->headers) {
+    for (const auto& key : data->headers) {
         buf.append(sep, sep + sizeof(sep)-1);
         append(buf, t.aligned_sequence->get_attr<std::string>(key));
     }

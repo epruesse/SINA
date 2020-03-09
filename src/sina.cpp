@@ -351,10 +351,10 @@ void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od
     if (opts.v_fields.back().empty()) {
         opts.v_fields.pop_back();
     }
-    if (opts.fields.find(query_arb::fn_fullname) == string::npos) {
+    // Add full_name if no fields are specified
+    if (opts.v_fields.empty()) {
         opts.v_fields.push_back(query_arb::fn_fullname);
     }
-
 }
 
 void show_help(po::options_description* od,
