@@ -7,7 +7,8 @@ Version 1.6.1:
 --------------
  - fix loading reference database from running ARB (:issue:`76`)
  - allow multiple output types at once
- - add dedicated CSV output
+ - add dedicated CSV output (:issue:`10`)
+ - report errors when sequence can't be read from ARB (:issue:`73`)
 
 
 Version 1.6.0:
