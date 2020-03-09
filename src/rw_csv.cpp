@@ -48,11 +48,17 @@ static const char* module_name = "CSV I/O";
 static auto logger = Log::create_logger(module_name);
 
 struct options {
+    bool crlf;
 };
 static options opts;
 
 void get_options_description(po::options_description &main,
                              po::options_description &adv) {
+    po::options_description od(module_name);
+    od.add_options()
+        ("csv-crlf", po::bool_switch(&opts.crlf),
+         "Write CSV using CRLF line ends (as RFC4180 demands)");
+    adv.add(od);
 }
 
 void validate_vm(po::variables_map &, po::options_description &) {
@@ -65,6 +71,12 @@ struct writer::priv_data {
     std::vector<std::string> v_fields;
     std::vector<std::string> headers;
     bool header_printed{false};
+    const char *line_end;
+    size_t line_end_len;
+
+    void add_newline(fmt::memory_buffer& buf) {
+        buf.append(line_end, line_end + line_end_len);
+    }
 };
 
 writer::writer(const fs::path& outfile, unsigned int copy_relatives,
@@ -87,6 +99,14 @@ writer::writer(const fs::path& outfile, unsigned int copy_relatives,
         data->out.push(bi::gzip_compressor());
     }
     data->out.push(data->file);
+
+    if (opts.crlf) {
+        data->line_end = "\r\n";
+        data->line_end_len = 2;
+    } else {
+        data->line_end = "\n";
+        data->line_end_len = 1;
+    }
 }
 writer::writer(const writer&) = default;
 writer& writer::operator=(const writer&) = default;
@@ -113,7 +133,6 @@ static inline void append(fmt::memory_buffer& buf, const std::string& str) {
 
 tray writer::operator()(tray t) {
     const char sep[] = ",";
-    const char crlf[] = "\r\n";
     const char id[] = "ID";
     fmt::memory_buffer buf;
 
@@ -141,7 +160,7 @@ tray writer::operator()(tray t) {
             buf.append(sep, sep + sizeof(sep)-1);
             append(buf, header);
         }
-        buf.append(crlf, crlf+sizeof(crlf)-1);
+        data->add_newline(buf);
         data->header_printed = true;
     }
 
@@ -151,7 +170,7 @@ tray writer::operator()(tray t) {
         buf.append(sep, sep + sizeof(sep)-1);
         append(buf, t.aligned_sequence->get_attr<std::string>(key));
     }
-    buf.append(crlf, crlf + sizeof(crlf)-1);
+    data->add_newline(buf);
 
     fmt::internal::write(data->out, buf);
 
