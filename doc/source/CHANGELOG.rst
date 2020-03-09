@@ -3,6 +3,10 @@
 Changelog
 =========
 
+Version 1.6.1:
+--------------
+ - fix progress bar not honoring verbosity (:issue:`85`)
+
 Version 1.6.0:
 --------------
  - make internal kmer engine the default (:issue:`23`)
