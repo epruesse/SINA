@@ -231,6 +231,10 @@ rw_arb::reader::operator()(tray& t) {
             data->p->set_total(data->total_expected_sequences);
             logger->error("Bad character {} in sequence {}",
                           e.character, name);
+        } catch(query_arb_exception& e) {
+            --data->total_expected_sequences;
+            data->p->set_total(data->total_expected_sequences);
+            logger->error("ARB read error in sequence {}", name);
         }
     }
     for (const auto& f: data->v_fields) {

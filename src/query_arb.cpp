@@ -214,7 +214,8 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
         GB_flush_cache(gbdata);
         return out;
     }
-    return "";
+    throw query_arb_exception(fmt::format("Error while trying to read '{}' from {}",
+                                          name, filename));
 }
 
 query_arb::query_arb(const fs::path& arbfile)

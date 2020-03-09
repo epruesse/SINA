@@ -590,14 +590,17 @@ int real_main(int argc, char** argv) {
 int main(int argc, char** argv) {
     try {
         return real_main(argc, argv);
+    } catch (query_arb_exception &e) {
+        logger->error(e.what());
+        logger->error("The ARB database you were trying to use is likely corrupted.");
+        return EXIT_FAILURE;
     } catch (std::exception &e) {
-        logger->critical("Error during program execution: {} {}",
+        logger->error("Error during program execution: {} {}",
                          demangle(typeid(e).name()),
                          e.what());
         return EXIT_FAILURE;
     }
 }
-
 
 
 /*
