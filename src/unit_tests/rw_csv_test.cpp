@@ -120,7 +120,7 @@ BOOST_FIXTURE_TEST_CASE(one_seq_no_data, F) {
     BOOST_CHECK_EQUAL(nlines(), 2);
     BOOST_CHECK_EQUAL(
         output(),
-        "ID\n"
+        "name\n"
         "test_sequence\n"
         );
 }
@@ -131,7 +131,7 @@ BOOST_FIXTURE_TEST_CASE(two_seq_no_data, F) {
     BOOST_CHECK_EQUAL(nlines(), 3);
     BOOST_CHECK_EQUAL(
         output(),
-        "ID\n"
+        "name\n"
         "test_sequence1\n"
         "test_sequence2\n");
 }
@@ -143,7 +143,7 @@ BOOST_FIXTURE_TEST_CASE(one_seq_one_string, F) {
     BOOST_CHECK_EQUAL(nlines(), 2);
     BOOST_CHECK_EQUAL(
         output(),
-        "ID,col1\n"
+        "name,col1\n"
         "test_sequence,Some test data\n"
         );
 }
@@ -155,7 +155,7 @@ BOOST_FIXTURE_TEST_CASE(one_seq_one_int, F) {
     BOOST_CHECK_EQUAL(nlines(), 2);
     BOOST_CHECK_EQUAL(
         output(),
-        "ID,col1\n"
+        "name,col1\n"
         "test_sequence,123\n"
         );
 }
@@ -165,7 +165,7 @@ BOOST_FIXTURE_TEST_CASE(escape_seqname, F) {
     write(c);
     BOOST_CHECK_EQUAL(
         output(),
-        "ID\n"
+        "name\n"
         "\"test_se,quence\"\n"
         );
 }
@@ -176,7 +176,7 @@ BOOST_FIXTURE_TEST_CASE(escape_comma, F) {
     write(c);
     BOOST_CHECK_EQUAL(
         output(),
-        "ID,data\n"
+        "name,data\n"
         "seq,\"d1,d2,d2\"\n"
         );
 }
@@ -190,7 +190,7 @@ BOOST_FIXTURE_TEST_CASE(escape_quote, F) {
     write(d);
     BOOST_CHECK_EQUAL(
         output(),
-        "ID,data\n"
+        "name,data\n"
         "seq1,\"a quote '\"\"'\"\n"
         "seq2,\"more \"\"quotes\"\" '\"\"\"\"'\"\n"
         );
@@ -202,7 +202,7 @@ BOOST_FIXTURE_TEST_CASE(escape_multilines, F) {
     write(c);
     BOOST_CHECK_EQUAL(
         output(),
-        "ID,data\n"
+        "name,data\n"
         "seq,\"multiple\nlines\"\n"
         );
 }

@@ -133,7 +133,7 @@ static inline void append(fmt::memory_buffer& buf, const std::string& str) {
 
 tray writer::operator()(tray t) {
     const char sep[] = ",";
-    const char id[] = "ID";
+    const char id[] = "name";
     fmt::memory_buffer buf;
 
     if (t.aligned_sequence == nullptr) {
