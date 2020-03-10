@@ -296,7 +296,9 @@ void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od
     if (opts.intype == SEQUENCE_DB_AUTO) {
         if (opts.in.extension() == ".arb" || opts.in.native() == ":") {
             opts.intype = SEQUENCE_DB_ARB;
-        } else if (opts.in.extension() == ".csv") {
+        } else if ((opts.in.extension() == ".csv") ||
+                   (opts.in.extension() == ".gz" &&
+                    opts.in.stem().extension() == ".csv")) {
             opts.intype = SEQUENCE_DB_CSV;
         } else {
             opts.intype = SEQUENCE_DB_FASTA;
@@ -324,7 +326,10 @@ void validate_vm(po::variables_map& vm, const po::options_description&  /*all_od
                         outtype = SEQUENCE_DB_ARB;
                     } else if (out == "/dev/null") {
                         continue;
-                    } else if (out.extension() == ".csv") {
+                    } else if (
+                        (out.extension() == ".csv") ||
+                        (out.extension() == ".gz" && out.stem().extension() == ".csv")
+                        ) {
                         outtype = SEQUENCE_DB_CSV;
                     } else {
                         outtype = SEQUENCE_DB_FASTA;
