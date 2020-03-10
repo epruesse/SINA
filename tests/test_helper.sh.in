@@ -56,25 +56,28 @@ test_helper_cleanup_() {
 }
 
 capture_stdout() {
-    echo "Running \"$*"\"
+    echo "----- Running \"$*\""
     script_error_disable_=1
     output=$(eval "$SINA_TEST_WRAPPER $*" | @TEE@ /dev/fd/6)
     exit_code=$?
     script_error_disable_=
+    echo "----- Finished with exit code $exit_code (cmd: \"$*\""
 }
 capture_stderr() {
-    echo "Running \"$*"\"
+    echo "----- Running \"$*\""
     script_error_disable_=1
     output=$(eval "$SINA_TEST_WRAPPER $*" 2>&1 >&6 | @TEE@ /dev/fd/7)
     exit_code=$?
     script_error_disable_=
+    echo "----- Finished with exit code $exit_code (cmd: \"$*\""
 }
 capture_stdouterr() {
-    echo "Running \"$*"\"
+    echo "----- Running \"$*\""
     script_error_disable_=1
     output=$(eval "$SINA_TEST_WRAPPER $*" 2>&1 | @TEE@ /dev/fd/6)
     exit_code=$?
     script_error_disable_=
+    echo "----- Finished with exit code $exit_code (cmd: \"$*\""
 }
 
 begin_test() {
@@ -82,6 +85,10 @@ begin_test() {
     test_name=$1
     test_err=
     test_var=
+    echo ""
+    echo "$test_num $test_name"
+    echo "$test_num $test_name" | sed 's/./=/g'
+    echo ""
 }
 
 end_test() {
@@ -93,9 +100,11 @@ end_test() {
     if [ -n "$test_var" ]; then
 	echo "#$test_var"
     fi
-    echo "---"
-    echo "$test_err"
-    echo "---"
+    if [ -n "$test_err" ]; then
+	echo "--- BEGIN ERR ---"
+	echo "$test_err"
+	echo "--- END ERR ---"
+    fi
 }
 
 assert_exit_success() {
@@ -109,6 +118,9 @@ assert_exit_success() {
 }
 
 assert_exit_failure() {
+    if [ -n "$1" ]; then
+	capture_stdouterr "$@"
+    fi
     if [ $exit_code -eq 0 ]; then
 	test_err="${test_err}# command exited with $exit_code
 "
