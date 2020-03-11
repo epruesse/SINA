@@ -70,8 +70,6 @@ using std::pair;
 
 #include <cstdio>
 
-using std::runtime_error;
-
 #ifdef HAVE_TBB
 #  include "tbb/pipeline.h"
 #endif
@@ -222,12 +220,12 @@ query_arb::query_arb(const fs::path& arbfile)
     : data(new priv_data()) {
     data->filename = arbfile;
     if (arbfile.empty()) {
-        throw runtime_error("Empty ARB database name?!");
+        throw query_arb_exception("Empty ARB database name?!");
     }
 
     data->gbmain = GB_open(arbfile.c_str(), "rwc");
     if (data->gbmain == nullptr) {
-        throw runtime_error(fmt::format("Unable to open ARB database {}.", arbfile));
+        throw query_arb_exception(fmt::format("Unable to open ARB database {}.", arbfile));
     }
 
     setProtectionLevel(6); // drop privileges
@@ -246,7 +244,7 @@ query_arb::query_arb(const fs::path& arbfile)
     data->alignment_length =  GBT_get_alignment_len(data->gbmain,
                                                    data->default_alignment);
     if (data->alignment_length < 0) {
-        throw runtime_error(
+        throw query_arb_exception(
             fmt::format(
                 "Width of default alignment \"{}\" in {} is <0",
                 data->default_alignment, data->filename
