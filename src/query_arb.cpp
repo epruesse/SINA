@@ -391,7 +391,8 @@ query_arb::saveAs(const fs::path& fname, const char* type) {
     }
 
     if (GB_ERROR err = GB_save_as(data->gbmain, fname.c_str(), type)) {
-        logger->error("Error '{}' while trying to save {}", err, fname);
+        logger->error("Error while trying to save {}", fname);
+        logger->error("  ARB said: \n{}\n", err);
     }
 }
 
