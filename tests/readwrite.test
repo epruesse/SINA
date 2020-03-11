@@ -124,7 +124,7 @@ assert_exit_success "cmp $T/acc.txt $T/acc2.txt"
 end_test
 
 begin_test "CSV writer - stdout gzip"
-capture_stdouterr "$SINA -i $T/test.arb --outtype CSV -o - -f acc > test.csv.gz"
+capture_stdouterr "$SINA -i $T/test.arb --outtype CSV -o - -f acc > $T/test.csv.gz"
 assert_exit_success
 assert_output_contains "align 12 sequences"
 gzip -dc $T/test.csv.gz | cut -d, -f2 | tail -n+2 | sort  > $T/acc2.txt
