@@ -448,7 +448,7 @@ public:
 
         // move back up to last log line
         std::lock_guard<mutex_t> lock(super::mutex_);
-        for (int i=0; i < _last_status_lines; ++i) {
+        for (unsigned int i=0; i < _last_status_lines; ++i) {
             fwrite(term_move_up.data(), 1, term_move_up.size(), super::target_file_);
         }
         _last_status_lines = nlines;
