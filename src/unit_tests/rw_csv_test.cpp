@@ -27,6 +27,7 @@
 */
 
 #include "../rw_csv.h"
+#include "../tempfile.h"
 
 #define BOOST_TEST_MODULE rw
 
@@ -42,44 +43,6 @@ BOOST_AUTO_TEST_SUITE(rw_csv_test);
 using namespace sina;
 
 
-class TempFile : boost::noncopyable {
-public:
-    TempFile(const fs::path model = "sina-%%%%-%%%%-%%%%")
-        : _path(fs::temp_directory_path() / fs::unique_path(model))
-    {}
-    ~TempFile() {
-        fs::remove(_path);
-    }
-    operator const fs::path() const {
-        return _path;
-    }
-    const fs::path& path() const {
-        return _path;
-    }
-    void dump(std::ostream& out = std::cerr) const {
-        out << "Dumping Tempfile " << this << std::endl;
-        std::string sep = "----------------------";
-        out << sep << std::endl;
-        fs::ifstream file(*this);
-        std::string line;
-        while (getline(file, line).good()) {
-            std::cerr << line << std::endl;
-        }
-        out << sep << std::endl;
-    }
-    std::string load() const {
-        auto closer = [](FILE* fp){ if(fp) std::fclose(fp);};
-        auto fp = std::unique_ptr<FILE, decltype(closer)>(
-            std::fopen(_path.native().c_str(), "r"), closer);
-        std::string res;
-        res.resize(fs::file_size(_path));
-        auto len = std::fread(const_cast<char*>(res.data()), 1, res.size(), fp.get());
-        return res;
-    }
-private:
-    fs::path _path;
-};
-std::ostream& operator<<(std::ostream& out, const TempFile& t) { return out << t.path(); }
 
 
 struct F {

@@ -116,6 +116,7 @@ src_libsina_la_SOURCES = \
     src/search.cpp \
     src/search_filter.cpp \
     src/search_filter.h \
+    src/tempfile.h \
     src/timer.h \
     src/tray.cpp \
     src/tray.h \
