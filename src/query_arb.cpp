@@ -292,9 +292,9 @@ query_arb::closeOpenARBDBs() {
         if(it.second->hasErrors()){
             it.second->printErrors(std::cerr);
         }
-
         delete it.second;
     }
+    open_arb_dbs.clear();
 }
 
 
