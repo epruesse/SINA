@@ -395,11 +395,6 @@ query_arb::saveAs(const fs::path& fname, const char* type) {
     }
 }
 
-bool
-query_arb::good() const {
-    return (data->gbmain != nullptr) && (data->default_alignment != nullptr);
-}
-
 static void
 loadKey(cseq& c, const string& key, GBDATA* gbspec) {
     GBDATA *gbd = GB_find(gbspec, key.c_str(), SEARCH_CHILD);

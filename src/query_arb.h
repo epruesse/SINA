@@ -150,8 +150,6 @@ private:
      * Prints an error statistic to the specified stream.
      */
     void printErrors(std::ostream& stream);
-    bool bad() const { return !good(); }
-    bool good() const;
 
     /**
      * @return True if errors occurred while accessing the arb-db. False if no errors occurred.
