@@ -270,6 +270,10 @@ AX_BOOST_UNIT_TEST_FRAMEWORK
 # Allways show warnings
 CXXFLAGS="$CXXFLAGS -W"
 
+# Disable warnings creating too much clutter from within TBB
+CXXFLAGS="$CXXFLAGS -Wno-deprecated-copy"
+
+
 # Generate output
 
 AC_CONFIG_HEADERS([config.h])
