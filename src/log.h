@@ -54,6 +54,9 @@ public:
     };
 
     static std::shared_ptr<spdlog::logger> create_logger(std::string name);
+    static void add_sink(spdlog::sink_ptr);
+    static void remove_sink(spdlog::sink_ptr);
+
     static void get_options_description(boost::program_options::options_description& main,
                                         boost::program_options::options_description& adv);
     static void validate_vm(boost::program_options::variables_map& /*vm*/,

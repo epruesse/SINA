@@ -220,6 +220,23 @@ Log::validate_vm(po::variables_map& vm,
     }
 }
 
+void
+Log::add_sink(spdlog::sink_ptr sink) {
+    sinks->push_back(sink);
+    spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) {
+                          l->sinks() = *sinks;
+                      });
+}
+
+void
+Log::remove_sink(spdlog::sink_ptr sink) {
+    sinks->erase(std::remove(sinks->begin(), sinks->end(), sink), sinks->end());
+    spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) {
+                          l->sinks() = *sinks;
+                      });
+}
+
+
 std::shared_ptr<spdlog::logger>
 Log::create_logger(std::string name) {
     auto logger = spdlog::get(name);
