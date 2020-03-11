@@ -244,12 +244,14 @@ query_arb::query_arb(const fs::path& arbfile)
     data->alignment_length =  GBT_get_alignment_len(data->gbmain,
                                                    data->default_alignment);
     if (data->alignment_length < 0) {
+        // This should not actually be possible. LCOV_EXCL_START
         throw query_arb_exception(
             fmt::format(
                 "Width of default alignment \"{}\" in {} is <0",
                 data->default_alignment, data->filename
                 )
             );
+        // LCOV_EXCL_STOP
     }
 
     data->gbspec = GB_search(data->gbmain, "species_data", GB_CREATE_CONTAINER);
@@ -384,7 +386,9 @@ query_arb::saveAs(const fs::path& fname, const char* type) {
         logger->info("Checking alignment...");
         GB_ERROR err = GBT_check_data(data->gbmain, data->default_alignment);
         if (err != nullptr) {
-            logger->error(err);
+            // LCOV_EXCL_START
+            logger->error("Error '{}' while checking ARB database alignment");
+            // LCOV_EXCL_STOP
         }
     }
 
