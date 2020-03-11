@@ -73,6 +73,7 @@ class query_arb{
      * @returns one instance per database file. If the method is called multiple times on the same file the same instance is returned.
      */
     static query_arb* getARBDB(const boost::filesystem::path& file_name);
+    static void closeOpenARBDBs();
 
     static const char* fn_turn;
     static const char* fn_acc;
@@ -166,7 +167,6 @@ private:
     query_arb(const query_arb&) = delete;
     query_arb& operator=(const query_arb&) = delete;
 
-    static void closeOpenARBDBs();
 
     inline void
     storeKey(GBDATA* gbmain, GBDATA* gbspec, const std::string& key,
