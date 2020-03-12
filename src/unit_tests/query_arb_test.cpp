@@ -54,10 +54,15 @@ struct GlobalFixture {
         instance() = this;
 
         int argc = boost::unit_test::framework::master_test_suite().argc;
+        if (argc != 2) {
+            throw std::runtime_error("Need exactly 1 argument: the reference arb file");
+        }
+
         char** argv = boost::unit_test::framework::master_test_suite().argv;
         query_arb* ref = query_arb::getARBDB(argv[1]);
         query_arb* tmp = query_arb::getARBDB(small_arb_path());
         std::vector<std::string> ids = ref->getSequenceNames();
+
         std::srand(1234);
         std::random_shuffle(ids.begin(), ids.end());
         for (size_t i = 0; i < n_seq; ++i) {
@@ -66,7 +71,6 @@ struct GlobalFixture {
         }
         tmp->save();
         query_arb::closeOpenARBDBs();
-
     }
     ~GlobalFixture() {
         instance() = nullptr;
@@ -104,19 +108,11 @@ struct CaseFixture {
 
 
 struct what_starts_with {
-    what_starts_with(const std::string& prefix) : _prefix(prefix) {}
+    explicit what_starts_with(const std::string& prefix) : _prefix(prefix) {}
     bool operator()(const std::exception& e) const {
         return std::string(e.what()).rfind(_prefix, 0) == 0;
     }
     std::string _prefix;
-};
-
-struct what_contains {
-    what_contains(const std::string& str) : _str(str) {}
-    bool operator()(const std::exception& e) const {
-        return std::string(e.what()).find(_str) != std::string::npos;
-    }
-    std::string _str;
 };
 
 BOOST_GLOBAL_FIXTURE(GlobalFixture);
