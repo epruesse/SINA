@@ -234,7 +234,7 @@ rw_arb::reader::operator()(tray& t) {
         } catch(query_arb_exception& e) {
             --data->total_expected_sequences;
             data->p->set_total(data->total_expected_sequences);
-            logger->error("ARB read error in sequence {}", name);
+            logger->error("Read error: {}", e.what());
         }
     }
     for (const auto& f: data->v_fields) {

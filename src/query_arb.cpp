@@ -135,6 +135,11 @@ map<fs::path, query_arb*> query_arb::open_arb_dbs;
 static auto arb_logger = Log::create_logger("libARBDB");
 static auto logger = Log::create_logger("ARB I/O");
 
+template<typename... Args>
+query_arb_exception make_exception(const char *fmt, const Args&... args) {
+    return query_arb_exception(fmt::format(fmt, args...));
+}
+
 struct query_arb::priv_data {
     ~priv_data() {
         if (default_alignment != nullptr) {
@@ -202,35 +207,56 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
     GB_transaction trans(gbmain);
 
     // get sequence root entry ("species")
-    GBDATA *gbdata;
-    const char *res;
-
-    if (((gbdata = getGBDATA(name)) != nullptr) &&
-        ((gbdata = GBT_find_sequence(gbdata, ali)) != nullptr) &&
-        ((res = GB_read_char_pntr(gbdata)) != nullptr)) {
-        string out(res);
-        GB_flush_cache(gbdata);
-        return out;
+    GBDATA *gbdata = getGBDATA(name);
+    if (gbdata == nullptr) {
+        throw make_exception("No sequence \"{}\" in {}",
+                             name, filename.filename());
     }
-    throw query_arb_exception(fmt::format("Error while trying to read '{}' from {}",
-                                          name, filename));
+
+    gbdata = GBT_find_sequence(gbdata, ali);
+    if (gbdata == nullptr) {
+        throw make_exception("No alignment \"{}\" in sequence \"{}\" in {}",
+                             ali, name, filename.filename());
+    }
+
+    const char *res = GB_read_char_pntr(gbdata);
+    if (res == nullptr) {
+        throw make_exception("No data in alignment \"{}\" in sequence \"{}\" in {}",
+                             ali, name, filename.filename());
+    }
+
+    string out(res);
+    GB_flush_cache(gbdata); // remove that sequence from ARB's own cache
+
+    return out;
 }
 
 query_arb::query_arb(const fs::path& arbfile)
     : data(new priv_data()) {
     data->filename = arbfile;
     if (arbfile.empty()) {
-        throw query_arb_exception("Empty ARB database name?!");
+        throw make_exception("Empty ARB database name?!");
     }
 
     data->gbmain = GB_open(arbfile.c_str(), "rwc");
     if (data->gbmain == nullptr) {
-        throw query_arb_exception(fmt::format("Unable to open ARB database {}.", arbfile));
+        throw make_exception("Unable to open ARB database {}.", arbfile);
     }
 
     setProtectionLevel(6); // drop privileges
 
     GB_transaction trans(data->gbmain);
+
+    GBDATA *gbd;
+    if ((gbd = GB_entry(data->gbmain, "ptserver")) != nullptr &&
+        (gbd = GB_entry(gbd, "dbstate")) != nullptr &&
+        GB_read_int(gbd) > 0) {
+        throw make_exception(
+            "{} has been compressed for use by the ARB PT server"
+            "and cannot be accessed by SINA.",
+            arbfile.filename()
+            );
+    }
 
     data->default_alignment = GBT_get_default_alignment(data->gbmain);
 
@@ -245,11 +271,9 @@ query_arb::query_arb(const fs::path& arbfile)
                                                    data->default_alignment);
     if (data->alignment_length < 0) {
         // This should not actually be possible. LCOV_EXCL_START
-        throw query_arb_exception(
-            fmt::format(
-                "Width of default alignment \"{}\" in {} is <0",
-                data->default_alignment, data->filename
-                )
+        throw make_exception(
+            "Width of default alignment \"{}\" in {} is <0 ?!?!",
+            data->default_alignment, data->filename
             );
         // LCOV_EXCL_STOP
     }
@@ -960,7 +984,7 @@ query_arb::getPairs() {
 void
 query_arb::write(GBDATA *pData, double value) {
     if (pData == nullptr) {
-        throw query_arb_exception("GB_write_float pData is null");
+        throw make_exception("GB_write_float pData is null");
     }
 
     GB_ERROR err = GB_write_float(pData, value);
@@ -974,7 +998,7 @@ query_arb::write(GBDATA *pData, double value) {
 void
 query_arb::write(GBDATA *pData, int value) {
     if (pData == nullptr) {
-        throw query_arb_exception("GB_write_int pData is null");
+        throw make_exception("GB_write_int pData is null");
     }
 
     GB_ERROR err = GB_write_int(pData, value);
@@ -991,7 +1015,7 @@ query_arb::write(GBDATA *pData, int value) {
 void
 query_arb::write(GBDATA *pData, const char* pValue) {
     if (pData == nullptr) {
-        throw query_arb_exception("GB_write_string pData is null");
+        throw make_exception("GB_write_string pData is null");
     }
 
     GB_ERROR err = GB_write_string(pData, pValue);
@@ -1005,7 +1029,7 @@ query_arb::write(GBDATA *pData, const char* pValue) {
 void
 query_arb::write_flag(GBDATA *pData, long value) {
     if(pData == nullptr) {
-        throw query_arb_exception("GB_write_flag pData is null");
+        throw make_exception("GB_write_flag pData is null");
     }
 
     // GB_write_flag kills arb if an error occurs.
