@@ -167,7 +167,7 @@ struct query_arb::priv_data {
     int count{0};
 
     GBDATA* getGBDATA(const string& name);
-    string getSequence(const char* name, const char* ali);
+    string getSequence(const string& name);
     void get_weights_nolock(vector<float>& res,
                             const char *name, const char *ali) ;
 };
@@ -188,13 +188,7 @@ query_arb::priv_data::getGBDATA(const string& name) {
 }
 
 string
-query_arb::priv_data::getSequence(const char *name, const char *ali) {
-    // if there is a preloaded cache, just hand out sequence
-
-    if (ali == nullptr) {
-        ali = default_alignment;
-    }
-
+query_arb::priv_data::getSequence(const string& name) {
     std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(gbmain);
 
@@ -205,16 +199,16 @@ query_arb::priv_data::getSequence(const char *name, const char *ali) {
                              name, filename.filename());
     }
 
-    gbdata = GBT_find_sequence(gbdata, ali);
+    gbdata = GBT_find_sequence(gbdata, default_alignment);
     if (gbdata == nullptr) {
         throw make_exception("No alignment \"{}\" in sequence \"{}\" in {}",
-                             ali, name, filename.filename());
+                             default_alignment, name, filename.filename());
     }
 
     const char *res = GB_read_char_pntr(gbdata);
     if (res == nullptr) {
         throw make_exception("No data in alignment \"{}\" in sequence \"{}\" in {}",
-                             ali, name, filename.filename());
+                             default_alignment, name, filename.filename());
     }
 
     string out(res);
@@ -679,7 +673,7 @@ query_arb::getCseq(const string& name) { //, bool nocache) {
     }
 
     // if all fails, fetch sequence from arb and cache
-    cseq tmp(name.c_str(), data->getSequence(name.c_str(), data->default_alignment).c_str());
+    cseq tmp(name.c_str(), data->getSequence(name).c_str());
     data->sequence_cache.emplace(name, std::move(tmp));
 #if defined(DEBUG) && False
     int n_cached = data->sequence_cache.size();
@@ -698,7 +692,7 @@ query_arb::getCseq(const string& name) { //, bool nocache) {
 
 cseq
 query_arb::getCseqUncached(const string& name) { //, bool nocache) {
-    return {name.c_str(), data->getSequence(name.c_str(), data->default_alignment).c_str()};
+    return {name.c_str(), data->getSequence(name).c_str()};
 }
 
 int
