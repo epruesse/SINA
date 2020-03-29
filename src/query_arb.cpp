@@ -160,7 +160,6 @@ struct query_arb::priv_data {
     sequence_cache_type sequence_cache;
     gbdata_cache_type gbdata_cache;
     error_list_type write_errors;
-    bool have_cache{false};
     const char* default_alignment{nullptr};
     int alignment_length{0};
     fs::path filename;
@@ -177,10 +176,6 @@ GB_shell *query_arb::priv_data::the_arb_shell = nullptr;
 
 GBDATA*
 query_arb::priv_data::getGBDATA(const string& name) {
-    if (have_cache) {
-        return gbdata_cache[name];
-    }
-
     auto it = gbdata_cache.find(name);
     if (it != gbdata_cache.end()) {
         return it->second;
@@ -195,9 +190,6 @@ query_arb::priv_data::getGBDATA(const string& name) {
 string
 query_arb::priv_data::getSequence(const char *name, const char *ali) {
     // if there is a preloaded cache, just hand out sequence
-    if (have_cache) {
-        return sequence_cache[name].getAligned();
-    }
 
     if (ali == nullptr) {
         ali = default_alignment;
@@ -651,7 +643,6 @@ query_arb::loadCache(std::vector<std::string>& keys) {
 
     logger->info("Loaded {} sequences", data->sequence_cache.size());
 
-    data->have_cache = true;
 }
 
 vector<cseq*>
@@ -681,11 +672,6 @@ query_arb::getSequenceNames() {
 
 const cseq&
 query_arb::getCseq(const string& name) { //, bool nocache) {
-    // if there is a preloaded cache, just hand out sequence
-    if (data->have_cache) {
-        return data->sequence_cache[name];
-    }
-    
     // if not, check whether we already loaded it
     auto it = data->sequence_cache.find(name);
     if (it != data->sequence_cache.end()) {
