@@ -240,7 +240,7 @@ public:
 
     template<typename T>
     void set_attr(const std::string& key, T val) {
-        attributes.emplace(key, val);
+        attributes[key] = val;
     }
 
     bool has_attr(const std::string& key) const {
