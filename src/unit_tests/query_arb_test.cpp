@@ -30,6 +30,18 @@
 #include "../tempfile.h"
 #include "../log.h"
 
+// ARB needs either DEBUG or NDEBUG defined
+#ifdef DEBUG
+#  define typeof __typeof__
+#else
+# ifndef NDEBUG
+#  define NDEBUG 1
+# endif
+#endif
+
+#include <arbdbt.h>
+
+
 #define BOOST_TEST_MODULE query_arb_test
 
 #include <boost/test/unit_test.hpp>
@@ -61,13 +73,14 @@ struct GlobalFixture {
         char** argv = boost::unit_test::framework::master_test_suite().argv;
         query_arb* ref = query_arb::getARBDB(argv[1]);
         query_arb* tmp = query_arb::getARBDB(small_arb_path());
-        std::vector<std::string> ids = ref->getSequenceNames();
 
+        _ids = ref->getSequenceNames();
         std::srand(1234);
-        std::random_shuffle(ids.begin(), ids.end());
-        for (size_t i = 0; i < n_seq; ++i) {
-            cseq c = ref->getCseq(ids[i]);
-            tmp->putCseq(c);
+        std::random_shuffle(_ids.begin(), _ids.end());
+        _ids.resize(n_seq);
+
+        for (auto id : _ids) {
+            tmp->copySequence(*ref, id, false);
         }
         tmp->save();
         query_arb::closeOpenARBDBs();
@@ -76,11 +89,15 @@ struct GlobalFixture {
         instance() = nullptr;
     }
 
-    static TempFile& small_arb_path() {
-        return (*instance())._small_arb_path;
+    const TempFile& small_arb_path() const {
+        return _small_arb_path;
+    }
+    const std::vector<std::string>& ids() const {
+        return _ids;
     }
 
     TempFile _small_arb_path;
+    std::vector<std::string> _ids;
     const size_t n_seq{50};
 };
 
@@ -88,6 +105,10 @@ struct CaseFixture {
     CaseFixture() {}
     ~CaseFixture() {
         query_arb::closeOpenARBDBs();
+    }
+
+    const GlobalFixture& globalFixture() const {
+        return *GlobalFixture::instance();
     }
 
     query_arb* tmparb() {
@@ -98,10 +119,15 @@ struct CaseFixture {
     }
     query_arb* smallarb() {
         if (_smallarb == nullptr) {
-            _smallarb = query_arb::getARBDB(GlobalFixture::small_arb_path());
+            _smallarb = query_arb::getARBDB(globalFixture().small_arb_path());
         }
         return _smallarb;
     }
+
+    const std::vector<std::string>& ids() const {
+        return globalFixture().ids();
+    }
+
     TempFile tmpfile;
     query_arb *_tmparb{nullptr}, *_smallarb{nullptr};
 };
@@ -135,7 +161,12 @@ BOOST_AUTO_TEST_CASE(cache) {
     query_arb *arb = smallarb();
     arb->loadCache();
     std::vector<cseq*> cache = arb->getCacheContents();
-    BOOST_CHECK_EQUAL(cache.size(), GlobalFixture::instance()->n_seq);
+    BOOST_CHECK_EQUAL(cache.size(), globalFixture().n_seq);
+
+    for (auto* c: cache) {
+        const cseq& d = arb->getCseq(c->getName());
+        BOOST_CHECK_EQUAL(c, &d);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(empty_filename) {
@@ -180,7 +211,103 @@ BOOST_AUTO_TEST_CASE(unable_to_save) {
     BOOST_CHECK(oss.str().find("Error while trying to save") != std::string::npos);
 }
 
+BOOST_AUTO_TEST_CASE(getFileName) {
+    query_arb *arb = smallarb();
+    BOOST_CHECK_EQUAL(globalFixture().small_arb_path(), arb->getFileName());
+}
 
+BOOST_AUTO_TEST_CASE(getAlignmentWidth) {
+    query_arb *arb = smallarb();
+    BOOST_CHECK_EQUAL(50000, arb->getAlignmentWidth());
+}
+
+BOOST_AUTO_TEST_CASE(getSeqCount) {
+    query_arb *arb = smallarb();
+    BOOST_CHECK_EQUAL(globalFixture().n_seq, arb->getSeqCount());
+}
+
+BOOST_AUTO_TEST_CASE(read_fail) {
+    query_arb *arb = smallarb();
+    BOOST_CHECK_EXCEPTION(
+        arb->getCseq("doesnotexist"),
+        query_arb_exception,
+        what_starts_with("No sequence \"doesnotexist")
+        );
+}
+
+BOOST_AUTO_TEST_CASE(empty_alignment) {
+    GBDATA* gbmain = GB_open(globalFixture().small_arb_path().path().native().c_str(), "rw");
+    {
+        GB_transaction trans(gbmain);
+        GBDATA* gbspecs = GB_search(gbmain, "species_data", GB_CREATE_CONTAINER);
+        GBDATA* gbspec = GB_create_container(gbspecs, "species");
+        GBDATA* gbname = GB_create(gbspec, "name", GB_STRING);
+        GB_write_string(gbname, "emptyspecies");
+    }
+    GB_save_as(gbmain, tmpfile.path().native().c_str(), "b");
+    GB_close(gbmain);
+    query_arb *arb = tmparb();
+
+    BOOST_CHECK_EXCEPTION(
+        arb->getCseq("emptyspecies"),
+        query_arb_exception,
+        what_starts_with("No alignment for sequence \"emptyspecies")
+        );
+}
+
+
+BOOST_AUTO_TEST_CASE(read_write_ok) {
+    query_arb *arb = smallarb();
+    const cseq &c = arb->getCseq(ids()[0]);
+    cseq d = c;
+    d.setName("new_sequence");
+    arb->putCseq(c);
+    BOOST_CHECK_EQUAL(globalFixture().n_seq, arb->getSeqCount());
+    arb->putCseq(d);
+    BOOST_CHECK_EQUAL(globalFixture().n_seq + 1, arb->getSeqCount());
+}
+
+BOOST_AUTO_TEST_CASE(read_write_keys) {
+    query_arb *arb = smallarb();
+    const cseq &c = arb->getCseq(ids()[0]);
+    cseq d = c;
+    cseq e = c;
+
+    BOOST_CHECK_EQUAL(c.get_attr<std::string>("acc", "none"), "none");
+    arb->loadKey(c, "acc");
+    BOOST_CHECK_EQUAL(c.get_attr<std::string>("acc"), "AY268937");
+
+    d.set_attr("acc", "12345678");
+    arb->putCseq(d);
+    arb->loadKey(e, "acc");
+    BOOST_CHECK_EQUAL(e.get_attr<std::string>("acc"), "12345678");
+
+    d.set_attr("acc", "ABCDE");
+    arb->storeKey(d, "acc");
+    arb->loadKey(e, "acc", true);
+    BOOST_CHECK_EQUAL(e.get_attr<std::string>("acc"), "ABCDE");
+
+    d.set_attr("acc", 123);
+    arb->storeKey(d, "acc");
+    arb->loadKey(e, "acc", true);
+    BOOST_CHECK_EQUAL(e.get_attr<int>("acc"), 123);
+
+    d.set_attr("acc", 2.3f);
+    arb->storeKey(d, "acc");
+    arb->loadKey(e, "acc", true);
+    BOOST_CHECK_EQUAL(e.get_attr<float>("acc"), 2.3f);
+
+    d.set_attr("acc", "str");
+    arb->storeKey(d, "acc");
+    arb->loadKey(e, "acc", true);
+    BOOST_CHECK_EQUAL(e.get_attr<std::string>("acc"), "str");
+}
+
+/*
+BOOST_AUTO_TEST_CASE(open_pt_db)
+BOOST_AUTO_TEST_CASE(arb_status)
+BOOST_AUTO_TEST_CASE(arb_error)
+ */
 
 BOOST_AUTO_TEST_SUITE_END(); // rw_csv_test
 

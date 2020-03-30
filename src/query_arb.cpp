@@ -140,6 +140,9 @@ query_arb_exception make_exception(const char *fmt, const Args&... args) {
     return query_arb_exception(fmt::format(fmt, args...));
 }
 
+
+/////////////////////   Hidden Implementation Class ///////////////
+
 struct query_arb::priv_data {
     ~priv_data() {
         if (default_alignment != nullptr) {
@@ -166,56 +169,211 @@ struct query_arb::priv_data {
     GBDATA *gbmain{nullptr}, *gblast{nullptr}, *gbspec{nullptr};
     int count{0};
 
-    GBDATA* getGBDATA(const string& name);
-    string getSequence(const string& name);
+    void write(GBDATA* pData, const string& str);
+    GBDATA* getGBDATA(const string& name, bool create = false);
+    const char* getSequence(GBDATA*);
+    void putSequence(const cseq& seq);
     void get_weights_nolock(vector<float>& res,
-                            const char *name, const char *ali) ;
+                            const char *name, const char *ali);
 };
 
 GB_shell *query_arb::priv_data::the_arb_shell = nullptr;
 
+
+void
+query_arb::priv_data::write(GBDATA *pData, const string& str) {
+    if (pData == nullptr) {
+        throw make_exception("GB_write_string pData is null");
+    }
+
+    GB_ERROR err = GB_write_string(pData, str.c_str());
+    if (err != nullptr) {
+        logger->error("GB_write_string(value = {}) failed. Reason: {}",
+                      str, err);
+    }
+}
+
+
 GBDATA*
-query_arb::priv_data::getGBDATA(const string& name) {
+query_arb::priv_data::getGBDATA(const string& name, bool create) {
+    logger->info("getGBDATA {} {}", name, create);
     auto it = gbdata_cache.find(name);
     if (it != gbdata_cache.end()) {
         return it->second;
     }
-
     GBDATA* gbd = GBT_find_species(gbmain, name.c_str());
+    if (gbd == nullptr) {
+        if (!create) {
+            throw make_exception("No sequence \"{}\" in {}",
+                                 name, filename.filename());
+        }
+        logger->info("Creating new sequence in {}", filename.filename());
+        gbd = GB_create_container(gbspec, "species");
+        GBDATA *gbname = GB_create(gbd, "name", GB_STRING);
+        ++count;
+        if (name.empty()) {
+            write(gbname, fmt::format("sina_{}", count));
+        } else {
+            write(gbname, name);
+        }
+    }
     gbdata_cache[name] =  gbd;
 
     return gbd;
 }
 
-string
-query_arb::priv_data::getSequence(const string& name) {
+const char*
+query_arb::priv_data::getSequence(GBDATA* gbdata) {
+    gbdata = GBT_find_sequence(gbdata, default_alignment);
+    if (gbdata != nullptr) {
+        const char *res = GB_read_char_pntr(gbdata);
+        if (res != nullptr) {
+            return res;
+        }
+    }
+    return nullptr;
+}
+
+void
+query_arb::priv_data::putSequence(const cseq& seq) {
+    string aseq = seq.getAligned();
+
     std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(gbmain);
-
-    // get sequence root entry ("species")
-    GBDATA *gbdata = getGBDATA(name);
-    if (gbdata == nullptr) {
-        throw make_exception("No sequence \"{}\" in {}",
-                             name, filename.filename());
+    GBDATA *gbdata = getGBDATA(seq.getName(), true);
+    GBDATA *gbseq = GBT_find_sequence(gbdata, default_alignment);
+    if (gbseq == nullptr) {
+        gbseq = GBT_create_sequence_data(gbdata, default_alignment, "data", GB_STRING, 0);
+        GBDATA *gbacc = GB_create(gbdata, "acc", GB_STRING);
+        string acc = fmt::format(
+            "ARB_{:X}", GB_checksum(aseq.c_str(), aseq.size(), 1, ".-")
+            );
+        write(gbacc, acc);
     }
-
-    gbdata = GBT_find_sequence(gbdata, default_alignment);
-    if (gbdata == nullptr) {
-        throw make_exception("No alignment \"{}\" in sequence \"{}\" in {}",
-                             default_alignment, name, filename.filename());
-    }
-
-    const char *res = GB_read_char_pntr(gbdata);
-    if (res == nullptr) {
-        throw make_exception("No data in alignment \"{}\" in sequence \"{}\" in {}",
-                             default_alignment, name, filename.filename());
-    }
-
-    string out(res);
-    GB_flush_cache(gbdata); // remove that sequence from ARB's own cache
-
-    return out;
+    write(gbseq, aseq);
 }
+
+/////////////////////  Reading / Writing attributes  ///////////////
+
+/* Loads a metadata attribute from ARB into cseq
+ */
+void loadKey(cseq& c, const string& key, GBDATA* gbspec) {
+    GBDATA *gbd = GB_find(gbspec, key.c_str(), SEARCH_CHILD);
+    if (gbd != nullptr) {
+        switch(GB_read_type(gbd)) {
+            case GB_STRING:
+                c.set_attr(key, (const char*)GB_read_pntr(gbd));
+                return;
+            case GB_INT:
+                c.set_attr(key, (int)GB_read_int(gbd));
+                return;
+            case GB_FLOAT:
+                c.set_attr(key, (float)GB_read_float(gbd));
+                return;
+            case GB_BYTE:
+            case GB_BITS:
+            default:
+                logger->error("loadKey failed: type unsupported");
+                return;
+        }
+    } else {
+        logger->error("loadKey failed: sequence not found");
+    }
+}
+
+
+struct storeKey_visitor : public boost::static_visitor<> {
+    storeKey_visitor(GBDATA* gbmain, GBDATA* gbspec, const string& key)
+        : _gbmain(gbmain), _gbspec(gbspec), _key(key)
+    {}
+
+    GBDATA* _gbmain;
+    GBDATA* _gbspec;
+    const string& _key;
+
+    void operator()(const int& i) {
+        GBT_add_new_changekey(_gbmain, _key.c_str(), GB_INT);
+        GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
+        if ((gbd != nullptr) && GB_read_type(gbd) != GB_INT) {
+            GB_delete(gbd);
+            gbd = nullptr;
+        }
+
+        if (gbd == nullptr) {
+            gbd = GB_create(_gbspec, _key.c_str(), GB_INT);
+        }
+
+        GB_ERROR err = GB_write_int(gbd, i);
+        if (err != nullptr) {
+            logger->error("GB_write_int(,{}) failed. Reason: {}",
+                          i, err);
+        }
+    }
+    void operator()(const unsigned int& ui) {
+        operator()((int)ui);
+    }
+    void operator()(const bool& b) {
+        operator()((int)b);
+    }
+    void operator()(const float& f) {
+        GBT_add_new_changekey(_gbmain, _key.c_str(), GB_FLOAT);
+        GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
+        if ((gbd != nullptr) && GB_read_type(gbd) != GB_FLOAT) {
+            GB_delete(gbd);
+            gbd = nullptr;
+        }
+        if (gbd == nullptr) {
+            gbd = GB_create(_gbspec, _key.c_str(), GB_FLOAT);
+        }
+        GB_ERROR err = GB_write_float(gbd, f);
+        if (err != nullptr) {
+            logger->error("GB_write_float(,{}) failed. Reason: {}",
+                          f, err);
+        }
+    }
+    void operator()(const string& str) {
+        GBT_add_new_changekey(_gbmain, _key.c_str(), GB_STRING);
+        GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
+        if ((gbd != nullptr) && GB_read_type(gbd) != GB_STRING) {
+            GB_delete(gbd);
+            gbd = nullptr;
+        }
+        if (gbd == nullptr) {
+            gbd = GB_create(_gbspec, _key.c_str(), GB_STRING);
+        }
+        GB_ERROR err = GB_write_string(gbd, str.c_str());
+
+        if (err != nullptr) {
+            logger->error("GB_write_string(,{}) failed. Reason: {}",
+                          str, err);
+        }
+    }
+
+    void operator()(const vector<cseq>& /*vc*/) {
+    }
+};
+
+
+/////////////////////   Outside Class   ///////////////
+
+void
+query_arb::storeKey(cseq& c, const std::string& key) {
+    std::lock_guard<std::mutex> lock(arb_db_access);
+    GB_transaction trans(data->gbmain);
+    GBDATA *gbspec = data->getGBDATA(c.getName());
+    storeKey_visitor vis(data->gbmain, gbspec, key);
+    boost::apply_visitor(vis, c.get_attr<cseq::variant>(key));
+}
+
+void
+query_arb::loadKey(const cseq& c, const string& key, bool reload) {
+    if (!reload && c.has_attr(key)) return;
+    std::lock_guard<std::mutex> lock(arb_db_access);
+    GB_transaction trans(data->gbmain);
+    // FIXME: should we check if the cseq is actually ours?
+    ::loadKey(const_cast<cseq&>(c), key, data->getGBDATA(c.getName()));
+}
+
 
 query_arb::query_arb(const fs::path& arbfile)
     : data(new priv_data()) {
@@ -253,7 +411,7 @@ query_arb::query_arb(const fs::path& arbfile)
         logger->warn("Created new alignment ali_16s in '{}'", data->filename);
     }
 
-    data->alignment_length =  GBT_get_alignment_len(data->gbmain,
+    data->alignment_length = GBT_get_alignment_len(data->gbmain,
                                                    data->default_alignment);
     if (data->alignment_length < 0) {
         // This should not actually be possible. LCOV_EXCL_START
@@ -286,7 +444,6 @@ query_arb::query_arb(const fs::path& arbfile)
 query_arb::~query_arb() {
 }
 
-
 void
 query_arb::setProtectionLevel(int p) {
     GB_transaction trans(data->gbmain);
@@ -294,19 +451,8 @@ query_arb::setProtectionLevel(int p) {
 }
 
 
-void
-query_arb::closeOpenARBDBs() {
-    // atexit registered method
-    std::lock_guard<std::mutex> lock(arb_db_access);
-    for (auto& it: open_arb_dbs) {
-        if(it.second->hasErrors()){
-            it.second->printErrors(std::cerr);
-        }
-        delete it.second;
-    }
-    open_arb_dbs.clear();
-}
 
+/////////////////////   ARB logging callbacks  ///////////////
 
 static void log_arb_err(const char *msg) {
     arb_logger->error(msg);
@@ -359,6 +505,8 @@ static arb_handlers arb_log_handlers = {
 };
 
 
+/////////////////////   Static Instance Acessors  ///////////////
+
 query_arb*
 query_arb::getARBDB(const fs::path& file_name) {
     std::lock_guard<std::mutex> lock(arb_db_access);
@@ -377,6 +525,15 @@ query_arb::getARBDB(const fs::path& file_name) {
     return open_arb_dbs[file_name];
 }
 
+void
+query_arb::closeOpenARBDBs() {
+    // atexit registered method
+    std::lock_guard<std::mutex> lock(arb_db_access);
+    for (auto arb : open_arb_dbs) {
+        delete arb.second;
+    }
+    open_arb_dbs.clear();
+}
 
 void
 query_arb::save() {
@@ -408,123 +565,6 @@ query_arb::saveAs(const fs::path& fname, const char* type) {
     }
 }
 
-static void
-loadKey(cseq& c, const string& key, GBDATA* gbspec) {
-    GBDATA *gbd = GB_find(gbspec, key.c_str(), SEARCH_CHILD);
-    if (gbd != nullptr) {
-        switch(GB_read_type(gbd)) {
-            case GB_STRING:
-                c.set_attr(key, (const char*)GB_read_pntr(gbd));
-                return;
-            case GB_BYTE:
-                c.set_attr(key, (char)GB_read_byte(gbd));
-                return;
-            case GB_INT:
-                c.set_attr(key, (int)GB_read_int(gbd));
-                return;
-            case GB_FLOAT:
-                c.set_attr(key, (float)GB_read_float(gbd));
-                return;
-            case GB_BITS:
-            default:
-                logger->error("loadKey failed: type unsupported");
-                return;
-        }
-    }
-}
-
-void
-query_arb::loadKey(const cseq& c, const string& key) {
-    if (c.has_attr(key)) return;
-    std::lock_guard<std::mutex> lock(arb_db_access);
-    GB_transaction trans(data->gbmain);
-    // FIXME: should we check if the cseq is actually ours?
-    ::loadKey(const_cast<cseq&>(c), key, data->getGBDATA(c.getName()));
-}
-
-struct query_arb::storeKey_visitor
-    : public boost::static_visitor<> {
-    /**
-     * @param gbmain
-     * @param gbspec
-     * @param key
-     * @param queryArb Pointer to the instance of query_arb. Needed to call the write methods
-     */
-    storeKey_visitor(GBDATA* gbmain, GBDATA* gbspec, const string& key, query_arb& queryArb)
-        : _gbmain(gbmain), _gbspec(gbspec), _key(key), _query_arb(queryArb)  {}
-
-    GBDATA* _gbmain;
-    GBDATA* _gbspec;
-    const string& _key;
-    query_arb& _query_arb;
-
-    void operator()(const int& i) {
-        GBT_add_new_changekey(_gbmain, _key.c_str(), GB_INT);
-        GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
-        if ((gbd != nullptr) && GB_read_type(gbd) != GB_INT) {
-            GB_delete(gbd);
-            gbd = nullptr;
-        }
-
-        if (gbd == nullptr) {
-            gbd = GB_create(_gbspec, _key.c_str(), GB_INT);
-        }
-        _query_arb.write(gbd, i);
-
-
-    }
-    void operator()(const unsigned int& ui) {
-        operator()((int)ui);
-    }
-    void operator()(const bool& b) {
-        operator()((int)b);
-    }
-    void operator()(const float& f) {
-        GBT_add_new_changekey(_gbmain, _key.c_str(), GB_FLOAT);
-        GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
-        if ((gbd != nullptr) && GB_read_type(gbd) != GB_FLOAT) {
-            GB_delete(gbd);
-            gbd = nullptr;
-        }
-        if (gbd == nullptr) {
-            gbd = GB_create(_gbspec, _key.c_str(), GB_FLOAT);
-        }
-
-        _query_arb.write(gbd, f);
-    }
-    void operator()(const string& str) {
-        GBT_add_new_changekey(_gbmain, _key.c_str(), GB_STRING);
-        GBDATA *gbd = GB_entry(_gbspec, _key.c_str());
-        if ((gbd != nullptr) && GB_read_type(gbd) != GB_STRING) {
-            GB_delete(gbd);
-            gbd = nullptr;
-        }
-        if (gbd == nullptr) {
-            gbd = GB_create(_gbspec, _key.c_str(), GB_STRING);
-        }
-
-        _query_arb.write(gbd, str.c_str());
-
-    }
-
-    void operator()(const vector<cseq>& /*vc*/) {
-    }
-};
-
-inline void
-query_arb::storeKey(GBDATA* gbmain, GBDATA* gbspec, const std::string& key,
-                    cseq::variant var) {
-    storeKey_visitor vis(gbmain, gbspec, key,*this);
-    boost::apply_visitor(vis, var);
-}
-
-void
-query_arb::storeKey(cseq& c, const std::string& key) {
-    std::lock_guard<std::mutex> lock(arb_db_access);
-    GB_transaction trans(data->gbmain);
-    storeKey(data->gbmain, data->getGBDATA(c.getName()), key,
-               c.get_attr<cseq::variant>(key));
-}
 
 void
 query_arb::loadCache(std::vector<std::string>& keys) {
@@ -672,27 +712,26 @@ query_arb::getCseq(const string& name) { //, bool nocache) {
         return it->second;
     }
 
-    // if all fails, fetch sequence from arb and cache
-    cseq tmp(name.c_str(), data->getSequence(name).c_str());
-    data->sequence_cache.emplace(name, std::move(tmp));
-#if defined(DEBUG) && False
-    int n_cached = data->sequence_cache.size();
-    if (n_cached % 1000 == 0) {
-        logger->error("Cache size: {}", n_cached);
-        long total = 0;
-        for (auto& c : data->sequence_cache) {
-            total += c.second.getAlignedBases().size();
-        }
-        logger->error("  {} bases of {} bytes = {} MB",
-                      total, sizeof(aligned_base), total*sizeof(aligned_base) /1024/1024);
-    }
-#endif
-    return data->sequence_cache[name];
+    // not checked, load cache and return item
+
+    auto res = data->sequence_cache.emplace(
+        name, std::move(getCseqUncached(name)));
+    return res.first->second;
 }
 
 cseq
 query_arb::getCseqUncached(const string& name) { //, bool nocache) {
-    return {name.c_str(), data->getSequence(name).c_str()};
+    std::lock_guard<std::mutex> lock(arb_db_access);
+    GB_transaction trans(data->gbmain);
+    GBDATA *spec = data->getGBDATA(name);
+    const char* seq = data->getSequence(spec);
+    if (seq == nullptr) {
+        throw make_exception("No alignment for sequence \"{}\" in {}",
+                             name, data->filename.filename());
+    }
+    cseq c = {name.c_str(), seq};
+    GB_flush_cache(spec);
+    return c;
 }
 
 int
@@ -702,62 +741,17 @@ query_arb::getSeqCount() const {
 
 void
 query_arb::putCseq(const cseq& seq) {
-    putSequence(seq);
+    data->putSequence(seq);
 
     std::lock_guard<std::mutex> lock(arb_db_access);
     GB_transaction trans(data->gbmain);
     GBDATA* gbspec = data->getGBDATA(seq.getName());
     for (auto& ap: seq.get_attrs()) {
-        storeKey(data->gbmain, gbspec, ap.first, ap.second);
+        storeKey_visitor vis(data->gbmain, gbspec, ap.first);
+        boost::apply_visitor(vis, ap.second);
     }
 }
 
-void
-query_arb::putSequence(const cseq& seq) {
-    std::lock_guard<std::mutex> lock(arb_db_access);
-    GB_transaction trans(data->gbmain);
-
-    const char *ali = data->default_alignment;
-    GBDATA *gbdata;
-
-    string aseq_string = seq.getAligned();
-    const char *aseq = aseq_string.c_str();
-
-    gbdata = data->getGBDATA(seq.getName());
-    if (gbdata == nullptr) {
-        gbdata =  GB_create_container(data->gbspec, "species");
-        GBDATA *gbname  = GB_create(gbdata, "name", GB_STRING);
-
-        if (seq.getName().empty()) {
-            stringstream tmp;
-            tmp << "slv_" << data->count;
-            write(gbname, tmp.str().c_str());
-        } else {
-            write(gbname, seq.getName().c_str());
-        }
-
-        GBDATA *gbseq = GBT_create_sequence_data(gbdata, ali, "data", GB_STRING, 0);
-        write(gbseq, aseq);
-
-        GBDATA *gbfname = GB_create(gbdata, "full_name", GB_STRING);
-        write(gbfname, seq.getName().c_str());
-
-        GBDATA *gbacc = GB_create(gbdata, "acc", GB_STRING);
-        stringstream tmp;
-        tmp.str("");
-        tmp << "ARB_" << uppercase << hex
-            << GB_checksum(aseq, strlen(aseq), 1, ".-");
-        write(gbacc, tmp.str().c_str());
-        data->gbdata_cache[seq.getName()]=gbdata;
-    }
-    data->gblast = gbdata;
-
-    GBDATA *gbseq = GBT_find_sequence(gbdata, ali);
-    if (gbseq == nullptr) {
-        gbseq = GBT_create_sequence_data(gbdata, ali, "data", GB_STRING, 0);
-    }
-    write(gbseq, aseq);
-}
 
 void
 query_arb::copySequence(query_arb& other, const std::string& name, bool mark) {
@@ -773,7 +767,7 @@ query_arb::copySequence(query_arb& other, const std::string& name, bool mark) {
     if ( (gbdest=GBT_find_species(data->gbmain, name.c_str())) != nullptr ) {
         logger->error("Species \"{}\" already in target db. Not copying.", name);
         if (mark) {
-            write_flag(gbdest, 1l);
+            GB_write_flag(gbdest, 1);
         }
         return;
     }
@@ -785,7 +779,7 @@ query_arb::copySequence(query_arb& other, const std::string& name, bool mark) {
         logger->info("Copied species {}", name);
         data->gblast = gbdest;
         if (mark) {
-            write_flag(gbdest, 1l);
+            GB_write_flag(gbdest, 1);
         }
         return;
     }
@@ -799,7 +793,7 @@ query_arb::setMark() {
     std::lock_guard<std::mutex> lock(arb_db_access);
     if (data->gblast != nullptr) {
         GB_transaction trans(data->gbmain);
-        write_flag(data->gblast,1l);
+        GB_write_flag(data->gblast, 1);
     }
 }
 
@@ -809,7 +803,7 @@ query_arb::setMark(const std::string& name) {
     GB_transaction trans(data->gbmain);
     GBDATA *gbdata = data->getGBDATA(name);
     if (gbdata != nullptr) {
-        write_flag(gbdata,1);
+        GB_write_flag(gbdata, 1);
         data->gblast = gbdata;
     } else {
         logger->error("Failed to mark species {} - name not found", name);
@@ -959,85 +953,6 @@ query_arb::getPairs() {
         }
     }
     return pairs;
-}
-
-void
-query_arb::write(GBDATA *pData, double value) {
-    if (pData == nullptr) {
-        throw make_exception("GB_write_float pData is null");
-    }
-
-    GB_ERROR err = GB_write_float(pData, value);
-    if (err != nullptr) { //GB_write_int returns NULL if no error occurred.
-        std::stringstream ss;
-        ss << "GB_write_float(value = " << value << ") failed. Reason: " << err;
-        addError(ss.str());
-    }
-}
-
-void
-query_arb::write(GBDATA *pData, int value) {
-    if (pData == nullptr) {
-        throw make_exception("GB_write_int pData is null");
-    }
-
-    GB_ERROR err = GB_write_int(pData, value);
-    if (err != nullptr) {//GB_write_int returns NULL if no error occurred.
-        std::stringstream ss;
-        ss << "GB_write_int(value = " << value << ") failed. Reason: " << err;
-        addError(ss.str());
-    }
-
-}
-
-
-
-void
-query_arb::write(GBDATA *pData, const char* pValue) {
-    if (pData == nullptr) {
-        throw make_exception("GB_write_string pData is null");
-    }
-
-    GB_ERROR err = GB_write_string(pData, pValue);
-    if (err != nullptr) {  //GB_write_int returns NULL if no error occurred.
-        std::stringstream ss;
-        ss << "GB_write_string(value = " << pValue << ") failed. Reason: " << err;
-        addError(ss.str());
-    }
-}
-
-void
-query_arb::write_flag(GBDATA *pData, long value) {
-    if(pData == nullptr) {
-        throw make_exception("GB_write_flag pData is null");
-    }
-
-    // GB_write_flag kills arb if an error occurs.
-    // => no error handling possible
-    GB_write_flag(pData, value);
-}
-
-void
-query_arb::addError(const std::string& message) {
-    data->write_errors.push_back(message);
-}
-
-bool
-sina::query_arb::hasErrors() const {
-    return !data->write_errors.empty();
-}
-
-void
-query_arb::printErrors(std::ostream& stream){
-    if(hasErrors()) {
-        stream << "Following errors occurred while querying arb:" << std::endl;
-        for (auto& msg: data->write_errors) {
-            stream << msg.substr(0,70) << std::endl;
-        }
-    }
-    else{
-        stream << "No errors" << std::endl;
-    }
 }
 
 /*

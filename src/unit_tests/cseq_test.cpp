@@ -381,6 +381,18 @@ CASE(test_ostream_operator) {
     EQUAL(out.str(), name);
 }
 
+CASE(test_attr) {
+    const char* name = "test_name";
+    cseq c(name);
+    c.set_attr("test", 123);
+    EQUAL(c.get_attr<int>("test"), 123);
+    EQUAL(c.get_attr<std::string>("test"), "123");
+    c.set_attr("test", "hello");
+    EQUAL(c.get_attr<std::string>("test"), "hello");
+    c.set_attr("test", 2.3f);
+    EQUAL(c.get_attr<float>("test"), 2.3f);
+}
+
 BOOST_AUTO_TEST_SUITE_END(); // cseq_test
 
 /*
