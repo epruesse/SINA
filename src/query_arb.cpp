@@ -196,7 +196,6 @@ query_arb::priv_data::write(GBDATA *pData, const string& str) {
 
 GBDATA*
 query_arb::priv_data::getGBDATA(const string& name, bool create) {
-    logger->info("getGBDATA {} {}", name, create);
     auto it = gbdata_cache.find(name);
     if (it != gbdata_cache.end()) {
         return it->second;
@@ -776,7 +775,6 @@ query_arb::copySequence(query_arb& other, const std::string& name, bool mark) {
     gbdest = GB_create_container(data->gbspec, "species");
     if ((gbsource != nullptr) && (gbdest != nullptr)) {
         GB_copy(gbdest,gbsource);
-        logger->info("Copied species {}", name);
         data->gblast = gbdest;
         if (mark) {
             GB_write_flag(gbdest, 1);
