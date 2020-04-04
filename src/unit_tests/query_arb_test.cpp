@@ -75,6 +75,7 @@ struct GlobalFixture {
         query_arb* tmp = query_arb::getARBDB(small_arb_path());
 
         _ids = ref->getSequenceNames();
+        std::sort(_ids.begin(), _ids.end());
         std::srand(1234);
         std::random_shuffle(_ids.begin(), _ids.end());
         _ids.resize(n_seq);
@@ -275,7 +276,7 @@ BOOST_AUTO_TEST_CASE(read_write_keys) {
 
     BOOST_CHECK_EQUAL(c.get_attr<std::string>("acc", "none"), "none");
     arb->loadKey(c, "acc");
-    BOOST_CHECK_EQUAL(c.get_attr<std::string>("acc"), "AY268937");
+    BOOST_CHECK_EQUAL(c.get_attr<std::string>("acc"), "DQ536403");
 
     d.set_attr("acc", "12345678");
     arb->putCseq(d);
