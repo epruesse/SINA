@@ -37,16 +37,16 @@ namespace utf = boost::unit_test;
 namespace bdata = utf::data;
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
-BOOST_AUTO_TEST_SUITE(rw_csv_test);
 
 using namespace sina;
 
 
-
-
-struct F {
-    TempFile outfile;
+struct Fixture {
+    fs::path model{"sina-%%%%-%%%%.csv"};
+    std::unique_ptr<TempFile> outfile;
     rw_csv::writer* writer{nullptr};
     int copy_relatives{0};
     std::vector<std::string> fields;
@@ -54,9 +54,21 @@ struct F {
     std::string _output;
     int _nlines;
 
+    Fixture()
+        : outfile(new TempFile(model))
+    {
+        configure({});
+    }
+
+    void set_ext(std::string ext) {
+        outfile = std::unique_ptr<TempFile>(
+            new TempFile(fs::path("sina-%%%%-%%%%.") += ext)
+            );
+    }
+
     void write(const cseq& c) {
         if (!writer) {
-            writer = new rw_csv::writer(outfile, copy_relatives, fields);
+            writer = new rw_csv::writer(*outfile, copy_relatives, fields);
         }
         tray t;
         t.aligned_sequence = const_cast<cseq*>(&c);
@@ -66,7 +78,7 @@ struct F {
     std::string& output() {
         if (writer) {
             delete writer;
-            _output = outfile.load();
+            _output = outfile->load();
             writer = nullptr;
         }
         return _output;
@@ -76,9 +88,33 @@ struct F {
         auto txt = output();
         return std::count(txt.begin(), txt.end(), '\n');
     }
+
+    void configure(std::initializer_list<const char*> l) {
+        const char* cmd[l.size()+1];
+        cmd[0] = "sina";
+        int i = 1;
+        for (auto lv : l) {
+            cmd[i++] = lv;
+        }
+        po::variables_map vm;
+        po::options_description od, adv_od;
+        rw_csv::get_options_description(od, adv_od);
+        od.add(adv_od);
+        po::store(
+            po::parse_command_line(l.size()+1, cmd, od),
+            vm);
+        try {
+            po::notify(vm);
+            rw_csv::validate_vm(vm, od);
+        } catch (std::logic_error &e) {
+            BOOST_TEST(e.what() == "");
+        }
+    }
 };
 
-BOOST_FIXTURE_TEST_CASE(one_seq_no_data, F) {
+BOOST_FIXTURE_TEST_SUITE(rw_csv_test, Fixture);
+
+BOOST_AUTO_TEST_CASE(one_seq_no_data) {
     write(cseq("test_sequence"));
     BOOST_CHECK_EQUAL(nlines(), 2);
     BOOST_CHECK_EQUAL(
@@ -88,7 +124,7 @@ BOOST_FIXTURE_TEST_CASE(one_seq_no_data, F) {
         );
 }
 
-BOOST_FIXTURE_TEST_CASE(two_seq_no_data, F) {
+BOOST_AUTO_TEST_CASE(two_seq_no_data) {
     write(cseq("test_sequence1"));
     write(cseq("test_sequence2"));
     BOOST_CHECK_EQUAL(nlines(), 3);
@@ -99,7 +135,7 @@ BOOST_FIXTURE_TEST_CASE(two_seq_no_data, F) {
         "test_sequence2\n");
 }
 
-BOOST_FIXTURE_TEST_CASE(one_seq_one_string, F) {
+BOOST_AUTO_TEST_CASE(one_seq_one_string) {
     cseq c("test_sequence");
     c.set_attr("col1", "Some test data");
     write(c);
@@ -111,7 +147,7 @@ BOOST_FIXTURE_TEST_CASE(one_seq_one_string, F) {
         );
 }
 
-BOOST_FIXTURE_TEST_CASE(one_seq_one_int, F) {
+BOOST_AUTO_TEST_CASE(one_seq_one_int) {
     cseq c("test_sequence");
     c.set_attr("col1", 123);
     write(c);
@@ -123,7 +159,7 @@ BOOST_FIXTURE_TEST_CASE(one_seq_one_int, F) {
         );
 }
 
-BOOST_FIXTURE_TEST_CASE(escape_seqname, F) {
+BOOST_AUTO_TEST_CASE(escape_seqname) {
     cseq c("test_se,quence");
     write(c);
     BOOST_CHECK_EQUAL(
@@ -133,7 +169,7 @@ BOOST_FIXTURE_TEST_CASE(escape_seqname, F) {
         );
 }
 
-BOOST_FIXTURE_TEST_CASE(escape_comma, F) {
+BOOST_AUTO_TEST_CASE(escape_comma) {
     cseq c("seq");
     c.set_attr("data", "d1,d2,d2");
     write(c);
@@ -144,7 +180,7 @@ BOOST_FIXTURE_TEST_CASE(escape_comma, F) {
         );
 }
 
-BOOST_FIXTURE_TEST_CASE(escape_quote, F) {
+BOOST_AUTO_TEST_CASE(escape_quote) {
     cseq c("seq1");
     c.set_attr("data", "a quote '\"'");
     write(c);
@@ -159,7 +195,7 @@ BOOST_FIXTURE_TEST_CASE(escape_quote, F) {
         );
 }
 
-BOOST_FIXTURE_TEST_CASE(escape_multilines, F) {
+BOOST_AUTO_TEST_CASE(escape_multilines) {
     cseq c("seq");
     c.set_attr("data", "multiple\nlines");
     write(c);
@@ -171,10 +207,66 @@ BOOST_FIXTURE_TEST_CASE(escape_multilines, F) {
 }
 
 
-// TODO:
-// - test trying to write to unwriteable path
-// - test writing gzip
+BOOST_AUTO_TEST_CASE(cannot_write) {
+    {
+        boost::filesystem::ofstream of(*outfile);
+    }
+    fs::permissions(*outfile, fs::owner_read);
+    cseq c("seq");
+    auto check_msg =
+        [](const std::runtime_error &e) -> bool {
+            return std::string(e.what()).rfind("Unable to open", 0) == 0;
+        };
 
+    BOOST_CHECK_EXCEPTION(
+        write(c),
+        std::runtime_error,
+        check_msg
+        );
+}
+
+
+BOOST_AUTO_TEST_CASE(sep_tsv) {
+    set_ext("tsv");
+    cseq c("test_sequence");
+    c.set_attr("col1", "Some test data");
+    write(c);
+    BOOST_CHECK_EQUAL(nlines(), 2);
+    BOOST_CHECK_EQUAL(
+        output(),
+        "name\tcol1\n"
+        "test_sequence\tSome test data\n"
+        );
+}
+
+
+BOOST_AUTO_TEST_CASE(sep_tsv_override) {
+    set_ext("tsv");
+    configure({"--csv-sep", ";;"});
+    cseq c("test_sequence");
+    c.set_attr("col1", "Some test data");
+    write(c);
+    BOOST_CHECK_EQUAL(nlines(), 2);
+    BOOST_CHECK_EQUAL(
+        output(),
+        "name;;col1\n"
+        "test_sequence;;Some test data\n"
+        );
+}
+
+BOOST_AUTO_TEST_CASE(nullptr_seq) {
+    writer = new rw_csv::writer(*outfile, copy_relatives, fields);
+    tray t;
+    t.aligned_sequence = nullptr;
+    (*writer)(t);
+    cseq c("seq");
+    write(c);
+    (*writer)(t);
+    BOOST_CHECK_EQUAL(
+        output(),
+        "name\nseq\n"
+        );
+}
 
 BOOST_AUTO_TEST_SUITE_END(); // rw_csv_test
 

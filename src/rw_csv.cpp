@@ -49,6 +49,8 @@ static auto logger = Log::create_logger(module_name);
 
 struct options {
     bool crlf;
+    std::string sep;
+    std::string id;
 };
 static options opts;
 
@@ -58,6 +60,13 @@ void get_options_description(po::options_description &main,
     od.add_options()
         ("csv-crlf", po::bool_switch(&opts.crlf),
          "Write CSV using CRLF line ends (as RFC4180 demands)");
+    od.add_options()
+        ("csv-sep", po::value(&opts.sep)->default_value(""),
+         "Overrides field separator. Default is ',', or TAB if the "
+         " output file ends in '.tsv'");
+    od.add_options()
+        ("csv-id", po::value(&opts.id)->default_value("name"),
+         "Override column header for sequence ID");
     adv.add(od);
 }
 
@@ -73,32 +82,69 @@ struct writer::priv_data {
     bool header_printed{false};
     const char *line_end;
     size_t line_end_len;
+    const char *sep;
+    size_t sep_len;
+    std::string escape_chars;
 
     void add_newline(fmt::memory_buffer& buf) {
         buf.append(line_end, line_end + line_end_len);
     }
+    void add_sep(fmt::memory_buffer& buf) {
+        buf.append(sep, sep + sep_len);
+    }
+    void add_str(fmt::memory_buffer& buf, const std::string& str) {
+        if (str.find_first_of(escape_chars) == std::string::npos) {
+            buf.append(str.data(), str.data() + str.size());
+        } else {
+            const char quote[] = "\"";
+            buf.append(quote, quote + sizeof(quote) - 1);
+            size_t j = 0;
+            for (auto i = str.find('"'); i != std::string::npos; i = str.find('"', i+1)) {
+                buf.append(str.data() + j, str.data() + i);
+                buf.append(quote, quote + sizeof(quote) - 1);
+                j = i;
+            }
+            buf.append(str.data() + j, str.data() + str.size());
+            buf.append(quote, quote + sizeof(quote) - 1);
+        }
+    }
 };
 
-writer::writer(const fs::path& outfile, unsigned int copy_relatives,
+writer::writer(const fs::path& outfile,
+               unsigned int copy_relatives,
                std::vector<std::string>& fields)
     : data(new priv_data())
 {
     data->copy_relatives = copy_relatives;
     data->v_fields = fields;
 
-    if (outfile == "-") {
-        data->file.open(STDOUT_FILENO, bi::never_close_handle);
-    } else {
-        data->file.open(outfile.c_str(), std::ios_base::binary);
+    try {
+        if (outfile == "-") {
+            data->file.open(STDOUT_FILENO, bi::never_close_handle);
+        } else {
+            data->file.open(outfile.c_str(), std::ios_base::binary);
+        }
+    } catch(std::runtime_error &e) {
+        auto msg = "Unable to open file {} for writing ('{}')";
+        throw std::runtime_error(fmt::format(msg, outfile, e.what()));
     }
-    if (!data->file.is_open()) {
-        auto msg = "Unable to open file {} for writing.";
-        throw std::runtime_error(fmt::format(msg, outfile));
-    }
+
     if (outfile.extension() == ".gz") {
         data->out.push(bi::gzip_compressor());
     }
     data->out.push(data->file);
+
+    if (opts.sep != "") {
+        data->sep = opts.sep.c_str();
+    } else if (outfile.extension() == ".tsv"
+        || (outfile.extension() == ".gz" &&
+            outfile.extension().extension() == ".tsv")
+        ) {
+            data->sep = "\t";
+    } else {
+        data->sep = ",";
+    }
+    data->sep_len = strlen(data->sep);
 
     if (opts.crlf) {
         data->line_end = "\r\n";
@@ -107,42 +153,27 @@ writer::writer(const fs::path& outfile, unsigned int copy_relatives,
         data->line_end = "\n";
         data->line_end_len = 1;
     }
+
+    data->escape_chars = std::string("\"") + data->line_end + data->sep;
 }
+
 writer::writer(const writer&) = default;
 writer& writer::operator=(const writer&) = default;
 writer::~writer() = default;
 
-
-static inline void append(fmt::memory_buffer& buf, const std::string& str) {
-    if (str.find_first_of("\",\r\n") == std::string::npos) {
-        buf.append(str.data(), str.data() + str.size());
-    } else {
-        const char quote[] = "\"";
-        buf.append(quote, quote + sizeof(quote) - 1);
-        size_t j = 0;
-        for (auto i = str.find('"'); i != std::string::npos; i = str.find('"', i+1)) {
-            buf.append(str.data() + j, str.data() + i);
-            buf.append(quote, quote + sizeof(quote) - 1);
-            j = i;
-        }
-        buf.append(str.data() + j, str.data() + str.size());
-        buf.append(quote, quote + sizeof(quote) - 1);
-    }
-}
-
-
 tray writer::operator()(tray t) {
-    const char sep[] = ",";
-    const char id[] = "name";
     fmt::memory_buffer buf;
 
     if (t.aligned_sequence == nullptr) {
         return t;
     }
     if (!data->header_printed) {
-        if (data->v_fields.empty() ||
-            (data->v_fields.size() == 1 &&
-             equals(data->v_fields[0], query_arb::fn_fullname))
+        data->add_str(buf, opts.id);
+
+        if (data->v_fields.empty()
+            ||
+            (data->v_fields.size() == 1 && equals(data->v_fields[0],
+                                                  query_arb::fn_fullname))
             ) {
             auto attrs = t.aligned_sequence->get_attrs();
             data->headers.reserve(attrs.size());
@@ -155,20 +186,19 @@ tray writer::operator()(tray t) {
                 data->headers.push_back(f);
             }
         }
-        buf.append(id, id + sizeof(id)-1);
         for (const auto& header : data->headers) {
-            buf.append(sep, sep + sizeof(sep)-1);
-            append(buf, header);
+            data->add_sep(buf);
+            data->add_str(buf, header);
         }
+
         data->add_newline(buf);
         data->header_printed = true;
     }
 
-    const std::string& name = t.aligned_sequence->getName();
-    append(buf, name);
+    data->add_str(buf, t.aligned_sequence->getName());
     for (const auto& key : data->headers) {
-        buf.append(sep, sep + sizeof(sep)-1);
-        append(buf, t.aligned_sequence->get_attr<std::string>(key));
+        data->add_sep(buf);
+        data->add_str(buf, t.aligned_sequence->get_attr<std::string>(key));
     }
     data->add_newline(buf);
 
