@@ -313,7 +313,7 @@ strip_term = $(patsubst ^%,%,$(patsubst %$$,%,$(1)))
 add_term = $(patsubst %,^%$$,$(1))
 # call contains_term MATCH WORDS - filters by substr with ^ and $ matching start/end
 contains_term = $(call strip_term,$(call contains,$(1),$(call add_term,$(2))))
-filtered_tests = $(call contains_term,$(P),$(TEST_LOGS))
+filtered_tests = $(foreach v,$(P),$(call contains_term,$(v),$(TEST_LOGS)))
 check-filtered:
 	$(MAKE) $(AM_MAKEFLAGS) check TEST_LOGS="$(filtered_tests)"
 .PHONY: check-filtered
