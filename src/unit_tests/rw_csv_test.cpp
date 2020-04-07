@@ -52,7 +52,7 @@ struct Fixture {
     std::vector<std::string> fields;
 
     std::string _output;
-    int _nlines;
+    int _nlines{0};
 
     Fixture()
         : outfile(new TempFile(model))
@@ -60,7 +60,7 @@ struct Fixture {
         configure({});
     }
 
-    void set_ext(std::string ext) {
+    void set_ext(const std::string& ext) {
         outfile = std::unique_ptr<TempFile>(
             new TempFile(fs::path("sina-%%%%-%%%%.") += ext)
             );
