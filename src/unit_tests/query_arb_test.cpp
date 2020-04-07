@@ -79,6 +79,7 @@ struct GlobalFixture {
         std::srand(1234);
         std::random_shuffle(_ids.begin(), _ids.end());
         _ids.resize(n_seq);
+        _ids[0] = "MyoSeoul";
 
         for (auto id : _ids) {
             tmp->copySequence(*ref, id, false);
