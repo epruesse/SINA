@@ -268,15 +268,19 @@ BOOST_AUTO_TEST_CASE(read_write_ok) {
     BOOST_CHECK_EQUAL(globalFixture().n_seq + 1, arb->getSeqCount());
 }
 
-BOOST_AUTO_TEST_CASE(read_write_keys) {
+BOOST_AUTO_TEST_CASE(read_acc) {
+    query_arb *arb = smallarb();
+    const cseq &c = arb->getCseq(ids()[0]);
+    BOOST_CHECK_EQUAL(c.get_attr<std::string>("acc", "none"), "none");
+    arb->loadKey(c, "acc");
+    BOOST_CHECK_EQUAL(c.get_attr<std::string>("acc"), "DQ536403");
+}
+
+BOOST_AUTO_TEST_CASE(write_acc) {
     query_arb *arb = smallarb();
     const cseq &c = arb->getCseq(ids()[0]);
     cseq d = c;
     cseq e = c;
-
-    BOOST_CHECK_EQUAL(c.get_attr<std::string>("acc", "none"), "none");
-    arb->loadKey(c, "acc");
-    BOOST_CHECK_EQUAL(c.get_attr<std::string>("acc"), "DQ536403");
 
     d.set_attr("acc", "12345678");
     arb->putCseq(d);
@@ -287,21 +291,30 @@ BOOST_AUTO_TEST_CASE(read_write_keys) {
     arb->storeKey(d, "acc");
     arb->loadKey(e, "acc", true);
     BOOST_CHECK_EQUAL(e.get_attr<std::string>("acc"), "ABCDE");
+}
+
+BOOST_AUTO_TEST_CASE(write_int) {
+    query_arb *arb = smallarb();
+    const cseq &c = arb->getCseq(ids()[0]);
+    cseq d = c;
+    cseq e = c;
 
     d.set_attr("acc", 123);
     arb->storeKey(d, "acc");
     arb->loadKey(e, "acc", true);
     BOOST_CHECK_EQUAL(e.get_attr<int>("acc"), 123);
+}
+
+BOOST_AUTO_TEST_CASE(write_float) {
+    query_arb *arb = smallarb();
+    const cseq &c = arb->getCseq(ids()[0]);
+    cseq d = c;
+    cseq e = c;
 
     d.set_attr("acc", 2.3f);
     arb->storeKey(d, "acc");
     arb->loadKey(e, "acc", true);
     BOOST_CHECK_EQUAL(e.get_attr<float>("acc"), 2.3f);
-
-    d.set_attr("acc", "str");
-    arb->storeKey(d, "acc");
-    arb->loadKey(e, "acc", true);
-    BOOST_CHECK_EQUAL(e.get_attr<std::string>("acc"), "str");
 }
 
 /*
