@@ -208,19 +208,12 @@ BOOST_AUTO_TEST_CASE(escape_multilines) {
 
 
 BOOST_AUTO_TEST_CASE(cannot_write) {
-    {
-        boost::filesystem::ofstream of(*outfile);
-        of << "write protected file" << std::endl;
-    }
-    fs::permissions(*outfile, fs::owner_read);
-    cseq c("seq");
     auto check_msg =
         [](const std::runtime_error &e) -> bool {
             return std::string(e.what()).rfind("Unable to open", 0) == 0;
         };
-
     BOOST_CHECK_EXCEPTION(
-        write(c),
+        rw_csv::writer("/proc/version", copy_relatives, fields),
         std::runtime_error,
         check_msg
         );
