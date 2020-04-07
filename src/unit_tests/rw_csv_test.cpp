@@ -210,6 +210,7 @@ BOOST_AUTO_TEST_CASE(escape_multilines) {
 BOOST_AUTO_TEST_CASE(cannot_write) {
     {
         boost::filesystem::ofstream of(*outfile);
+        of << "write protected file" << std::endl;
     }
     fs::permissions(*outfile, fs::owner_read);
     cseq c("seq");
