@@ -172,6 +172,7 @@ CODE_COVERAGE_IGNORE_PATTERN = \
 DOC_SOURCE = \
     doc/source/conf.py \
     doc/source/index.rst \
+    doc/source/fields.rst \
     doc/source/install.rst \
     doc/source/commandline.rst \
     doc/source/CHANGELOG.rst \
