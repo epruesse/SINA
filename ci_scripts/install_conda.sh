@@ -8,6 +8,8 @@
 # - needs BASH_ENV to point to the bashrc
 # - needs MINICONDA to point to the miniconda install path
 
+set +x
+
 CONDA_PACKAGES="autoconf automake libtool pkg-config boost arb-bio-devel lcov"
 CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib libiconv bc sed sphinx nomkl"
 
