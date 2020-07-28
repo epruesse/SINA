@@ -8,8 +8,6 @@
 # - needs BASH_ENV to point to the bashrc
 # - needs MINICONDA to point to the miniconda install path
 
-set +x
-
 CONDA_PACKAGES="autoconf automake libtool pkg-config boost arb-bio-devel lcov"
 CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib libiconv bc sed sphinx nomkl"
 
@@ -34,9 +32,13 @@ esac
 if test -d $MINICONDA; then
     echo "Found conda install"
 else
+    set -x
+    echo "Downloading Miniconda"
     curl $CONDA_BASEURL/Miniconda3-latest-$CONDA_OSNAME-x86_64.sh -o miniconda.sh
+    echo "Installing Miniconda"
     bash miniconda.sh -b -p $MINICONDA
     source $MINICONDA/etc/profile.d/conda.sh
+    set +x
 
     $MINICONDA/bin/conda config --system --set always_yes yes --set changeps1 no
     $MINICONDA/bin/conda config --system --add channels defaults
