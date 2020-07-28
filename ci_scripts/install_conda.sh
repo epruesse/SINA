@@ -11,7 +11,7 @@
 CONDA_PACKAGES="autoconf automake libtool pkg-config boost arb-bio-devel lcov"
 CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib libiconv bc sed sphinx nomkl"
 
-CONDA_BASEURL=https://repo.continuum.com/miniconda
+CONDA_BASEURL=https://repo.anaconda.com/miniconda
 
 # expand '~' in MINICONDA path (alternatives to eval are too long)
 eval MINICONDA=$MINICONDA
