@@ -215,13 +215,13 @@ famfinder::get_options_description(po::options_description& main,
 void famfinder::validate_vm(po::variables_map& vm,
                             po::options_description&  /*desc*/) {
     if (vm["db"].empty() && vm["ptdb"].empty()) {
-        throw logic_error("Family Finder: PT server database not set");
+        throw logic_error("Family Finder: Must have reference database (--db/-r)");
     }
     if (not vm["ptdb"].empty()) {
-        logger->warn("Option --ptdb deprecated; please use --db instead");
+        logger->warn("Option --ptdb deprecated; please use --db/-r instead");
     }
     if (not vm["ptdb"].empty() && not vm["db"].empty()) {
-        throw logic_error("Family Finder: please use only new --db option");
+        throw logic_error("Family Finder: please use only new --db/-r option");
     }
     if (not fs::exists(opts.database)) {
         if (opts.database.compare(":") == 0) {
