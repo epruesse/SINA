@@ -259,7 +259,8 @@ query_arb::priv_data::putSequence(const cseq& seq) {
 void loadKey(cseq& c, const string& key, GBDATA* gbspec) {
     GBDATA *gbd = GB_find(gbspec, key.c_str(), SEARCH_CHILD);
     if (gbd != nullptr) {
-        switch(GB_read_type(gbd)) {
+        int type = GB_read_type(gbd);
+        switch(type) {
             case GB_STRING:
                 c.set_attr(key, (const char*)GB_read_pntr(gbd));
                 return;
@@ -272,11 +273,11 @@ void loadKey(cseq& c, const string& key, GBDATA* gbspec) {
             case GB_BYTE:
             case GB_BITS:
             default:
-                logger->error("loadKey failed: type unsupported");
+                logger->error("loadKey failed: type {} unsupported", type);
                 return;
         }
     } else {
-        logger->error("loadKey failed: sequence not found");
+        logger->error("loadKey failed: sequence '{}' not found", c.getName());
     }
 }
 
