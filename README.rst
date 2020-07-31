@@ -61,8 +61,8 @@ Alternatively, self-contained images are available at
 https://github.com/epruesse/SINA/releases. Choose the most recent ``tar.gz``
 appropriate for your operating system and unpack::
 
-   tar xf sina-1.7.0-dev-dev-linux.tar.gz
-   cd sina-1.7.0-dev-dev
+   tar xf sina-1.7.0-dev-linux.tar.gz
+   cd sina-1.7.0-dev
    ./sina
 
 
