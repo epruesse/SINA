@@ -107,6 +107,8 @@ src_libsina_la_SOURCES = \
     src/rw_fasta.h \
     src/rw_arb.cpp \
     src/rw_arb.h \
+    src/rw_csv.cpp \
+    src/rw_csv.h \
     src/log.cpp \
     src/log.h \
     src/scoring_schemes.h \
@@ -114,6 +116,7 @@ src_libsina_la_SOURCES = \
     src/search.cpp \
     src/search_filter.cpp \
     src/search_filter.h \
+    src/tempfile.h \
     src/timer.h \
     src/tray.cpp \
     src/tray.h \
@@ -169,6 +172,7 @@ CODE_COVERAGE_IGNORE_PATTERN = \
 DOC_SOURCE = \
     doc/source/conf.py \
     doc/source/index.rst \
+    doc/source/fields.rst \
     doc/source/install.rst \
     doc/source/commandline.rst \
     doc/source/CHANGELOG.rst \
@@ -265,7 +269,9 @@ check_PROGRAMS = \
     src/unit_tests/kmer_test \
     src/unit_tests/kmer_search_test \
     src/unit_tests/famfinder_test \
-    src/unit_tests/progress_test
+    src/unit_tests/progress_test \
+    src/unit_tests/rw_csv_test \
+    src/unit_tests/query_arb_test
 
 src_unit_tests_cseq_test_LDADD = $(test_libs)
 src_unit_tests_cseq_test_LDFLAGS = $(ARB_LDFLAGS)
@@ -279,6 +285,10 @@ src_unit_tests_kmer_search_test_LDADD = $(test_libs)
 src_unit_tests_kmer_search_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_famfinder_test_LDADD = $(test_libs)
 src_unit_tests_famfinder_test_LDFLAGS = $(ARB_LDFLAGS)
+src_unit_tests_rw_csv_test_LDADD = $(test_libs)
+src_unit_tests_rw_csv_test_LDFLAGS = $(ARB_LDFLAGS)
+src_unit_tests_query_arb_test_LDADD = $(test_libs)
+src_unit_tests_query_arb_test_LDFLAGS = $(ARB_LDFLAGS)
 src_unit_tests_progress_test_LDADD = $(BOOST_UNIT_TEST_FRAMEWORK_LIB)
 
 test_scripts = \
@@ -304,7 +314,7 @@ strip_term = $(patsubst ^%,%,$(patsubst %$$,%,$(1)))
 add_term = $(patsubst %,^%$$,$(1))
 # call contains_term MATCH WORDS - filters by substr with ^ and $ matching start/end
 contains_term = $(call strip_term,$(call contains,$(1),$(call add_term,$(2))))
-filtered_tests = $(call contains_term,$(P),$(TEST_LOGS))
+filtered_tests = $(foreach v,$(P),$(call contains_term,$(v),$(TEST_LOGS)))
 check-filtered:
 	$(MAKE) $(AM_MAKEFLAGS) check TEST_LOGS="$(filtered_tests)"
 .PHONY: check-filtered

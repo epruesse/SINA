@@ -143,10 +143,10 @@ rw_fasta::get_options_description(po::options_description& main,
         // read
         ("fasta-idx",
          po::value<long>(&opts->fasta_idx)->default_value(0, ""),
-         "process only sequences beginning in block <arg>")
+         "process only sequences beginning in block <arg> (0 is first)")
         ("fasta-block",
          po::value<long>(&opts->fasta_block)->default_value(0, ""),
-         "length of blocks")
+         "block length in bytes")
         ;
     adv.add(od);
 }

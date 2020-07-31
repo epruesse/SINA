@@ -21,7 +21,11 @@ Synopsis
 Description
 -----------
 
-:program:`sina` aligns the sequences in the file ``<unaligned>`` to match the alignment in ``<reference>`` and places the aligned sequences in the file ``<aligned>``.
+:program:`sina` aligns the sequences in the file ``<unaligned>`` to
+match the alignment in ``<reference>`` and places the aligned
+sequences in the file ``<aligned>``.
+
+Please refer to the publication for details on the algorithm(s).
 
 
 General Options
@@ -45,39 +49,54 @@ General Options
 .. option:: -i filename, --in=filename (-)
 
    Specifies the file containing the input sequences. Allowable file
-   formats are ARB and FASTA. Using "**-**" will read sequences from
-   standard input. Using "**:**" *when running from within an ARB
-   terminal** will read sequences from the current ARB database.
+   formats are ARB (see :ref:`ARB Options`) and FASTA (see `FASTA
+   Options, optionally gzipped). The format will be selected based on
+   the file name unless overridden with :option:`--intype`.
 
-.. option:: -o filename, --out=filename (-)
+   Special file names: "``-``" (dash) will read sequences from
+   standard input.  "``:``" (colon) will connect to a running ARB
+   database (SINA must be a child process of ARB).
 
-   Specifies the file to which the aligned sequences will be
-   written. Allowable file formats are ARB and FASTA. Using "**-**"
-   will write sequences to standard output. Using "**:**" *when
-   running from within an ARB terminal** will read sequences from the
-   current ARB database.
+.. option:: -o filename [filename [...]], --out=filename (-)
+
+   Specifies the output file(s) to which the aligned sequences and/or
+   meta data will be written. Allowable file formats are ARB (see
+   :ref:`ARB Options`) and FASTA (see :ref:`FASTA Options`, optionally
+   gzipped) and CSV (see :ref:`CSV Options`). The format will be
+   selected based on the file name unless overridden with
+   :option:`--outtype`. Specifying multiple names or specifying the
+   option multiple times will output all data to each file.
+
+   See :option:`-i` for special filenames ``-`` and ``:``. Use ``-o
+   /dev/null`` to disable output.
+
+   Not specifying this option at all will write sequences to
+   ``stdout`` if the input is FASTA format. When reading from an ARB
+   database, output is written back to the source database (specified
+   with :option:`-i`).
 
 .. option:: -r filename, --db=filename
 
    Specifies the file containing the reference alignment. This file
-   must be in ARB format. To convert a reference alignment from FASTA
-   to ARB format, run:
+   must be in ARB format.
 
-   ``sina -i reference.fasta --prealigned -o reference.arb``
+   To convert a reference alignment from FASTA to ARB format, run::
+
+       sina -i reference.fasta --prealigned -o reference.arb
 
 .. option:: -t [all], --turn [=all]
 
-   Enables turn check stage: Sequences not oriented in accordance with
+   Enables turn check stage. Sequences not oriented in accordance with
    the reference database will be reverse complemented as needed.
 
-   If *all* is specified, sequences will also be tested for only
+   If ``all`` is specified, sequences will also be tested for only
    reversal or only complemented (this should only be necessary if
    your data was mishandled).
 
 .. option:: -S, --search
 
-   Enables the search stage. See `Search & Classify`_ below for more
-   information.
+   Enables the search stage. See :ref:`Search & Classify` below for
+   more information.
 
 .. option:: -P, --prealigned
 
@@ -115,6 +134,15 @@ General Options
 
    **csv**
      Writes meta data into a CSV side car file.
+
+   .. deprecated:: 1.7.0
+      Use ``-o output.csv`` instead.
+
+.. option::  -f fields, --fields=fields
+
+   Configures the set of fields written to the output file. See
+   :ref:`Field Reference` for a description of the available
+   fields.
 
 .. option:: -p, --threads (automatic)
 
@@ -285,13 +313,18 @@ at least the fraction :option:`--lca-quorum` of the search result.
 
    Enables the classification stage. The parameter *name* must be a
    colon or comma separated list of field names in the search database
-   containing the classification reference data. When using a SILVA
-   ARB database as reference, the fields `tax_slv`, `tax_embl` and
-   `tax_ltp` contain the reference classifications according to the
-   SILVA, EMBL-EBI/ENA and LTP taxonomies, respectively. When using a
-   SILVA SSU ARB database, the fields `tax_gg` and `tax_rdp` are
+   containing the classification reference data. Use
+   :option:`--arb-list-fields` to show a list of the fields available
+   in a given ARB database. When using a SILVA ARB database as
+   reference, the fields `tax_slv`, `tax_embl` (renamed to
+   `tax_embl_ebi_ena` in newer releases) and `tax_ltp` contain the
+   reference classifications according to the SILVA, EMBL-EBI/ENA and
+   LTP taxonomies, respectively. When using a SILVA SSU ARB database,
+   the fields `tax_gg` (only older databases) and `tax_rdp` are
    available additionally, containing the reference classifications
-   according to RDP II and Greengenes, respectively.
+   according to RDP II and Greengenes, respectively. Newer SILVA
+   databases also contain the field `tax_gtdb` containing
+   classifications from the Genome Taxonomy Database.
 
 .. option:: --lca-quorum=fraction (0.7)
 
@@ -310,15 +343,19 @@ Advanced Options
    Print the values of all configuration options (including defaults)
    at startup.
 
-.. option::  --intype=[auto|arb|fasta] (auto)q
+.. option::  --intype=[auto|arb|fasta] (auto)
 
    Set the file format for :option:`--in`. If set to *auto* (default),
    the type is selected based on the file extension.
 	     
-.. option::  --outtype=[auto|arb|fasta] (auto)
+.. option::  --outtype=[auto|arb|fasta|csv|none] (auto)
 
-   Set the file format for :option:`--out`. If set to *auto* (default),
-   the type is selected based on the file extension.
+   Set the file format for :option:`--out`. If set to **auto**
+   (default), the type is selected based on the file extension. The
+   option can be specified multiple times. It applies to all files
+   listed in the next :option:`--out` option. If no output files are
+   specified and this option is set to **none**, no output is produced
+   at all.
 	     
 .. option::  --preserve-order
 
@@ -338,12 +375,6 @@ Advanced Options
 .. option::  --no-align
 
    Backwards compatibility alias for :option:`--prealigned`.
-
-.. option::  -f fields, --fields-fields
-
-   Configures the set of fields written to the output file.
-
-   .. todo:: reference description of SINA generated fields
 
 Logging Options
 ---------------
@@ -405,11 +436,19 @@ Logging Options
    Use ANSI codes to show alignments dumped by :option:`--show-diff`
    in color.
 
-ARB I/O Options
----------------
+
+.. _ARB Options:
+
+ARB Options
+-----------
 
 These options configure behavior supported only by the ARB backend for
 input and output sequences.
+
+.. option:: --arb-list-fields=FILE
+
+   Show the per-sequence meta-data fields available in the specified
+   ARB database and exit.
 
 .. option:: --markcopied
 
@@ -443,8 +482,11 @@ input and output sequences.
    Do not process the first *n* sequences. Can be combined with
    :option:`--select-file` and :option:`--select-step`.
 
-FASTA I/O Options
------------------
+
+.. _FASTA Options:
+
+FASTA Options
+-------------
 
 These options configure behavior supported only by the FASTA backend
 for input and output sequences.
@@ -475,18 +517,41 @@ for input and output sequences.
 
 .. option:: --fasta-idx=n
 
-   Only process sequences starting withing the *n*\th block of bytes
-   within the input FASTA file.
-
-   .. deprecated:: 1.4
-      This feature was superseded by the built-in parallelization.
+   Only process sequences *starting* withing the *n*\th block of bytes
+   within the input FASTA file. The first block has index 0.
 
 .. option:: --fasta-block=size
 
    Sets the size in bytes for the blocks used by :option:`--fasta-idx`.
 
-   .. deprecated:: 1.4
-      This feature was superseded by the built-in parallelization.
+
+.. _CSV Options:
+
+CSV Options
+-----------
+
+These options configure the CSV output backend.
+
+.. option:: --csv-crlf
+
+   Enables RFC4180 compliant CSV output using CRLF as line
+   separator. This was the default behavior for the old, deprecated
+   CSV writer enabled using :option:`--meta-fmt`.
+
+.. option:: --csv-sep=sep (,)
+
+   Specifies the string used to separate fields. May be multple
+   characters. By default, a comma is used when writing to STDOUT or
+   files ending in ``.csv`` or ``.csv.gz`` and a ``TAB`` character is
+   used when writing to files ending in ``.tsv`` or ``.tsv.gz``.
+
+ .. option:: --csv-id=id (name)
+
+    Specifies the field name used for the always present ID
+    column. For sequences read from FASTA, this is the first word of
+    the header. For sequences read from ARB, this is the ``name``
+    field. By default, the column name is ``name``.
+
 
 Alignment Options
 -----------------
@@ -790,6 +855,9 @@ Search & Classify Options
    sequence. In the output sequence, the field names will each be
    prefixed with `copy_<acc>_` where `<acc>` is the value of the *acc*
    field in the reference.
+
+   Use :option:`--arb-list-fields` for listing the fields available in
+   a given ARB database.
    
 .. option:: --search-iupac=[pessimistic|*optimistic|exact] (optimistic)
 
@@ -859,3 +927,6 @@ Search & Classify Options
    used in conjunction with :option:`--lowercase`\=unaligned to ignore
    unaligned bases during the search and classification stage.
 
+.. only:: man
+
+   .. include:: fields.rst

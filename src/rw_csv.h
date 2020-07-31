@@ -26,48 +26,44 @@ non-source form of such a combination shall include the source code
 for the parts of ARB used as well as that of the covered work.
 */
 
-#ifndef _LOG_H_
-#define _LOG_H_
-
-#include <boost/program_options.hpp>
-#include "spdlog/spdlog.h"
-#include "spdlog/fmt/ostr.h" // logging from ostreamable
+#ifndef _RW_CSV_H_
+#define _RW_CSV_H_
 
 #include "tray.h"
 
+#include <fstream>
+#include <memory>
+#include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
+
 namespace sina {
 
-class Log {
-private:
-    struct options;
-    static std::unique_ptr<options> opts;
+class logger_progress;
+
+namespace rw_csv {
+class writer {
+    struct priv_data;
+    std::shared_ptr<priv_data> data;
 public:
-    class printer {
-        struct priv_data;
-        std::shared_ptr<priv_data> data;
-    public:
-        printer();
-        ~printer();
-        printer(const printer& /*o*/);
-        printer& operator=(const printer& /*o*/);
-        tray operator()(tray /*t*/);
-    };
-
-    static std::shared_ptr<spdlog::logger> create_logger(std::string name);
-    static void add_sink(spdlog::sink_ptr);
-    static void remove_sink(spdlog::sink_ptr);
-
-    static void get_options_description(boost::program_options::options_description& main,
-                                        boost::program_options::options_description& adv);
-    static void validate_vm(boost::program_options::variables_map& /*vm*/,
-                            boost::program_options::options_description& /*unused*/);
-
+    writer(const boost::filesystem::path& outfile,
+           unsigned int copy_relatives,
+           std::vector<std::string>& fields);
+    writer(const writer& o);
+    writer& operator=(const writer& o);
+    ~writer();
+    tray operator()(tray t);
 };
 
+void get_options_description(boost::program_options::options_description& main,
+                             boost::program_options::options_description& adv);
+void validate_vm(boost::program_options::variables_map& /*unused*/,
+                 boost::program_options::options_description& /*unused*/);
+
+} // namespace rw_csv
 } // namespace sina
 
+#endif // _RW_FASTA_H
 
-#endif // _LOG_H_
 /*
   Local Variables:
   mode:c++

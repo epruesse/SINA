@@ -11,7 +11,7 @@
 CONDA_PACKAGES="autoconf automake libtool pkg-config boost arb-bio-devel lcov"
 CONDA_PACKAGES="$CONDA_PACKAGES git tbb tbb-devel glib libiconv bc sed sphinx nomkl"
 
-CONDA_BASEURL=https://repo.continuum.io/miniconda
+CONDA_BASEURL=https://repo.anaconda.com/miniconda
 
 # expand '~' in MINICONDA path (alternatives to eval are too long)
 eval MINICONDA=$MINICONDA
@@ -32,7 +32,9 @@ esac
 if test -d $MINICONDA; then
     echo "Found conda install"
 else
+    echo "Downloading Miniconda"
     curl $CONDA_BASEURL/Miniconda3-latest-$CONDA_OSNAME-x86_64.sh -o miniconda.sh
+    echo "Installing Miniconda"
     bash miniconda.sh -b -p $MINICONDA
     source $MINICONDA/etc/profile.d/conda.sh
 

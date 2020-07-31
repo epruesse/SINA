@@ -3,6 +3,15 @@
 Changelog
 =========
 
+Version 1.7.0:
+--------------
+ - allow multiple output types at once
+ - add dedicated CSV/TSV output (:issue:`10`)
+ - fix loading reference database from running ARB (:issue:`76`)
+ - report errors when sequence can't be read from ARB (:issue:`73`)
+ - add :option:`--arb-list-fields` listing fields available in ARB
+   database
+
 Version 1.6.1:
 --------------
  - fix progress bar not honoring verbosity (:issue:`85`)

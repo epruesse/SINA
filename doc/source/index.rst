@@ -44,6 +44,7 @@ doi::doi:`10.1093/bioinformatics/bts252`
 
    install
    commandline
+   fields
    CHANGELOG
    GitHub Repo<https://www.github.com/epruesse/SINA>
    Report Bug <https://www.github.com/epruesse/SINA/issues/new>

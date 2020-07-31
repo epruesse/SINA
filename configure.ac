@@ -1,6 +1,6 @@
 # Init
 
-AC_INIT([SINA],[1.6.1],[elmar@pruesse.net],,[http://github.com/epruesse/SINA])
+AC_INIT([SINA],[1.7.0-dev],[elmar@pruesse.net],,[http://github.com/epruesse/SINA])
 AC_COPYRIGHT([Copyright (c) 2005-2018 Elmar Pruesse])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -269,6 +269,10 @@ AX_BOOST_UNIT_TEST_FRAMEWORK
 
 # Allways show warnings
 CXXFLAGS="$CXXFLAGS -W"
+
+# Disable warnings creating too much clutter from within TBB
+CXXFLAGS="$CXXFLAGS -Wno-deprecated-copy"
+
 
 # Generate output
 

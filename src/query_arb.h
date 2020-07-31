@@ -73,6 +73,7 @@ class query_arb{
      * @returns one instance per database file. If the method is called multiple times on the same file the same instance is returned.
      */
     static query_arb* getARBDB(const boost::filesystem::path& file_name);
+    static void closeOpenARBDBs();
 
     static const char* fn_turn;
     static const char* fn_acc;
@@ -131,9 +132,15 @@ class query_arb{
     const cseq& getCseq(const std::string& name);
     cseq getCseqUncached(const std::string& name);
     void putCseq(const cseq& seq);
-    void putSequence(const cseq& seq);//calls write
-    void loadKey(const cseq& c, const std::string& key);
+
+    /**
+     * Loads a meta data entry from ARB into the Cseq
+     * Note that this will only load missing keys, and not update
+     * changed keys unless relpad=true
+     */
+    void loadKey(const cseq& c, const std::string& key, bool reload=false);
     void storeKey(cseq& c, const std::string& key);
+    std::vector<std::tuple<std::string, std::string, int>> listKeys();
 
     long getAlignmentWidth() const;
 
@@ -145,74 +152,22 @@ class query_arb{
     void loadCache(std::vector<std::string>& keys);
     std::vector<cseq*> getCacheContents();
 
+    void copySequence(query_arb& source, const std::string& name, bool mark);
 private:
-    /**
-     * Prints an error statistic to the specified stream.
-     */
-    void printErrors(std::ostream& stream);
-    bool bad() const { return !good(); }
-    bool good() const;
-
-    /**
-     * @return True if errors occurred while accessing the arb-db. False if no errors occurred.
-     */
-    bool hasErrors() const;
     void setMark();
     void setMark(const std::string& name);
     void setMark(const cseq& cs);
 
-    void copySequence(query_arb& qa, const cseq& cs, bool m); //calls write
-    void copySequence(query_arb& other, const std::string& name, bool mark);
 
     // make query_arb non-copyable
     query_arb(const query_arb&) = delete;
     query_arb& operator=(const query_arb&) = delete;
 
-    static void closeOpenARBDBs();
-
-    inline void
-    storeKey(GBDATA* gbmain, GBDATA* gbspec, const std::string& key,
-             cseq::variant var);
-
-    /**
-     * Wrapper for arbs GB_write_float method.
-     * @throw query_arb_exception if pData is null.
-     */
-    void write(GBDATA* pData, double value);
-    /**
-     * Wrapper for arbs GB_write_float method.
-     * @throw query_arb_exception if pData is null.
-     */
-    void write(GBDATA* pData, int value);
-    /**
-     * Wrapper for arbs GB_write_string method.
-     * @throw query_arb_exception if pData is null.
-     */
-    void write(GBDATA* pData, const char* pValue);
-    /**
-     * Wrapper for arbs GB_write_flag method.
-     * @throw query_arb_exception if pData is null.
-     */
-    void write_flag(GBDATA* pData, long value);
-
-    /**
-     * Adds an error to the internal error list
-     */
-    void addError(const std::string& message);
-
     struct priv_data;
-    std::shared_ptr<priv_data> data;
-    struct storeKey_visitor;
-    struct putKeyVal_visitor;
+    std::unique_ptr<priv_data> data;
     static std::map<boost::filesystem::path, query_arb*> open_arb_dbs;
 
 };
-
-// inline implementations
-inline void
-query_arb::copySequence(query_arb& qa, const cseq& cs, bool m) {
-    copySequence(qa,cs.getName(), m);
-}
 
 inline void
 query_arb::setMark(const cseq& cs) {

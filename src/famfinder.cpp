@@ -215,17 +215,21 @@ famfinder::get_options_description(po::options_description& main,
 void famfinder::validate_vm(po::variables_map& vm,
                             po::options_description&  /*desc*/) {
     if (vm["db"].empty() && vm["ptdb"].empty()) {
-        throw logic_error("Family Finder: PT server database not set");
+        throw logic_error("Family Finder: Must have reference database (--db/-r)");
     }
     if (not vm["ptdb"].empty()) {
-        logger->warn("Option --ptdb deprecated; please use --db instead");
+        logger->warn("Option --ptdb deprecated; please use --db/-r instead");
     }
     if (not vm["ptdb"].empty() && not vm["db"].empty()) {
-        throw logic_error("Family Finder: please use only new --db option");
+        throw logic_error("Family Finder: please use only new --db/-r option");
     }
     if (not fs::exists(opts.database)) {
-        throw logic_error(fmt::format("Reference database file {} does not exist",
-                                      opts.database));
+        if (opts.database.compare(":") == 0) {
+            logger->warn("Loading reference database from running ARB DB server");
+        } else {
+            throw logic_error(fmt::format("Reference database file {} does not exist",
+                                          opts.database));
+        }
     }
     if (vm["fs-req"].as<unsigned int>() < 1) {
         throw logic_error("Family Finder: fs-req must be >= 1");
@@ -279,12 +283,14 @@ famfinder::impl::impl()
             opts.fs_kmer_norel,
             opts.fs_kmer_mm,
             opts.pt_port);
+        logger->warn("Using ARB PT server for reference search");
         break;
     case ENGINE_SINA_KMER:
         index = kmer_search::get_kmer_search(
             opts.database,
             opts.fs_kmer_len,
             opts.fs_no_fast);
+        logger->warn("Using internal engine for reference search");
         break;
     default:
         throw std::runtime_error("Unknown sequence search engine type");

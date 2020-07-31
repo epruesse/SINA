@@ -78,8 +78,8 @@ begin_test "Meta Data in FASTA header"
 capture_stdouterr "$SINA -i $T/test.arb -o $T/test.fasta --meta-fmt header -f acc"
 assert_exit_success
 assert_output_contains "align 12 sequences"
-grep "^>" $T/test.fasta | sed 's/.*\[acc=\([^]]*\)\].*/\1/' | sort -u > $T/accs.txt
-capture_stdout "wc -l $T/accs.txt"
+grep "^>" $T/test.fasta | sed 's/.*\[acc=\([^]]*\)\].*/\1/' | sort -u > $T/acc.txt
+capture_stdout "wc -l $T/acc.txt"
 assert_output_contains "12"
 end_test
 
@@ -87,7 +87,7 @@ begin_test "Meta Data in sidecar CSV"
 capture_stdouterr "$SINA -i $T/test.arb -o $T/test.fasta --meta-fmt csv -f acc"
 assert_exit_success
 assert_output_contains "align 12 sequences"
-cut -d, -f2 $T/test.csv | tail -n+2 | sort  > $T/accs2.txt
+cut -d, -f2 $T/test.csv | tr -d $'\\r' | tail -n+2 | sort  > $T/acc2.txt
 assert_exit_success "cmp $T/acc.txt $T/acc2.txt"
 end_test
 
@@ -95,6 +95,43 @@ begin_test "Meta Data in FASTA comments"
 capture_stdouterr "$SINA -i $T/test.arb -o $T/test.fasta --meta-fmt comment -f acc"
 assert_exit_success
 assert_output_contains "align 12 sequences"
-sed -n 's/^; acc=//p' $T/test.fasta | sort > $T/accs2.txt
+sed -n 's/^; acc=//p' $T/test.fasta | sort > $T/acc2.txt
 assert_exit_success "cmp $T/acc.txt $T/acc2.txt"
 end_test
+
+begin_test "CSV writer"
+capture_stdouterr "$SINA -i $T/test.arb -o $T/test.fasta -o $T/test.csv -f acc"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+cut -d, -f2 $T/test.csv | tail -n+2 | sort  > $T/acc2.txt
+assert_exit_success "cmp $T/acc.txt $T/acc2.txt"
+end_test
+
+begin_test "CSV writer - stdout"
+capture_stdouterr "$SINA -i $T/test.arb -o $T/test.fasta --outtype CSV -o - -f acc > $T/test.csv"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+cut -d, -f2 $T/test.csv | tail -n+2 | sort  > $T/acc2.txt
+assert_exit_success "cmp $T/acc.txt $T/acc2.txt"
+end_test
+
+begin_test "CSV writer - gzip"
+capture_stdouterr "$SINA -i $T/test.arb  -o $T/test.csv.gz -f acc"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+gzip -dc $T/test.csv.gz | cut -d, -f2 | tail -n+2 | sort  > $T/acc2.txt
+assert_exit_success "cmp $T/acc.txt $T/acc2.txt"
+end_test
+
+begin_test "CSV writer - CRLF"
+capture_stdouterr "$SINA -i $T/test.arb -o $T/test.csv -f acc --csv-crlf"
+assert_exit_success
+assert_output_contains "align 12 sequences"
+cut -d, -f2 $T/test.csv | tail -n+2 | sort  > $T/acc2.txt
+assert_exit_failure "cmp $T/acc.txt $T/acc2.txt"
+assert_exit_success "tr -d $'\\r' < $T/acc2.txt | cmp $T/acc.txt -"
+assert_exit_success "grep -c $'\\r' $T/test.csv"
+assert_output_contains 13
+end_test
+
+

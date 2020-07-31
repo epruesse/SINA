@@ -24,7 +24,7 @@ copyright = '2019, Elmar Pruesse'
 author = 'Elmar Pruesse'
 
 # The full version, including alpha/beta/rc tags
-release = '1.4.1-dev'
+release = '1.7.0-dev'
 
 # The short X.Y version
 version = '.'.join(release.split('.')[:2])
