@@ -29,6 +29,7 @@ for the parts of ARB used as well as that of the covered work.
 #include "rw_arb.h"
 
 #include <iostream>
+#include <iomanip>
 
 #include <fstream>
 using std::istream;
@@ -86,6 +87,10 @@ rw_arb::get_options_description(po::options_description& /*main*/,
 
     po::options_description od(module_name);
     od.add_options()
+        // show
+        ("arb-list-fields",
+         po::value<string>(),
+         "list available ARB fields and exit")
         // write
         ("markcopied",
          po::bool_switch(&opts->markcopied),
@@ -113,8 +118,41 @@ rw_arb::get_options_description(po::options_description& /*main*/,
 }
 
 void
-rw_arb::validate_vm(po::variables_map& /*vm*/,
+rw_arb::validate_vm(po::variables_map& vm,
                     po::options_description& /*desc*/) {
+    if (vm.count("arb-list-fields") > 0u) {
+        auto fname = vm["arb-list-fields"].as<string>();
+        auto arb = query_arb::getARBDB(fname);
+        auto keys = arb->listKeys();
+        std::cout << "Listing ARB database keys for '" << fname << "':" << std::endl;
+        size_t width_name = 0, width_type_str = 0;
+        for (auto& key: keys) {
+            auto name = std::get<0>(key);
+            auto type_str = std::get<1>(key);
+            width_name = std::max(name.size(), width_name);
+            width_type_str = std::max(type_str.size(), width_type_str);
+        }
+        std::cout
+            << std::left
+            << std::setw(width_name) << "name" << " | "
+            << std::setw(width_type_str) << "data type" << " | "
+            << "type id"
+            << std::endl
+            << std::string(width_name + 3 + width_type_str + 3 + 7, '-')
+            << std::endl;
+        for (auto& key: keys) {
+            auto name = std::get<0>(key);
+            auto type_str = std::get<1>(key);
+            auto type = std::get<2>(key);
+            std::cout
+                << std::left
+                << std::setw(width_name) << name << " | "
+                << std::setw(width_type_str) << type_str << " | "
+                << type
+                << std::endl;
+        }
+        exit(0);
+    }
 }
 
 

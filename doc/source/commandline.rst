@@ -141,7 +141,7 @@ General Options
 .. option::  -f fields, --fields=fields
 
    Configures the set of fields written to the output file. See
-   :ref:`Output Field Reference` for a description of the available
+   :ref:`Field Reference` for a description of the available
    fields.
 
 .. option:: -p, --threads (automatic)
@@ -313,13 +313,18 @@ at least the fraction :option:`--lca-quorum` of the search result.
 
    Enables the classification stage. The parameter *name* must be a
    colon or comma separated list of field names in the search database
-   containing the classification reference data. When using a SILVA
-   ARB database as reference, the fields `tax_slv`, `tax_embl` and
-   `tax_ltp` contain the reference classifications according to the
-   SILVA, EMBL-EBI/ENA and LTP taxonomies, respectively. When using a
-   SILVA SSU ARB database, the fields `tax_gg` and `tax_rdp` are
+   containing the classification reference data. Use
+   :option:`--arb-list-fields` to show a list of the fields available
+   in a given ARB database. When using a SILVA ARB database as
+   reference, the fields `tax_slv`, `tax_embl` (renamed to
+   `tax_embl_ebi_ena` in newer releases) and `tax_ltp` contain the
+   reference classifications according to the SILVA, EMBL-EBI/ENA and
+   LTP taxonomies, respectively. When using a SILVA SSU ARB database,
+   the fields `tax_gg` (only older databases) and `tax_rdp` are
    available additionally, containing the reference classifications
-   according to RDP II and Greengenes, respectively.
+   according to RDP II and Greengenes, respectively. Newer SILVA
+   databases also contain the field `tax_gtdb` containing
+   classifications from the Genome Taxonomy Database.
 
 .. option:: --lca-quorum=fraction (0.7)
 
@@ -439,6 +444,11 @@ ARB Options
 
 These options configure behavior supported only by the ARB backend for
 input and output sequences.
+
+.. option:: --arb-list-fields=FILE
+
+   Show the per-sequence meta-data fields available in the specified
+   ARB database and exit.
 
 .. option:: --markcopied
 
@@ -845,6 +855,9 @@ Search & Classify Options
    sequence. In the output sequence, the field names will each be
    prefixed with `copy_<acc>_` where `<acc>` is the value of the *acc*
    field in the reference.
+
+   Use :option:`--arb-list-fields` for listing the fields available in
+   a given ARB database.
    
 .. option:: --search-iupac=[pessimistic|*optimistic|exact] (optimistic)
 

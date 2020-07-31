@@ -140,6 +140,7 @@ class query_arb{
      */
     void loadKey(const cseq& c, const std::string& key, bool reload=false);
     void storeKey(cseq& c, const std::string& key);
+    std::vector<std::tuple<std::string, std::string, int>> listKeys();
 
     long getAlignmentWidth() const;
 

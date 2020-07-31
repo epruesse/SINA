@@ -374,6 +374,40 @@ query_arb::loadKey(const cseq& c, const string& key, bool reload) {
     ::loadKey(const_cast<cseq&>(c), key, data->getGBDATA(c.getName()));
 }
 
+vector<std::tuple<string, string, int>>
+query_arb::listKeys() {
+    vector<std::tuple<string, string, int>> res;
+    GB_transaction trans(data->gbmain);
+    GBDATA* gb_keys = GB_search(data->gbmain, CHANGE_KEY_PATH, GB_CREATE_CONTAINER);
+    if (gb_keys) {
+        for (GBDATA* gbd = GB_entry(gb_keys, CHANGEKEY);
+             gbd; gbd = GB_nextEntry(gbd)) {
+            const char* name = GBT_read_char_pntr(gbd, CHANGEKEY_NAME);
+            long int type =  *GBT_read_int(gbd, CHANGEKEY_TYPE);
+            const char* type_str;
+            switch(type) {
+                case GB_NONE:        type_str="None"; break;
+                case GB_BIT:         type_str="bit"; break;
+                case GB_BYTE:        type_str="byte"; break;
+                case GB_INT:         type_str="int"; break;
+                case GB_FLOAT:       type_str="float"; break;
+                case GB_POINTER:     type_str="pointer"; break;
+                case GB_BITS:        type_str="bit-array"; break;
+                case GB_BYTES:       type_str="byte-array"; break;
+                case GB_INTS:        type_str="int-array"; break;
+                case GB_FLOATS:      type_str="float-array"; break;
+                case GB_STRING:      type_str="string"; break;
+                case GB_STRING_SHRT: type_str="short-string"; break;
+                case GB_DB:          type_str="container"; break;
+                default:
+                    type_str = "unknown";
+            }
+            res.push_back(std::make_tuple(name, type_str, type));
+        }
+    }
+    return res;
+}
+
 
 query_arb::query_arb(const fs::path& arbfile)
     : data(new priv_data()) {
