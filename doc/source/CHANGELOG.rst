@@ -3,6 +3,10 @@
 Changelog
 =========
 
+Version 1.7.1:
+--------------
+ - Fix rounding error in lca classifier (:issue:`93`)
+
 Version 1.7.0:
 --------------
  - allow multiple output types at once

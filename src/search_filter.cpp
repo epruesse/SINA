@@ -377,7 +377,7 @@ search_filter::operator()(tray t) {
         for (vector<string>& vs: group_names) {
             reverse(vs.begin(), vs.end());
         }
-        int outliers = vc.size() * (1 - opts->lca_quorum);
+        int outliers = vc.size() * (1 - opts->lca_quorum) +.5;
         while (outliers >= 0 && !group_names.empty()) {
             auto it = group_names.begin();
             if (it->empty()) {
