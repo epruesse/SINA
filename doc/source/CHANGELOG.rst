@@ -3,6 +3,10 @@
 Changelog
 =========
 
+Version 1.7.2:
+--------------
+ - Fix building without TBB Malloc library (:issue:`98`)
+
 Version 1.7.1:
 --------------
  - Fix rounding error in lca classifier (:issue:`93`)
