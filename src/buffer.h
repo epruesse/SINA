@@ -29,7 +29,15 @@ for the parts of ARB used as well as that of the covered work.
 #ifndef _BUFFER_H_
 #define _BUFFER_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <new>
+
+#ifdef HAVE_TBB_MALLOC
 #include <tbb/scalable_allocator.h>
+#else
+#include <stdlib.h>
+#endif
 
 namespace sina {
 
@@ -38,10 +46,18 @@ class buffer {
 public:
     using size_type = size_t;
     explicit buffer(size_type size) {
+#ifdef HAVE_TBB_MALLOC
         _start = (T*)scalable_malloc(sizeof(T) * size);
+#else
+        _start = (T*)malloc(sizeof(T) * size);
+#endif
     }
     ~buffer() {
+#ifdef HAVE_TBB_MALLOC
         scalable_free(_start);
+#else
+        free(_start);
+#endif
     }
     inline T& operator[](size_type idx) {
         return _start[idx];
@@ -54,23 +70,35 @@ template<typename T, size_t ALIGN=64>
 class aligned_buffer {
 public:
     using size_type = size_t;
+    using offset_t = uint16_t;
     explicit aligned_buffer(size_type size) {
         size_type alloc = sizeof(T) * size + sizeof(offset_t) + ALIGN - 1;
+#ifdef HAVE_TBB_MALLOC
         void *ptr = scalable_malloc(alloc);
-        if (!ptr) { throw std::bad_alloc(); }
+#else
+        void *ptr = malloc(alloc);
+#endif
+        if (!ptr) {
+            throw std::bad_alloc();
+        }
         size_t res = ((size_t)ptr + sizeof(offset_t) + ALIGN - 1) & ~(ALIGN -1);
         *((offset_t*)res - 1) = (offset_t)((size_t)res - (size_t)ptr);
         _start = (T*)res;
     }
+
     ~aligned_buffer() {
         offset_t offset = *((offset_t*)_start - 1);
+#ifdef HAVE_TBB_MALLOC
         scalable_free((char*)_start - offset);
+#else
+        free((char*)_start - offset);
+#endif
     }
+
     inline T& operator[](size_type idx) {
         return _start[idx];
     }
 private:
-    using offset_t = uint16_t;
     T* _start;
 };
 

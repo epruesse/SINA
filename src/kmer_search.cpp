@@ -53,7 +53,6 @@ using std::string;
 namespace fs = boost::filesystem;
 
 #include <tbb/tbb.h>
-#include <tbb/cache_aligned_allocator.h>
 #include <cstdio>
 #include <sys/stat.h>
 

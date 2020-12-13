@@ -32,9 +32,6 @@ for the parts of ARB used as well as that of the covered work.
 #include <vector>
 #include <iostream>
 
-#include <tbb/scalable_allocator.h>
-#include <tbb/cache_aligned_allocator.h>
-
 #include "helpers.h"
 
 /** Abstract base class for container of ids
@@ -43,8 +40,6 @@ for the parts of ARB used as well as that of the covered work.
 class idset {
 public:
     using value_type = uint32_t;
-    // using inc_t = std::vector<int16_t, tbb::cache_aligned_allocator<int16_t>>;
-    //using data_t = std::vector<uint8_t, tbb::cache_aligned_allocator<uint8_t>>;
     using inc_t = std::vector<int16_t>;
     using data_t = std::vector<uint8_t>;
 
@@ -96,7 +91,7 @@ public:
     }
 
     /* set bit at @id */
-    void set(value_type id) {
+    void set(value_type id) const {
         data[block_index(id)] |= 1 << (block_offset(id));
     }
 
@@ -122,7 +117,6 @@ public:
         if (!get(id)) ++_size;
         set(id);
     }
-
 
     int increment(inc_t& t) const override {
         for (value_type i=0; i < data.size(); i++) {
@@ -150,7 +144,7 @@ public:
         data_t::const_iterator _it;
     public:
         explicit const_iterator(const data_t::const_iterator& it) : _it(it) {}
-        value_type operator*() {
+        value_type operator*() const {
             return *(value_type*)(&*_it);
         }
         const_iterator& operator++() {

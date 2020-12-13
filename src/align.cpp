@@ -60,7 +60,7 @@ using std::exception;
 #include <algorithm>
 using std::find_if;
 
-#ifdef HAVE_TBB
+#ifdef HAVE_TBB_MALLOC
 #  include "tbb/tbb_allocator.h"
 #endif
 
@@ -481,7 +481,11 @@ sina::do_align(cseq& c, const cseq& orig, MASTER &m,
     cnsts_type cns(tr);
 
     // create the alignment "mesh" (not quite a matrix)
+#ifdef HAVE_TBB_MALLOC
     using mesh_t = mesh<MASTER, cseq, data_type, tbb::tbb_allocator<data_type>>;
+#else
+    using mesh_t = mesh<MASTER, cseq, data_type>;
+#endif
     logger->debug("Allocating {}MB for alignment matrix", mesh_t::guessMem(m, c)/1024/1024);
     mesh_t A(m, c);
 
